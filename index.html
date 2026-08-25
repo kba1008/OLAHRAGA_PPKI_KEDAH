@@ -553,16 +553,16 @@ const bolehRekod=n=>!!U&&(isAdmin()||jurulatihAcara(n).some(j=>String(j["EMEL JU
 const penyertaan=n=>((DB&&DB.penyertaan)||[]).filter(p=>p.ACARA===n);
 const rekodAcara=n=>((DB&&DB.rekod&&DB.rekod[n])||[]);
 const kejohananAcara=n=>((DB&&DB.kejohanan)||[]).filter(k=>String(k.ACARA)===String(n));
-/* Rekod kejohanan ringkas: tiga peringkat — MSSD, MSSK & NO.3 MSSK */
-const PERINGKAT_KEJOHANAN=["MSSD","MSSK","NO.3 MSSK"];
+/* Rekod kejohanan ringkas: tiga peringkat — MSSK, MSSM & NO.3 MSSM */
+const PERINGKAT_KEJOHANAN=["MSSK","MSSM","NO.3 MSSM"];
 const namaPeringkat=k=>{ const t=String((k&&k["NAMA KEJOHANAN"])||"").toUpperCase().replace(/\s+/g," ").trim();
-  if(/NO\.?\s*3/.test(t)) return "NO.3 MSSK";
-  return t.indexOf("MSSK")>=0?"MSSK":"MSSD"; };
+  if(/NO\.?\s*3/.test(t)) return "NO.3 MSSM";
+  return t.indexOf("MSSM")>=0?"MSSM":"MSSK"; };
 const kejohananKatSemua=(n,kat)=>kejohananAcara(n)
   .filter(k=>String(k.KATEGORI||"").toUpperCase()===String(kat||"").toUpperCase())
   .sort((a,b)=>PERINGKAT_KEJOHANAN.indexOf(namaPeringkat(a))-PERINGKAT_KEJOHANAN.indexOf(namaPeringkat(b)));
 const kejohananPeringkat=(n,kat,p)=>kejohananKatSemua(n,kat).find(k=>namaPeringkat(k)===p)||null;
-/* Sasaran = rekod terbaik antara MSSD / MSSK */
+/* Sasaran = rekod terbaik antara MSSK / MSSM */
 function kejohananKat(n,kat){
   const l=kejohananKatSemua(n,kat).filter(k=>Number(k.NILAI)>0);
   if(!l.length) return null;
@@ -1412,7 +1412,7 @@ function headerKategoriRekod(n,info,k,bil,boleh){
 function formKejohanan(n,kat,id,peringkat){
   const info=acaraInfo(n);
   const sedia=id?kejohananAcara(n).find(k=>String(k.ID)===String(id)):null;
-  const pkt=sedia?namaPeringkat(sedia):(peringkat||"MSSD");
+  const pkt=sedia?namaPeringkat(sedia):(peringkat||"MSSK");
   const katSedia=[...new Set(penyertaan(n).map(p=>String(p.KATEGORI||"").toUpperCase()).filter(Boolean))].sort();
   overlay(`<div class="big">${sedia?"Kemas Kini":"Tambah"} Rekod Kejohanan</div>
   <div class="small">${esc(n)} • ${info.JENIS==="MASA"?"Masa (saat / minit)":"Jarak (meter)"}</div>
@@ -1435,7 +1435,7 @@ async function simpanKejohanan(n,id){
   if(!kategori) return toast("Kategori diperlukan");
   if(!(nilai>0)) return toast("Masukkan nilai rekod yang sah");
   if(btn){btn.disabled=true;btn.textContent="Menyimpan…";}
-  const peringkat=$("#kn").value.trim().toUpperCase()||"MSSD";
+  const peringkat=$("#kn").value.trim().toUpperCase()||"MSSK";
   const p={acara:n,id:id||"",kategori,namaKejohanan:peringkat,tahun:$("#kt").value.trim(),
     pemegang:"",nilai,keputusan:fmtNilai(nilai,info),catatan:"",...who()};
   try{
@@ -2371,7 +2371,7 @@ function vDashboard(){
       <button class="btn sm" onclick="cetakLaporanPrestasi()">📊 Laporan Prestasi Setiap Atlet</button>
       <button class="btn sm" onclick="cetakLaporanBmi()">⚖️ Laporan BMI Atlet</button>
     </div>
-    <div class="small" style="margin-top:8px">Analisis membandingkan <b>rekod terbaik latihan</b> setiap atlet dengan <b>rekod MSSK</b> (melepasi = <b style="color:#b45309">harapan emas</b>) dan <b>rekod NO.3 MSSK</b> (melepasi = <b style="color:#0f766e">harapan podium</b>) mengikut kategori.</div>
+    <div class="small" style="margin-top:8px">Analisis membandingkan <b>rekod terbaik latihan</b> setiap atlet dengan <b>rekod MSSM</b> (melepasi = <b style="color:#b45309">harapan emas</b>) dan <b>rekod NO.3 MSSM</b> (melepasi = <b style="color:#0f766e">harapan podium</b>) mengikut kategori.</div>
   </div>
   ${panelHarapan()}
   ${panelBmi()}
@@ -2578,11 +2578,11 @@ function cetakLaporan(mod){
 }
 
 
-/* ========== ANALISIS ANGGARAN PINGAT (banding MSSK & NO.3 MSSK) ==========
+/* ========== ANALISIS ANGGARAN PINGAT (banding MSSM & NO.3 MSSM) ==========
    Rekod TERBAIK LATIHAN setiap atlet dibandingkan dengan DUA sasaran:
-     • Rekod MSSK        → jika dilepasi = HARAPAN EMAS
-     • Rekod NO.3 MSSK   → jika dilepasi = HARAPAN PODIUM
-   Jika belum melepasi NO.3 MSSK, jurang usaha dinyatakan.                */
+     • Rekod MSSM        → jika dilepasi = HARAPAN EMAS
+     • Rekod NO.3 MSSM   → jika dilepasi = HARAPAN PODIUM
+   Jika belum melepasi NO.3 MSSM, jurang usaha dinyatakan.                */
 function jurangPingat(terbaik,sasaran,jenis){
   return jenis==="MASA" ? (Number(terbaik)-Number(sasaran)) : (Number(sasaran)-Number(terbaik));
 }
@@ -2620,13 +2620,13 @@ function analisisPingat(namaAcara){
   Object.keys(peta).sort().forEach(kk=>{
     const g=peta[kk];
     if(kategoriDigugur(namaAcara,g.kategori)) return; /* kategori digugurkan — tidak dibanding */
-    const rkE=kejohananPeringkat(namaAcara,g.kategori,"MSSK");
-    const rkP=kejohananPeringkat(namaAcara,g.kategori,"NO.3 MSSK");
+    const rkE=kejohananPeringkat(namaAcara,g.kategori,"MSSM");
+    const rkP=kejohananPeringkat(namaAcara,g.kategori,"NO.3 MSSM");
     const adaEmas=!!(rkE&&Number(rkE.NILAI)>0);
     const adaPodium=!!(rkP&&Number(rkP.NILAI)>0);
     const sasEmas=adaEmas?Number(rkE.NILAI):null;
     const sasPodium=adaPodium?Number(rkP.NILAI):null;
-    /* Sasaran utama untuk jurang usaha = NO.3 MSSK, jika tiada guna MSSK */
+    /* Sasaran utama untuk jurang usaha = NO.3 MSSM, jika tiada guna MSSM */
     const adaSasaran=adaPodium||adaEmas;
     const baris=Object.keys(g.atlet).map(id=>{
       const r=g.atlet[id];
@@ -2669,11 +2669,11 @@ function analisisPingat(namaAcara){
 /* Teks catatan bagi kolum "Anggaran / Usaha Diperlukan" */
 function remakPingat(b,info){
   if(b.taraf==="TIADA_REKOD") return `<b style="color:#b42318">⛔ TIADA REKOD LATIHAN</b> — sila masukkan rekod latihan atlet ini.`;
-  if(b.taraf==="TIADA_SASARAN") return `<b style="color:#b54708">⚠️ TIADA REKOD MSSK / NO.3 MSSK</b> — perbandingan tidak dapat dibuat. Sila tetapkan rekod kejohanan bagi kategori ini.`;
-  if(b.taraf==="EMAS") return `<b style="color:#b45309">🥇 HARAPAN EMAS</b> — sudah melepasi rekod MSSK sebanyak <b>${fmtJurang(b.jurangEmas,info)}</b>.`;
-  if(b.taraf==="PODIUM") return `<b style="color:#0f766e">🥈 HARAPAN PODIUM</b> — melepasi rekod NO.3 MSSK sebanyak <b>${fmtJurang(b.jurangPodium,info)}</b>${b.adaEmas?`; perlu ${info.JENIS==="MASA"?"pantaskan":"tambah"} <b>${fmtJurang(b.jurangEmas,info)}</b> lagi untuk harapan emas.`:"."}`;
+  if(b.taraf==="TIADA_SASARAN") return `<b style="color:#b54708">⚠️ TIADA REKOD MSSM / NO.3 MSSM</b> — perbandingan tidak dapat dibuat. Sila tetapkan rekod kejohanan bagi kategori ini.`;
+  if(b.taraf==="EMAS") return `<b style="color:#b45309">🥇 HARAPAN EMAS</b> — sudah melepasi rekod MSSM sebanyak <b>${fmtJurang(b.jurangEmas,info)}</b>.`;
+  if(b.taraf==="PODIUM") return `<b style="color:#0f766e">🥈 HARAPAN PODIUM</b> — melepasi rekod NO.3 MSSM sebanyak <b>${fmtJurang(b.jurangPodium,info)}</b>${b.adaEmas?`; perlu ${info.JENIS==="MASA"?"pantaskan":"tambah"} <b>${fmtJurang(b.jurangEmas,info)}</b> lagi untuk harapan emas.`:"."}`;
   const perlu=info.JENIS==="MASA"?"pantaskan masa":"tambah jarak";
-  return `<b style="color:${b.taraf==="HAMPIR"?"#b54708":"#667085"}">${b.taraf==="HAMPIR"?"🔸 HAMPIR PODIUM":"⬜ PERLU USAHA"}</b> — perlu ${perlu} <b>${fmtJurang(b.jurang,info)}</b> lagi untuk capai NO.3 MSSK${b.adaEmas&&b.jurangEmas!==null?`, atau <b>${fmtJurang(b.jurangEmas,info)}</b> untuk rekod MSSK`:""}.`;
+  return `<b style="color:${b.taraf==="HAMPIR"?"#b54708":"#667085"}">${b.taraf==="HAMPIR"?"🔸 HAMPIR PODIUM":"⬜ PERLU USAHA"}</b> — perlu ${perlu} <b>${fmtJurang(b.jurang,info)}</b> lagi untuk capai NO.3 MSSM${b.adaEmas&&b.jurangEmas!==null?`, atau <b>${fmtJurang(b.jurangEmas,info)}</b> untuk rekod MSSM`:""}.`;
 }
 /* Cip taraf kecil */
 function cipTaraf(t){
@@ -2691,17 +2691,17 @@ function panelPingat(namaAcara){
     <div class="card" style="padding:10px 14px;margin-bottom:8px">
       <div><b>🥇 Anggaran Pingat — ${esc(g.kategori)}</b></div>
       <div class="small" style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 12px">
-        <span>🏆 MSSK: <b>${g.adaEmas?fmtNilai(g.sasaranEmas,info):"—"}</b></span>
-        <span>🏆 NO.3 MSSK: <b>${g.adaPodium?fmtNilai(g.sasaranPodium,info):"—"}</b></span>
+        <span>🏆 MSSM: <b>${g.adaEmas?fmtNilai(g.sasaranEmas,info):"—"}</b></span>
+        <span>🏆 NO.3 MSSM: <b>${g.adaPodium?fmtNilai(g.sasaranPodium,info):"—"}</b></span>
         <span style="color:#b45309"><b>${g.bilEmas}</b> harapan emas</span>
         <span style="color:#0f766e"><b>${g.bilPodium}</b> harapan podium</span>
         ${g.bilTiadaRekod?`<span style="color:#b42318"><b>${g.bilTiadaRekod}</b> tiada rekod latihan</span>`:""}
       </div>
-      ${g.adaSasaran?"":`<div class="small" style="color:#b54708;margin-top:4px">⚠️ Tiada rekod MSSK / NO.3 MSSK ditetapkan — perbandingan tidak dapat dibuat.</div>`}
+      ${g.adaSasaran?"":`<div class="small" style="color:#b54708;margin-top:4px">⚠️ Tiada rekod MSSM / NO.3 MSSM ditetapkan — perbandingan tidak dapat dibuat.</div>`}
       ${g.baris.map((b,i)=>`<div class="item" style="cursor:pointer" onclick="go('profil',{id:'${esc(b.id)}'})">
         <div class="rank ${b.taraf==="EMAS"?"g1":(b.taraf==="PODIUM"?"g2":"")}">${b.taraf==="EMAS"?"🥇":(b.taraf==="PODIUM"?"🥈":(b.isyarat?"⚠️":i+1))}</div>
         <div style="flex:1"><div class="nm">${esc(b.nama)} ${cipTaraf(b.taraf)}</div>
-          <div class="sub">⭐ Terbaik latihan: <b>${b.adaRekod?fmtNilai(b.terbaik,info):"—"}</b> • MSSK: <b>${g.adaEmas?fmtNilai(g.sasaranEmas,info):"—"}</b> • NO.3: <b>${g.adaPodium?fmtNilai(g.sasaranPodium,info):"—"}</b></div>
+          <div class="sub">⭐ Terbaik latihan: <b>${b.adaRekod?fmtNilai(b.terbaik,info):"—"}</b> • MSSM: <b>${g.adaEmas?fmtNilai(g.sasaranEmas,info):"—"}</b> • NO.3: <b>${g.adaPodium?fmtNilai(g.sasaranPodium,info):"—"}</b></div>
           <div class="sub">${remakPingat(b,info)}</div>
         </div>
       </div>`).join("")}
@@ -2736,31 +2736,31 @@ function panelHarapan(){
         <div class="nm">${esc(r.b.nama)}</div>
         <div class="sub">${esc(r.acara)} • ${esc(r.kategori)}${r.b.sekolah?" • "+esc(r.b.sekolah):""}</div>
         <div class="sub">⭐ <b>${fmtNilai(r.b.terbaik,r.info)}</b>
-          • MSSK <b>${r.g.adaEmas?fmtNilai(r.g.sasaranEmas,r.info):"—"}</b>
+          • MSSM <b>${r.g.adaEmas?fmtNilai(r.g.sasaranEmas,r.info):"—"}</b>
           • NO.3 <b>${r.g.adaPodium?fmtNilai(r.g.sasaranPodium,r.info):"—"}</b></div>
       </div>
       <div class="right"><div class="nm" style="color:${warna};font-size:12px">${r.b.taraf==="EMAS"?"+"+fmtJurang(r.b.jurangEmas,r.info):(r.b.taraf==="PODIUM"?"+"+fmtJurang(r.b.jurangPodium,r.info):"-"+fmtJurang(r.b.jurang,r.info))}</div>
-        <div class="sub">${r.b.taraf==="EMAS"?"lebih baik dari MSSK":(r.b.taraf==="PODIUM"?"lebih baik dari NO.3":"jurang ke NO.3")}</div></div>
+        <div class="sub">${r.b.taraf==="EMAS"?"lebih baik dari MSSM":(r.b.taraf==="PODIUM"?"lebih baik dari NO.3":"jurang ke NO.3")}</div></div>
     </div>`;
   const blok=(tajuk,warna,arr,kosong)=>`<div class="card" style="padding:10px 14px;margin-bottom:8px">
       <div><b style="color:${warna}">${tajuk}</b> <span class="small">• ${arr.length} atlet</span></div>
       ${arr.length?arr.map(r=>baris(r,warna)).join(""):`<div class="small" style="margin-top:6px;opacity:.7">${kosong}</div>`}
     </div>`;
   return `<div class="card">
-    <div><b>🏅 Harapan Pingat MSSK — Ringkasan Semua Acara</b></div>
-    <div class="small" style="margin-top:4px">Rekod <b>terbaik latihan</b> dibanding dengan <b>rekod MSSK</b> (harapan emas) dan <b>rekod NO.3 MSSK</b> (harapan podium).</div>
+    <div><b>🏅 Harapan Pingat MSSM — Ringkasan Semua Acara</b></div>
+    <div class="small" style="margin-top:4px">Rekod <b>terbaik latihan</b> dibanding dengan <b>rekod MSSM</b> (harapan emas) dan <b>rekod NO.3 MSSM</b> (harapan podium).</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
-      ${kotak("#b45309","🥇 Harapan Emas",H.emas.length,"lepasi rekod MSSK")}
-      ${kotak("#0f766e","🥈 Harapan Podium",H.podium.length,"lepasi rekod NO.3 MSSK")}
+      ${kotak("#b45309","🥇 Harapan Emas",H.emas.length,"lepasi rekod MSSM")}
+      ${kotak("#0f766e","🥈 Harapan Podium",H.podium.length,"lepasi rekod NO.3 MSSM")}
       ${kotak("#b54708","🔸 Hampir Podium",H.hampir.length,"jurang ≤ 10%")}
     </div>
     <div class="row" style="margin-top:8px">
       <button class="btn sm" onclick="cetakLaporanHarapan()">🖨 Cetak Laporan Harapan Pingat</button>
     </div>
   </div>
-  ${blok("🥇 HARAPAN EMAS (lepasi rekod MSSK)","#b45309",H.emas,"Belum ada atlet melepasi rekod MSSK.")}
-  ${blok("🥈 HARAPAN PODIUM (lepasi rekod NO.3 MSSK)","#0f766e",H.podium,"Belum ada atlet melepasi rekod NO.3 MSSK.")}
-  ${blok("🔸 HAMPIR PODIUM (jurang ≤ 10%)","#b54708",H.hampir,"Tiada atlet dalam jarak 10% daripada rekod NO.3 MSSK.")}`;
+  ${blok("🥇 HARAPAN EMAS (lepasi rekod MSSM)","#b45309",H.emas,"Belum ada atlet melepasi rekod MSSM.")}
+  ${blok("🥈 HARAPAN PODIUM (lepasi rekod NO.3 MSSM)","#0f766e",H.podium,"Belum ada atlet melepasi rekod NO.3 MSSM.")}
+  ${blok("🔸 HAMPIR PODIUM (jurang ≤ 10%)","#b54708",H.hampir,"Tiada atlet dalam jarak 10% daripada rekod NO.3 MSSM.")}`;
 }
 /* Laporan boleh cetak — khusus harapan pingat, disusun kemas untuk jurulatih */
 function cetakLaporanHarapan(){
@@ -2775,7 +2775,7 @@ function cetakLaporanHarapan(){
     let h=`<div class="blok"><h2 class="acara" style="color:${warna}">${esc(tajuk)} — ${arr.length} atlet</h2>
       <div style="font-size:11px;color:#475467;margin:2px 0 6px">${nota}</div>
       <table><thead><tr><th>#</th><th>Nama Atlet</th><th>Acara</th><th>Kategori</th><th>Sekolah</th>
-        <th style="text-align:right">Terbaik Latihan</th><th style="text-align:right">Rekod MSSK</th><th style="text-align:right">NO.3 MSSK</th>
+        <th style="text-align:right">Terbaik Latihan</th><th style="text-align:right">Rekod MSSM</th><th style="text-align:right">NO.3 MSSM</th>
         <th style="text-align:right">Jurang</th></tr></thead><tbody>`;
     arr.forEach((r,i)=>{
       const b=r.b,g=r.g,info=r.info;
@@ -2788,20 +2788,20 @@ function cetakLaporanHarapan(){
     return h+`</tbody></table></div>`;
   };
   const ringkasan=`<div class="blok">
-    <h2 class="acara">RINGKASAN HARAPAN PINGAT MSSK</h2>
+    <h2 class="acara">RINGKASAN HARAPAN PINGAT MSSM</h2>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">
-      ${kotak("#b45309","🥇 Harapan Emas",H.emas.length,"lepasi rekod MSSK")}
-      ${kotak("#0f766e","🥈 Harapan Podium",H.podium.length,"lepasi rekod NO.3 MSSK")}
-      ${kotak("#b54708","🔸 Hampir Podium",H.hampir.length,"jurang ≤ 10% ke NO.3 MSSK")}
+      ${kotak("#b45309","🥇 Harapan Emas",H.emas.length,"lepasi rekod MSSM")}
+      ${kotak("#0f766e","🥈 Harapan Podium",H.podium.length,"lepasi rekod NO.3 MSSM")}
+      ${kotak("#b54708","🔸 Hampir Podium",H.hampir.length,"jurang ≤ 10% ke NO.3 MSSM")}
       ${kotak("#1d4ed8","Anggaran Pungutan",H.emas.length+H.podium.length,"emas + podium")}
     </div>
-    <div style="font-size:11px;color:#475467">Kaedah: rekod <b>terbaik latihan</b> setiap atlet dibanding dengan <b>rekod MSSK</b> dan <b>rekod NO.3 MSSK</b> bagi acara &amp; kategori yang sama. Melepasi rekod MSSK = <b>harapan emas</b>; sekadar melepasi rekod NO.3 MSSK = <b>harapan podium</b>.</div>
+    <div style="font-size:11px;color:#475467">Kaedah: rekod <b>terbaik latihan</b> setiap atlet dibanding dengan <b>rekod MSSM</b> dan <b>rekod NO.3 MSSM</b> bagi acara &amp; kategori yang sama. Melepasi rekod MSSM = <b>harapan emas</b>; sekadar melepasi rekod NO.3 MSSM = <b>harapan podium</b>.</div>
   </div>`;
-  bukaLaporan("Laporan Harapan Pingat (Banding Rekod MSSK & NO.3 MSSK)",
+  bukaLaporan("Laporan Harapan Pingat (Banding Rekod MSSM & NO.3 MSSM)",
     ringkasan
-    + jadual("🥇 HARAPAN EMAS","#b45309",H.emas,"Rekod latihan sudah lebih baik daripada rekod MSSK — sasaran: kekalkan prestasi & tingkatkan kestabilan.")
-    + jadual("🥈 HARAPAN PODIUM","#0f766e",H.podium,"Sudah melepasi rekod NO.3 MSSK — sasaran seterusnya: tembus rekod MSSK untuk emas.")
-    + jadual("🔸 HAMPIR PODIUM","#b54708",H.hampir,"Jurang ≤10% daripada rekod NO.3 MSSK — paling berbaloi diberi fokus latihan.")
+    + jadual("🥇 HARAPAN EMAS","#b45309",H.emas,"Rekod latihan sudah lebih baik daripada rekod MSSM — sasaran: kekalkan prestasi & tingkatkan kestabilan.")
+    + jadual("🥈 HARAPAN PODIUM","#0f766e",H.podium,"Sudah melepasi rekod NO.3 MSSM — sasaran seterusnya: tembus rekod MSSM untuk emas.")
+    + jadual("🔸 HAMPIR PODIUM","#b54708",H.hampir,"Jurang ≤10% daripada rekod NO.3 MSSM — paling berbaloi diberi fokus latihan.")
     + notaAcaraGugur());
 }
 /* ========== LAPORAN PRESTASI SETIAP ATLET (ringkas & padat) ==========
@@ -2837,10 +2837,10 @@ function pctJurang(r){
 function perluCapai(r){
   const info=r.info, b=r.b, g=r.g;
   if(b.taraf==="TIADA_REKOD") return "Belum ada rekod latihan — masukkan rekod dahulu.";
-  if(b.taraf==="TIADA_SASARAN") return "Rekod MSSK / NO.3 MSSK belum ditetapkan.";
+  if(b.taraf==="TIADA_SASARAN") return "Rekod MSSM / NO.3 MSSM belum ditetapkan.";
   const kerja=info.JENIS==="MASA"?"pantaskan":"tambah";
   const sasarEmas=g.adaEmas?`Sasaran emas: <b>${fmtNilai(g.sasaranEmas,info)}</b>`:"";
-  if(b.taraf==="EMAS") return `✅ Sudah lepasi MSSK (+${fmtJurang(b.jurangEmas,info)}). Kekalkan prestasi & kestabilan.`;
+  if(b.taraf==="EMAS") return `✅ Sudah lepasi MSSM (+${fmtJurang(b.jurangEmas,info)}). Kekalkan prestasi & kestabilan.`;
   if(b.taraf==="PODIUM") return `✅ Podium selamat (+${fmtJurang(b.jurangPodium,info)} dari NO.3). Untuk emas: ${kerja} <b>${b.jurangEmas!==null?fmtJurang(b.jurangEmas,info):"—"}</b> lagi. ${sasarEmas}`;
   const kePodium=`Untuk podium: ${kerja} <b>${fmtJurang(b.jurang,info)}</b> lagi (sasaran <b>${fmtNilai(g.adaPodium?g.sasaranPodium:g.sasaranEmas,info)}</b>)`;
   const keEmas=(g.adaEmas&&b.jurangEmas!==null)?`; untuk emas: ${kerja} <b>${fmtJurang(b.jurangEmas,info)}</b>`:"";
@@ -2862,7 +2862,7 @@ function strategiAtlet(p){
     if(calon.length>1 && calon[calon.length-1].pct>25) t.push(`Pertimbang lepaskan <b>${esc(calon[calon.length-1].r.acara)}</b> (jurang ${calon[calon.length-1].pct.toFixed(0)}%) dan tumpu acara berpotensi.`);
   }
   if(p.bil.TIADA_REKOD) t.push(`${p.bil.TIADA_REKOD} acara tiada rekod latihan — perlu ujian prestasi.`);
-  if(!t.length) t.push("Tetapkan rekod kejohanan (MSSK / NO.3 MSSK) supaya analisis boleh dibuat.");
+  if(!t.length) t.push("Tetapkan rekod kejohanan (MSSM / NO.3 MSSM) supaya analisis boleh dibuat.");
   return t.join(" ");
 }
 function cetakLaporanPrestasi(idAtlet){
@@ -2881,12 +2881,12 @@ function cetakLaporanPrestasi(idAtlet){
     <h2 class="acara">RINGKASAN PRESTASI ${idAtlet?"ATLET":"SEMUA ATLET"}</h2>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">
       ${kotak("#1d4ed8","Atlet dilaporkan",S.atlet,"ada penyertaan acara")}
-      ${kotak("#b45309","🥇 Acara harapan emas",S.emas,"lepasi rekod MSSK")}
-      ${kotak("#0f766e","🥈 Acara harapan podium",S.podium,"lepasi NO.3 MSSK")}
+      ${kotak("#b45309","🥇 Acara harapan emas",S.emas,"lepasi rekod MSSM")}
+      ${kotak("#0f766e","🥈 Acara harapan podium",S.podium,"lepasi NO.3 MSSM")}
       ${kotak("#b54708","🔸 Menghampiri podium",S.hampir,"jurang ≤ 10%")}
       ${kotak("#667085","⬜ Perlu usaha",S.usaha,"jurang > 10%")}
     </div>
-    <div style="font-size:11px;color:#475467">Baca laporan: <b>Taraf</b> = kedudukan rekod terbaik latihan berbanding rekod MSSK (emas) &amp; NO.3 MSSK (podium). <b>Perlu Dicapai</b> = jumlah masa / jarak yang masih perlu diperbaiki untuk naik ke podium dan seterusnya emas. <b>Strategi</b> = tindakan disyorkan untuk ketua jurulatih.</div>
+    <div style="font-size:11px;color:#475467">Baca laporan: <b>Taraf</b> = kedudukan rekod terbaik latihan berbanding rekod MSSM (emas) &amp; NO.3 MSSM (podium). <b>Perlu Dicapai</b> = jumlah masa / jarak yang masih perlu diperbaiki untuk naik ke podium dan seterusnya emas. <b>Strategi</b> = tindakan disyorkan untuk ketua jurulatih.</div>
   </div>`;
   let isi=ringkasan, katSekarang="";
   senarai.forEach(p=>{
@@ -2894,7 +2894,7 @@ function cetakLaporanPrestasi(idAtlet){
     const d=TARAF[p.taraf]||TARAF.USAHA;
     isi+=`<div class="blok"><h3 class="kat">${esc(p.nama)} <span style="font-weight:400;text-transform:none;color:#667085">— ${esc(p.sekolah||"-")} • ${esc(p.kategori)}</span>
       <span style="float:right;text-transform:none;color:${d.warna}">${d.ikon} ${d.label}</span></h3>
-      <table><thead><tr><th>Acara</th><th style="text-align:right">Terbaik Latihan</th><th style="text-align:right">NO.3 MSSK<br/>(podium)</th><th style="text-align:right">MSSK<br/>(emas)</th><th>Taraf</th><th style="text-align:right">Jurang</th><th>Perlu Dicapai</th></tr></thead><tbody>`;
+      <table><thead><tr><th>Acara</th><th style="text-align:right">Terbaik Latihan</th><th style="text-align:right">NO.3 MSSM<br/>(podium)</th><th style="text-align:right">MSSM<br/>(emas)</th><th>Taraf</th><th style="text-align:right">Jurang</th><th>Perlu Dicapai</th></tr></thead><tbody>`;
     p.acara.forEach(r=>{
       const b=r.b,g=r.g,info=r.info,dd=TARAF[b.taraf]||TARAF.USAHA;
       const pct=pctJurang(r);
@@ -2944,9 +2944,9 @@ function cetakLaporanPingat(){
       else if(g.bilPodium>0){ S.podium++; senaraiPodium.push(`${n} — ${g.kategori} (${g.bilPodium} atlet)`); }
       else if(g.bilHampir>0){ S.potensi++; senaraiPotensi.push(`${n} — ${g.kategori}`); }
       else S.jauh++;
-      isi+=`<h3 class="kat">Kategori: ${esc(g.kategori)} — 🏆 MSSK: ${g.adaEmas?esc(nilaiRingkas(g.rkE,info)):"—"} • 🏆 NO.3 MSSK: ${g.adaPodium?esc(nilaiRingkas(g.rkP,info)):"—"}
+      isi+=`<h3 class="kat">Kategori: ${esc(g.kategori)} — 🏆 MSSM: ${g.adaEmas?esc(nilaiRingkas(g.rkE,info)):"—"} • 🏆 NO.3 MSSM: ${g.adaPodium?esc(nilaiRingkas(g.rkP,info)):"—"}
         • <span style="color:#b45309">${g.bilEmas} harapan emas</span> • <span style="color:#0f766e">${g.bilPodium} harapan podium</span>${g.bilTiadaRekod?` • <span style="color:#b42318">${g.bilTiadaRekod} tiada rekod latihan</span>`:""}${g.adaSasaran?"":` • <span style="color:#b54708">⚠️ TIADA REKOD KEJOHANAN</span>`}</h3>
-      <table><thead><tr><th>#</th><th>Nama Atlet</th><th>Sekolah</th><th style="text-align:right">Terbaik Latihan</th><th style="text-align:right">MSSK</th><th style="text-align:right">NO.3 MSSK</th><th>Taraf</th><th style="text-align:right">Jurang</th><th>Anggaran / Usaha Diperlukan</th></tr></thead><tbody>`;
+      <table><thead><tr><th>#</th><th>Nama Atlet</th><th>Sekolah</th><th style="text-align:right">Terbaik Latihan</th><th style="text-align:right">MSSM</th><th style="text-align:right">NO.3 MSSM</th><th>Taraf</th><th style="text-align:right">Jurang</th><th>Anggaran / Usaha Diperlukan</th></tr></thead><tbody>`;
       g.baris.forEach((b,i)=>{
         const d=TARAF[b.taraf]||TARAF.USAHA;
         isi+=`<tr class="${b.taraf==="EMAS"?"emas":""}"><td class="no">${i+1}</td><td>${esc(b.nama)}</td><td>${esc(b.sekolah||"-")}</td>
@@ -2973,8 +2973,8 @@ function cetakLaporanPingat(){
     <h2 class="acara">RINGKASAN ANGGARAN PUNGUTAN PINGAT</h2>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">
       ${kotak("#1d4ed8","Jumlah acara dipertandingkan",S.acara,`${S.unit} acara × kategori • ${S.atlet} penyertaan atlet`)}
-      ${kotak("#b45309","🥇 Harapan emas",S.emas,`${S.atletEmas} atlet lepasi rekod MSSK`)}
-      ${kotak("#0f766e","🥈 Harapan podium",S.podium,`${S.atletPodium} atlet lepasi NO.3 MSSK`)}
+      ${kotak("#b45309","🥇 Harapan emas",S.emas,`${S.atletEmas} atlet lepasi rekod MSSM`)}
+      ${kotak("#0f766e","🥈 Harapan podium",S.podium,`${S.atletPodium} atlet lepasi NO.3 MSSM`)}
       ${kotak("#b54708","Hampir podium (≤10%)",S.potensi,`${S.atletPotensi} atlet hampir sasaran`)}
       ${kotak("#667085","Perlu usaha lebih",S.jauh,`${S.atletJauh} atlet jurang >10%`)}
       ${kotak("#b42318","Belum ada rekod latihan",S.tiadaLatihan,`${S.atletTiadaLatihan} atlet tiada rekod langsung`)}
@@ -2987,7 +2987,7 @@ function cetakLaporanPingat(){
     ${senaraiBlok("Acara belum ada rekod latihan","#b42318",senaraiTiadaLatihan)}
     ${senaraiBlok("Acara tiada rekod kejohanan","#b54708",senaraiTiadaSasaran)}
   </div>`;
-  bukaLaporan("Laporan Analisis Anggaran Pingat (Banding MSSK & NO.3 MSSK)",ringkasan+isi+notaAcaraGugur());
+  bukaLaporan("Laporan Analisis Anggaran Pingat (Banding MSSM & NO.3 MSSM)",ringkasan+isi+notaAcaraGugur());
 }
 
 
