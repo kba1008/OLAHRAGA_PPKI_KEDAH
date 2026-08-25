@@ -778,7 +778,7 @@ function simpanRekodKejohanan(p) {
     }
     throw new Error("Rekod kejohanan tidak dijumpai.");
   }
-  /* Satu rekod bagi setiap acara + kategori + peringkat (MSSD / MSSK / NO.3 MSSK) — ganti jika sudah ada. */
+  /* Satu rekod bagi setiap acara + kategori + peringkat (MSSK / MSSM / NO.3 MSSM) — ganti jika sudah ada. */
   for (var j = 1; j < v.length; j++) {
     var pj = peringkatKejohanan(v[j][3]);
     if (String(v[j][1]) === acara && String(v[j][2]).toUpperCase() === kategori && pj === peringkat) {
@@ -793,9 +793,9 @@ function simpanRekodKejohanan(p) {
 }
 
 function peringkatKejohanan(t) {
-  var s = String(t || "MSSD").toUpperCase().replace(/\s+/g, " ").trim();
-  if (/NO\.?\s*3/.test(s)) return "NO.3 MSSK";
-  return s.indexOf("MSSK") >= 0 ? "MSSK" : "MSSD";
+  var s = String(t || "MSSK").toUpperCase().replace(/\s+/g, " ").trim();
+  if (/NO\.?\s*3/.test(s)) return "NO.3 MSSM";
+  return s.indexOf("MSSM") >= 0 ? "MSSM" : "MSSK";
 }
 
 function objKejohanan(b) {
