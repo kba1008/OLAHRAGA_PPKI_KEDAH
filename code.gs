@@ -20,6 +20,7 @@ var SHEET_FAIL = "FAIL_ATLET";
 var SHEET_KEJOHANAN = "REKOD_KEJOHANAN";
 var SHEET_KAT_GUGUR = "KATEGORI_GUGUR";
 var SHEET_BMI = "BMI";
+var SHEET_TETAPAN = "TETAPAN";
 var PREFIX_REKOD = "REKOD_";
 
 /* ID Google Sheet UTAMA (pangkalan data). Skrip akan buka sheet ini terus,
@@ -48,6 +49,7 @@ HEADERS[SHEET_PENYERTAAN] = ["ACARA", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEK
 HEADERS[SHEET_KEJOHANAN] = ["ID", "ACARA", "KATEGORI", "NAMA KEJOHANAN", "TAHUN", "PEMEGANG REKOD", "NILAI", "KEPUTUSAN", "CATATAN", "DITETAPKAN OLEH", "TARIKH & MASA"];
 HEADERS[SHEET_KAT_GUGUR] = ["ACARA", "KATEGORI", "STATUS", "OLEH", "TARIKH & MASA"];
 HEADERS[SHEET_BMI] = ["ID", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "TARIKH", "TINGGI (CM)", "BERAT (KG)", "BMI", "STATUS", "CATATAN", "DICATAT OLEH", "TARIKH & MASA"];
+HEADERS[SHEET_TETAPAN] = ["KUNCI", "NILAI", "DIKEMASKINI OLEH", "TARIKH & MASA"];
 HEADERS[SHEET_FAIL] = ["ID", "ATLET ID", "NAMA FAIL", "JENIS", "SAIZ (BYTES)", "URL", "DRIVE ID", "DIMUAT NAIK OLEH", "TARIKH & MASA"];
 var HEADER_REKOD = ["ID", "TARIKH", "MASA", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "KEPUTUSAN", "NILAI", "CATATAN", "DICATAT OLEH", "TARIKH & MASA REKOD"];
 
@@ -150,6 +152,7 @@ function setupPangkalanData() {
   dapatSheet(SHEET_FAIL, HEADERS[SHEET_FAIL], "#0aa5d6");
   dapatSheet(SHEET_KEJOHANAN, HEADERS[SHEET_KEJOHANAN], "#b45309");
   dapatSheet(SHEET_KAT_GUGUR, HEADERS[SHEET_KAT_GUGUR], "#b42318");
+  dapatSheet(SHEET_TETAPAN, HEADERS[SHEET_TETAPAN], "#0f766e");
   dapatSheet(SHEET_BMI, HEADERS[SHEET_BMI], "#0f766e");
   try { pastikanKolumTinggi(); } catch (e) {}
   var sa = dapatSheet(SHEET_ACARA, HEADERS[SHEET_ACARA], "#6d28f9");
@@ -225,6 +228,7 @@ function semuaData(p) {
     failAtlet: baca(SHEET_FAIL),
     kejohanan: baca(SHEET_KEJOHANAN),
     katGugur: baca(SHEET_KAT_GUGUR),
+    tetapan: bacaTetapan(),
     bmi: baca(SHEET_BMI).map(function (b) { b["TARIKH"] = tarikhStr(b["TARIKH"]); return b; }),
     masaPelayan: nowStr()
   };
@@ -628,9 +632,52 @@ function buangJurulatih(p) {
 
 function normEmel(x) { return String(x || "").toLowerCase().trim(); }
 
+/* ---------------- Tetapan Sistem (Master Admin) ---------------- */
+var TETAPAN_LALAI = { MOD_REKOD: "JURULATIH" }; /* JURULATIH = hanya jurulatih acara, SEMUA = semua pengguna berdaftar */
+
+function bacaTetapan() {
+  var out = {};
+  for (var k in TETAPAN_LALAI) out[k] = TETAPAN_LALAI[k];
+  try {
+    baca(SHEET_TETAPAN).forEach(function (r) {
+      var k = String(r["KUNCI"] || "").toUpperCase().trim();
+      if (k) out[k] = String(r["NILAI"] || "").toUpperCase().trim();
+    });
+  } catch (e) {}
+  return out;
+}
+
+function simpanTetapan(p) {
+  if (!isMasterAdmin(p.olehEmel)) throw new Error("Hanya Master Admin boleh mengubah tetapan sistem.");
+  var kunci = String(p.kunci || "").toUpperCase().trim();
+  var nilai = String(p.nilai || "").toUpperCase().trim();
+  if (!kunci) throw new Error("Kunci tetapan tidak dinyatakan.");
+  if (kunci === "MOD_REKOD" && nilai !== "JURULATIH" && nilai !== "SEMUA") throw new Error("Nilai MOD_REKOD mesti JURULATIH atau SEMUA.");
+  var s = dapatSheet(SHEET_TETAPAN, HEADERS[SHEET_TETAPAN], "#0f766e");
+  var v = s.getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][0]).toUpperCase().trim() === kunci) {
+      s.getRange(i + 1, 1, 1, 4).setValues([[kunci, nilai, p.olehNama || p.olehEmel || "", nowStr()]]);
+      return { ok: true, tetapan: bacaTetapan() };
+    }
+  }
+  s.appendRow([kunci, nilai, p.olehNama || p.olehEmel || "", nowStr()]);
+  return { ok: true, tetapan: bacaTetapan() };
+}
+
+/* Pengguna berdaftar (ada dalam sheet GURU) */
+function isPenggunaBerdaftar(emel) {
+  var e = normEmel(emel);
+  if (!e) return false;
+  return baca(SHEET_GURU).some(function (g) { return normEmel(g["EMEL"]) === e; });
+}
+
 function bolehRekod(acara, emel) {
   if (isAdmin(emel)) return true;
   var e = normEmel(emel);
+  if (!e) return false;
+  /* Mod terbuka: semua pengguna berdaftar boleh merekod semua acara */
+  if (bacaTetapan().MOD_REKOD === "SEMUA" && isPenggunaBerdaftar(emel)) return true;
   return baca(SHEET_JURULATIH).some(function (j) { return j["ACARA"] === acara && normEmel(j["EMEL JURULATIH"]) === e; });
 }
 
@@ -1060,6 +1107,7 @@ var TINDAKAN = {
   padamFailAtlet: padamFailAtlet,
   tambahAtlet: tambahAtlet,
   padamAtlet: padamAtlet,
+  simpanTetapan: simpanTetapan,
   lantikSubAdmin: lantikSubAdmin,
   buangSubAdmin: buangSubAdmin,
   padamGuru: padamGuru,

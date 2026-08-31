@@ -268,7 +268,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbyqYOGD_WPcKYX0nWtlwKzsWV01a6jGVPyWOw2QhmbHortWdkcw6hMJ-7QSS-FJPyTy/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbyBwZxbcOHJrUTHh5QzC8GVyZ-07HTx8-zH-zEhWG5p-9OOc1CTt_aNbTZi59kk9xJx/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -559,7 +559,9 @@ function ikonAcaraHtml(a,kelas=""){
     return `<div class="rank ikonImg ${kelas}"><img src="${esc(url)}" alt="${esc(n)}" style="object-position:${esc(p.x)} ${esc(p.y)};transform:scale(${p.z/100})"/></div>`; }
   return `<div class="rank ${kelas}">${esc(teks.slice(0,4))}</div>`;
 }
-const bolehRekod=n=>!!U&&(isAdmin()||jurulatihAcara(n).some(j=>String(j["EMEL JURULATIH"]||"").toLowerCase().trim()===String((U&&U.emel)||"").toLowerCase().trim()));
+const modRekod=()=>String(((typeof DB!=="undefined"&&DB&&DB.tetapan)||{}).MOD_REKOD||"JURULATIH").toUpperCase();
+const rekodTerbuka=()=>modRekod()==="SEMUA";
+const bolehRekod=n=>!!U&&(isAdmin()||rekodTerbuka()||jurulatihAcara(n).some(j=>String(j["EMEL JURULATIH"]||"").toLowerCase().trim()===String((U&&U.emel)||"").toLowerCase().trim()));
 const penyertaan=n=>((DB&&DB.penyertaan)||[]).filter(p=>p.ACARA===n);
 const rekodAcara=n=>((DB&&DB.rekod&&DB.rekod[n])||[]);
 const kejohananAcara=n=>((DB&&DB.kejohanan)||[]).filter(k=>String(k.ACARA)===String(n));
@@ -3087,10 +3089,32 @@ function vAdmin(){
       ${isMaster()?(sub?`<button class="btn sm ghost" onclick="tukarSubAdmin('${esc(g.emel)}',false)">↧ Tarik Sub Admin</button>`:`<button class="btn sm" onclick="tukarSubAdmin('${esc(g.emel)}',true)">★ Lantik Sub Admin</button>`):""}
       ${(isMaster()||!sub)?`<button class="btn sm bad" onclick="padamGuru('${esc(g.emel)}','${esc(g.nama)}')">🗑 Padam</button>`:""}
     </div></div></div>`}).join("")||'<div class="card small">Tiada guru berdaftar.</div>'}
+  ${isMaster()?`<h3>Tetapan Merekod Latihan</h3>
+  <div class="card">
+    <div class="nm">Siapa boleh merekod latihan?</div>
+    <div class="small" style="margin:4px 0 10px">Mod semasa: <b style="color:${rekodTerbuka()?"var(--ok)":"var(--brand,#7aa2ff)"}">${rekodTerbuka()?"TERBUKA — semua pengguna berdaftar":"TERHAD — jurulatih acara sahaja"}</b></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn sm ${rekodTerbuka()?"ghost":""}" onclick="tukarModRekod('JURULATIH')">🔒 Jurulatih acara sahaja</button>
+      <button class="btn sm ${rekodTerbuka()?"":"ghost"}" onclick="tukarModRekod('SEMUA')">🌐 Semua pengguna berdaftar</button>
+    </div>
+    <div class="small" style="margin-top:8px;opacity:.8">Mod <b>TERBUKA</b> membenarkan mana-mana guru berdaftar merekod, menanda kehadiran dan mengedit rekod bagi <b>semua acara</b>. Master Admin & Sub Admin sentiasa dibenarkan.</div>
+  </div>`:""}
   <h3>Jurulatih Acara</h3>
   ${acaraList().map(a=>`<div class="card"><div class="nm">${esc(a.ACARA)} <span class="small">(${jurulatihAcara(a.ACARA).length}/10)</span></div>
     <div>${jurulatihAcara(a.ACARA).map(j=>`<span class="chip">${esc(j["NAMA JURULATIH"])} <a href="#" style="color:var(--bad)" onclick="event.preventDefault();buangJ('${esc(a.ACARA)}','${esc(j["EMEL JURULATIH"])}')">✕</a></span>`).join("")||'<span class="chip">Tiada</span>'}</div>
     <button class="btn sm ghost" style="margin-top:8px" onclick="formJurulatih('${esc(a.ACARA)}')">+ Lantik</button></div>`).join("")}`;
+}
+
+/* ---------- Tetapan mod merekod (Master Admin) ---------- */
+async function tukarModRekod(mod){
+  if(!isMaster()) return toast("Hanya Master Admin boleh mengubah tetapan ini.");
+  if(modRekod()===mod) return;
+  if(!confirm(mod==="SEMUA"?"Benarkan SEMUA pengguna berdaftar merekod semua acara?":"Hadkan merekod kepada jurulatih acara sahaja?")) return;
+  try{
+    await api("simpanTetapan",{kunci:"MOD_REKOD",nilai:mod,...who()});
+    DB.tetapan=Object.assign({},DB.tetapan||{},{MOD_REKOD:mod});
+    toast(mod==="SEMUA"?"Mod terbuka diaktifkan":"Mod terhad diaktifkan"); vAdmin();
+  }catch(e){ toastRalat(e); }
 }
 
 /* ---------- Pengurusan Sub Admin ---------- */
