@@ -604,32 +604,34 @@ function susunPeserta(p) {
 }
 
 function lantikJurulatih(p) {
-  /* Master Admin ATAU jurulatih acara itu boleh melantik jurulatih pembantu. */
+  /* Master Admin ATAU jurulatih acara itu sendiri boleh melantik rakan jurulatih lain. */
   if (!bolehRekod(p.acara, p.olehEmel)) throw new Error("Hanya Master Admin atau jurulatih acara ini boleh melantik jurulatih.");
   dapatSheet(SHEET_JURULATIH, HEADERS[SHEET_JURULATIH], "#ff6d00");
   var sedia = baca(SHEET_JURULATIH).filter(function (j) { return j["ACARA"] === p.acara; });
   if (sedia.length >= MAX_JURULATIH) throw new Error("Maksima " + MAX_JURULATIH + " jurulatih bagi setiap acara.");
-  var e = String(p.emel).toLowerCase().trim();
-  if (sedia.some(function (j) { return String(j["EMEL JURULATIH"]).toLowerCase() === e; })) throw new Error("Jurulatih ini sudah dilantik untuk acara tersebut.");
+  var e = normEmel(p.emel);
+  if (sedia.some(function (j) { return normEmel(j["EMEL JURULATIH"]) === e; })) throw new Error("Jurulatih ini sudah dilantik untuk acara tersebut.");
   ss().getSheetByName(SHEET_JURULATIH).appendRow([p.acara, e, p.nama, p.olehNama, nowStr()]);
   return { ok: true };
 }
 
 function buangJurulatih(p) {
   if (!bolehRekod(p.acara, p.olehEmel)) throw new Error("Hanya Master Admin atau jurulatih acara ini boleh membuang jurulatih.");
-  if (!isAdmin(p.olehEmel) && String(p.emel).toLowerCase() === String(p.olehEmel).toLowerCase()) throw new Error("Anda tidak boleh membuang diri sendiri sebagai jurulatih.");
+  if (!isAdmin(p.olehEmel) && normEmel(p.emel) === normEmel(p.olehEmel)) throw new Error("Anda tidak boleh membuang diri sendiri sebagai jurulatih.");
   var s = ss().getSheetByName(SHEET_JURULATIH);
   var v = s.getDataRange().getValues();
   for (var i = v.length - 1; i >= 1; i--) {
-    if (v[i][0] === p.acara && String(v[i][1]).toLowerCase() === String(p.emel).toLowerCase()) { s.deleteRow(i + 1); return { ok: true }; }
+    if (v[i][0] === p.acara && normEmel(v[i][1]) === normEmel(p.emel)) { s.deleteRow(i + 1); return { ok: true }; }
   }
   throw new Error("Rekod jurulatih tidak dijumpai.");
 }
 
+function normEmel(x) { return String(x || "").toLowerCase().trim(); }
+
 function bolehRekod(acara, emel) {
   if (isAdmin(emel)) return true;
-  var e = String(emel).toLowerCase();
-  return baca(SHEET_JURULATIH).some(function (j) { return j["ACARA"] === acara && String(j["EMEL JURULATIH"]).toLowerCase() === e; });
+  var e = normEmel(emel);
+  return baca(SHEET_JURULATIH).some(function (j) { return j["ACARA"] === acara && normEmel(j["EMEL JURULATIH"]) === e; });
 }
 
 function tambahPenyertaan(p) {
