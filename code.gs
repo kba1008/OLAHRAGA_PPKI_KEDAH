@@ -420,33 +420,58 @@ function pautanDrive(id) { return "https://drive.google.com/file/d/" + id + "/vi
 
 /* p: { acara, kategori, atletId, namaAtlet, jenis ("GAMBAR"/"VIDEO"),
        tajuk, catatan, namaFail, mime, dataBase64, olehNama, olehEmel } */
+function jenisDariMime(mime, nama) {
+  var m = String(mime || "").toLowerCase(), n = String(nama || "").toLowerCase();
+  if (m.indexOf("image") === 0) return "GAMBAR";
+  if (m.indexOf("video") === 0) return "VIDEO";
+  if (m.indexOf("audio") === 0) return "AUDIO";
+  if (/\.(jpg|jpeg|png|gif|webp|heic|bmp)$/.test(n)) return "GAMBAR";
+  if (/\.(mp4|mov|avi|mkv|webm|3gp)$/.test(n)) return "VIDEO";
+  if (/\.(mp3|wav|m4a|aac|ogg)$/.test(n)) return "AUDIO";
+  return "FAIL";
+}
+
+/* p: { acara, kategori, atletId, namaAtlet, jenis, tajuk, catatan,
+       namaFail, mime, dataBase64, olehNama, olehEmel }
+   - dataBase64 boleh kosong => rekod CATATAN sahaja (tiada fail).
+   - Semua jenis fail diterima (gambar, video, audio, pdf, doc, excel, zip, dll). */
 function muatNaikMedia(p) {
-  if (!p || !p.dataBase64) throw new Error("Tiada fail media untuk dimuat naik.");
+  if (!p) throw new Error("Tiada maklumat media.");
   if (!p.acara) throw new Error("Acara diperlukan untuk media ini.");
-  if (!p.catatan && !p.tajuk) throw new Error("Sila isi tajuk atau catatan media terlebih dahulu.");
 
-  var data = String(p.dataBase64), mime = p.mime || "application/octet-stream";
-  var m = data.match(/^data:([^;]+);base64,(.*)$/);
-  if (m) { mime = m[1]; data = m[2]; }
-  var bytes = Utilities.base64Decode(data);
-  if (bytes.length > MAX_SAIZ_MEDIA) throw new Error("Saiz fail terlalu besar (maksima " + Math.round(MAX_SAIZ_MEDIA / 1048576) + " MB).");
+  var adaFail = !!p.dataBase64;
+  if (!adaFail && !p.catatan && !p.tajuk) throw new Error("Sila pilih fail atau isi catatan.");
 
-  var jenis = String(p.jenis || (mime.indexOf("video") === 0 ? "VIDEO" : "GAMBAR")).toUpperCase();
-  var asas = String(p.namaFail || (jenis + "_" + nowStr())).replace(/[\\/:*?"<>|]/g, "_").slice(0, 110);
-  var nama = String(p.acara).toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "__" + asas;
+  var jenis = "CATATAN", asas = "", mime = "", saiz = 0, pautan = "", urlPapar = "", driveId = "";
 
-  var blob = Utilities.newBlob(bytes, mime, nama);
-  var fail = folderMediaAcara(p.acara).createFile(blob);
-  try { fail.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  if (adaFail) {
+    var data = String(p.dataBase64);
+    mime = p.mime || "application/octet-stream";
+    var m = data.match(/^data:([^;]+);base64,(.*)$/);
+    if (m) { mime = m[1]; data = m[2]; }
+    var bytes = Utilities.base64Decode(data);
+    if (bytes.length > MAX_SAIZ_MEDIA) throw new Error("Saiz fail terlalu besar (maksima " + Math.round(MAX_SAIZ_MEDIA / 1048576) + " MB).");
 
-  var driveId = fail.getId();
-  var pautan = pautanDrive(driveId);
-  var urlPapar = jenis === "VIDEO" ? ("https://drive.google.com/file/d/" + driveId + "/preview") : urlGambarDrive(driveId);
+    jenis = String(p.jenis || "").toUpperCase();
+    if (["GAMBAR", "VIDEO", "AUDIO", "FAIL"].indexOf(jenis) < 0) jenis = jenisDariMime(mime, p.namaFail);
+
+    asas = String(p.namaFail || (jenis + "_" + nowStr())).replace(/[\\/:*?"<>|]/g, "_").slice(0, 110);
+    var nama = String(p.acara).toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "__" + asas;
+
+    var blob = Utilities.newBlob(bytes, mime, nama);
+    var fail = folderMediaAcara(p.acara).createFile(blob);
+    try { fail.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+
+    driveId = fail.getId();
+    saiz = bytes.length;
+    pautan = pautanDrive(driveId);
+    urlPapar = jenis === "GAMBAR" ? urlGambarDrive(driveId) : ("https://drive.google.com/file/d/" + driveId + "/preview");
+  }
 
   dapatSheet(SHEET_MEDIA, HEADERS[SHEET_MEDIA], "#7c3aed");
   var id = idBaharu("M", SHEET_MEDIA);
   var baris = [id, tarikhStr(new Date()), String(p.acara).toUpperCase(), p.kategori || "", p.atletId || "", p.namaAtlet || "",
-    jenis, p.tajuk || "", p.catatan || "", asas, mime, bytes.length, pautan, urlPapar, driveId,
+    jenis, p.tajuk || "", p.catatan || "", asas, mime, saiz, pautan, urlPapar, driveId,
     p.olehNama || "", String(p.olehEmel || "").toLowerCase(), nowStr()];
   ss().getSheetByName(SHEET_MEDIA).appendRow(baris);
 
