@@ -21,6 +21,7 @@ var SHEET_KEJOHANAN = "REKOD_KEJOHANAN";
 var SHEET_KAT_GUGUR = "KATEGORI_GUGUR";
 var SHEET_BMI = "BMI";
 var SHEET_TETAPAN = "TETAPAN";
+var SHEET_MEDIA = "MEDIA_LATIHAN";
 var PREFIX_REKOD = "REKOD_";
 
 /* ID Google Sheet UTAMA (pangkalan data). Skrip akan buka sheet ini terus,
@@ -33,6 +34,8 @@ var SHEET_ID = "1Y2sYo-8PqhCkVP9W0RbYfXnQWx4efKsP_6-veIm7dxM";
 var FOLDER_GAMBAR_ID = "1Nz0S__dRbA4vP4Ca0xBRhpdPNUj4KVOf";
 var NAMA_FOLDER_GAMBAR = "GAMBAR ATLET";
 var NAMA_FOLDER_FAIL = "FAIL ATLET";
+var NAMA_FOLDER_MEDIA = "MEDIA LATIHAN";
+var MAX_SAIZ_MEDIA = 60 * 1024 * 1024; /* 60 MB satu fail */
 var MAX_FAIL_ATLET = 5;
 
 var ADMIN_EMEL = "admin";
@@ -50,6 +53,7 @@ HEADERS[SHEET_KEJOHANAN] = ["ID", "ACARA", "KATEGORI", "NAMA KEJOHANAN", "TAHUN"
 HEADERS[SHEET_KAT_GUGUR] = ["ACARA", "KATEGORI", "STATUS", "OLEH", "TARIKH & MASA"];
 HEADERS[SHEET_BMI] = ["ID", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "TARIKH", "TINGGI (CM)", "BERAT (KG)", "BMI", "STATUS", "CATATAN", "DICATAT OLEH", "TARIKH & MASA"];
 HEADERS[SHEET_TETAPAN] = ["KUNCI", "NILAI", "DIKEMASKINI OLEH", "TARIKH & MASA"];
+HEADERS[SHEET_MEDIA] = ["ID", "TARIKH", "ACARA", "KATEGORI", "ATLET ID", "NAMA ATLET", "JENIS MEDIA", "TAJUK", "CATATAN", "NAMA FAIL", "MIME", "SAIZ (BYTES)", "PAUTAN", "URL PAPAR", "DRIVE ID", "DIMUAT NAIK OLEH", "EMEL", "TARIKH & MASA"];
 HEADERS[SHEET_FAIL] = ["ID", "ATLET ID", "NAMA FAIL", "JENIS", "SAIZ (BYTES)", "URL", "DRIVE ID", "DIMUAT NAIK OLEH", "TARIKH & MASA"];
 var HEADER_REKOD = ["ID", "TARIKH", "MASA", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "KEPUTUSAN", "NILAI", "CATATAN", "DICATAT OLEH", "TARIKH & MASA REKOD"];
 
@@ -154,6 +158,7 @@ function setupPangkalanData() {
   dapatSheet(SHEET_KAT_GUGUR, HEADERS[SHEET_KAT_GUGUR], "#b42318");
   dapatSheet(SHEET_TETAPAN, HEADERS[SHEET_TETAPAN], "#0f766e");
   dapatSheet(SHEET_BMI, HEADERS[SHEET_BMI], "#0f766e");
+  dapatSheet(SHEET_MEDIA, HEADERS[SHEET_MEDIA], "#7c3aed");
   try { pastikanKolumTinggi(); } catch (e) {}
   var sa = dapatSheet(SHEET_ACARA, HEADERS[SHEET_ACARA], "#6d28f9");
   if (sa.getLastRow() < 2) sa.getRange(2, 1, ACARA_LALAI.length, 6).setValues(ACARA_LALAI);
@@ -226,6 +231,7 @@ function semuaData(p) {
     penyertaan: baca(SHEET_PENYERTAAN),
     rekod: rekod,
     failAtlet: baca(SHEET_FAIL),
+    media: baca(SHEET_MEDIA).map(function (m) { m["TARIKH"] = tarikhStr(m["TARIKH"]); return m; }),
     kejohanan: baca(SHEET_KEJOHANAN),
     katGugur: baca(SHEET_KAT_GUGUR),
     tetapan: bacaTetapan(),
@@ -381,6 +387,109 @@ function padamFailAtlet(p) {
     }
   }
   throw new Error("Fail tidak dijumpai.");
+}
+
+
+/* ---------------- MEDIA LATIHAN (Gambar & Video) ----------------
+   Fail disimpan dalam Google Drive (folder MEDIA LATIHAN / <ACARA>),
+   manakala semua catatan/nota disimpan dalam Sheet MEDIA_LATIHAN.
+   Ini memastikan Sheet kekal ringan & app tidak perlahan. */
+var FOLDER_MEDIA_ID = ""; /* boleh diisi dengan ID folder tetap */
+
+function folderMedia() {
+  if (FOLDER_MEDIA_ID) { try { return DriveApp.getFolderById(FOLDER_MEDIA_ID); } catch (e) {} }
+  var indukId = null;
+  if (FOLDER_GAMBAR_ID) {
+    try {
+      var par = DriveApp.getFolderById(FOLDER_GAMBAR_ID).getParents();
+      if (par.hasNext()) indukId = par.next().getId();
+    } catch (e) {}
+  }
+  return cariAtauCiptaFolder(NAMA_FOLDER_MEDIA, indukId);
+}
+
+function folderMediaAcara(acara) {
+  var nama = String(acara || "UMUM").toUpperCase().replace(/[\\/:*?"<>|]/g, "_").slice(0, 80) || "UMUM";
+  var induk = folderMedia();
+  var it = induk.getFoldersByName(nama);
+  if (it.hasNext()) return it.next();
+  return induk.createFolder(nama);
+}
+
+function pautanDrive(id) { return "https://drive.google.com/file/d/" + id + "/view"; }
+
+/* p: { acara, kategori, atletId, namaAtlet, jenis ("GAMBAR"/"VIDEO"),
+       tajuk, catatan, namaFail, mime, dataBase64, olehNama, olehEmel } */
+function muatNaikMedia(p) {
+  if (!p || !p.dataBase64) throw new Error("Tiada fail media untuk dimuat naik.");
+  if (!p.acara) throw new Error("Acara diperlukan untuk media ini.");
+  if (!p.catatan && !p.tajuk) throw new Error("Sila isi tajuk atau catatan media terlebih dahulu.");
+
+  var data = String(p.dataBase64), mime = p.mime || "application/octet-stream";
+  var m = data.match(/^data:([^;]+);base64,(.*)$/);
+  if (m) { mime = m[1]; data = m[2]; }
+  var bytes = Utilities.base64Decode(data);
+  if (bytes.length > MAX_SAIZ_MEDIA) throw new Error("Saiz fail terlalu besar (maksima " + Math.round(MAX_SAIZ_MEDIA / 1048576) + " MB).");
+
+  var jenis = String(p.jenis || (mime.indexOf("video") === 0 ? "VIDEO" : "GAMBAR")).toUpperCase();
+  var asas = String(p.namaFail || (jenis + "_" + nowStr())).replace(/[\\/:*?"<>|]/g, "_").slice(0, 110);
+  var nama = String(p.acara).toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "__" + asas;
+
+  var blob = Utilities.newBlob(bytes, mime, nama);
+  var fail = folderMediaAcara(p.acara).createFile(blob);
+  try { fail.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+
+  var driveId = fail.getId();
+  var pautan = pautanDrive(driveId);
+  var urlPapar = jenis === "VIDEO" ? ("https://drive.google.com/file/d/" + driveId + "/preview") : urlGambarDrive(driveId);
+
+  dapatSheet(SHEET_MEDIA, HEADERS[SHEET_MEDIA], "#7c3aed");
+  var id = idBaharu("M", SHEET_MEDIA);
+  var baris = [id, tarikhStr(new Date()), String(p.acara).toUpperCase(), p.kategori || "", p.atletId || "", p.namaAtlet || "",
+    jenis, p.tajuk || "", p.catatan || "", asas, mime, bytes.length, pautan, urlPapar, driveId,
+    p.olehNama || "", String(p.olehEmel || "").toLowerCase(), nowStr()];
+  ss().getSheetByName(SHEET_MEDIA).appendRow(baris);
+
+  var obj = {};
+  for (var i = 0; i < HEADERS[SHEET_MEDIA].length; i++) obj[HEADERS[SHEET_MEDIA][i]] = baris[i];
+  return obj;
+}
+
+function kemaskiniCatatanMedia(p) {
+  var s = ss().getSheetByName(SHEET_MEDIA);
+  if (!s) throw new Error("Tiada rekod media.");
+  var v = s.getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][0]) === String(p.id)) {
+      s.getRange(i + 1, 8).setValue(p.tajuk || "");
+      s.getRange(i + 1, 9).setValue(p.catatan || "");
+      return { ok: true };
+    }
+  }
+  throw new Error("Media tidak dijumpai.");
+}
+
+function padamMedia(p) {
+  var s = ss().getSheetByName(SHEET_MEDIA);
+  if (!s) throw new Error("Tiada rekod media.");
+  var v = s.getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][0]) === String(p.id)) {
+      try { DriveApp.getFileById(String(v[i][14])).setTrashed(true); } catch (e) {}
+      s.deleteRow(i + 1);
+      return { ok: true };
+    }
+  }
+  throw new Error("Media tidak dijumpai.");
+}
+
+function senaraiMedia(p) {
+  var sen = baca(SHEET_MEDIA).map(function (m) { m["TARIKH"] = tarikhStr(m["TARIKH"]); return m; });
+  if (p && p.acara) {
+    var a = String(p.acara).toUpperCase();
+    sen = sen.filter(function (m) { return String(m["ACARA"]).toUpperCase() === a; });
+  }
+  return sen;
 }
 
 /* Jurulatih yang DILANTIK (ada dalam JURULATIH_ACARA) atau Master Admin */
@@ -1105,6 +1214,10 @@ var TINDAKAN = {
   muatNaikGambar: muatNaikGambar,
   muatNaikFailAtlet: muatNaikFailAtlet,
   padamFailAtlet: padamFailAtlet,
+  muatNaikMedia: muatNaikMedia,
+  senaraiMedia: senaraiMedia,
+  kemaskiniCatatanMedia: kemaskiniCatatanMedia,
+  padamMedia: padamMedia,
   tambahAtlet: tambahAtlet,
   padamAtlet: padamAtlet,
   simpanTetapan: simpanTetapan,

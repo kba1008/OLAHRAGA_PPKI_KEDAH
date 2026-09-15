@@ -106,6 +106,14 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .acara-acts .btn{margin-top:0;padding:8px 12px;border-radius:12px}
 .acara-acts .act-ic{font-size:16px;line-height:1}
 .acara-acts .act-txt{margin-left:5px;font-size:12px;font-weight:700}
+.acara-acts .rnd{position:relative;width:42px;height:42px;min-width:42px;padding:0;margin-top:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:18px;line-height:1;border:1px solid var(--line);background:rgba(255,255,255,.09);color:var(--txt);cursor:pointer}
+.acara-acts .rnd.cam{background:var(--grad);border:0;box-shadow:0 8px 18px -10px var(--p1)}
+.acara-acts .rnd .bil{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--ok);color:#03301f;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.media-kad{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.05)}
+.media-kad img,.media-kad iframe,.media-kad video{width:100%;height:120px;object-fit:cover;display:block;border:0;background:#000}
+.media-kad .mk-b{padding:8px}
+.media-pratonton{width:100%;max-height:230px;object-fit:contain;border-radius:14px;background:#000;margin-top:8px}
 .acara-menu-btn{width:42px;height:42px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;line-height:1;font-weight:700}
 .dd-menu{position:fixed;z-index:9999;min-width:210px;background:var(--card,#fff);border:1px solid rgba(0,0,0,.12);border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.18);padding:6px;overflow:hidden}
 .dd-tajuk{font-size:11px;font-weight:800;opacity:.6;padding:6px 10px 8px;text-transform:uppercase;letter-spacing:.4px}
@@ -1084,6 +1092,8 @@ function vAcara(){
       </div>
       <div class="right small">${boleh?'<span class="badge">BOLEH REKOD</span>':"Lihat sahaja"}
       <div class="acara-acts">
+        <button class="rnd" title="Sejarah media acara ini" onclick="event.stopPropagation();historiMedia('${esc(n)}')">🕘${mediaAcara(n).length?`<span class="bil">${mediaAcara(n).length}</span>`:""}</button>
+        ${boleh?`<button class="rnd cam" title="Ambil gambar / rakam video" onclick="event.stopPropagation();formMedia('${esc(n)}')">📷</button>`:""}
         ${isAdmin()?`<button class="btn sm ghost acara-menu-btn" title="Tindakan acara" onclick="event.stopPropagation();menuAcara('${esc(n)}',this)">⋯</button>`:""}
       </div></div>
 
@@ -3420,6 +3430,117 @@ function vDiagnostik(){
     ${Object.keys(RUJUKAN).map(k=>`<div class="sub" style="padding:6px 0"><b>${k}</b> — ${esc(RUJUKAN[k][0])}<br/><span class="small">Tindakan: ${esc(RUJUKAN[k][1])}</span></div>`).join("")}
   </div>
   <div class="card"><button class="btn bad" onclick="keluarTeknision()">Keluar Mod Teknision</button></div>`;
+}
+
+
+/* ---------- Media Latihan (Kamera / Video / Muat Naik) ----------
+   Fail media disimpan dalam Google Drive; catatan & maklumat disimpan
+   dalam Google Sheet (MEDIA_LATIHAN) supaya app kekal ringan. */
+const mediaAcara=n=>(DB.media||[]).filter(m=>String(m.ACARA||"").toUpperCase()===String(n||"").toUpperCase())
+  .sort((a,b)=>String(b["TARIKH & MASA"]||"").localeCompare(String(a["TARIKH & MASA"]||"")));
+let MEDIA_PILIH=null; /* {dataUrl,nama,mime,jenis,saiz} */
+const MAX_MEDIA_MB=45;
+
+function formMedia(n){
+  MEDIA_PILIH=null;
+  const pl=penyertaan(n);
+  overlay(`<div class="big">📷 Media Latihan — ${esc(n)}</div>
+  <div class="small">Isi maklumat/catatan dahulu, kemudian ambil gambar, rakam video atau muat naik fail. Fail disimpan di Google Drive, catatan disimpan di Google Sheet.</div>
+  <label>Tajuk / Maklumat Media</label>
+  <input id="mdTajuk" maxlength="120" placeholder="Cth: Sesi latihan pecut 100m — teknik permulaan"/>
+  <label>Catatan Jurulatih</label>
+  <textarea id="mdCatatan" rows="3" maxlength="800" placeholder="Nota teknik, pembetulan, prestasi atlet..."></textarea>
+  <label>Kaitkan Dengan Atlet (pilihan)</label>
+  <select id="mdAtlet"><option value="">— Media umum acara —</option>
+    ${pl.map(a=>`<option value="${esc(a["ATLET ID"])}">${esc(a["NAMA ATLET"])} • ${esc(a.KATEGORI||"")}</option>`).join("")}
+  </select>
+  <label>Sumber Media</label>
+  <div class="acara-acts" style="justify-content:flex-start;margin-top:4px">
+    <button class="btn sm" onclick="document.getElementById('mdKam').click()">📷 Kamera</button>
+    <button class="btn sm" onclick="document.getElementById('mdVid').click()">🎥 Video</button>
+    <button class="btn sm ghost" onclick="document.getElementById('mdFail').click()">📁 Muat Naik Fail</button>
+  </div>
+  <input type="file" id="mdKam" class="hide" accept="image/*" capture="environment" onchange="mediaPilih(event,'GAMBAR')"/>
+  <input type="file" id="mdVid" class="hide" accept="video/*" capture="environment" onchange="mediaPilih(event,'VIDEO')"/>
+  <input type="file" id="mdFail" class="hide" accept="image/*,video/*" onchange="mediaPilih(event,'')"/>
+  <div id="mdPratonton" class="small" style="margin-top:8px">Belum ada fail dipilih.</div>
+  <button class="btn" id="mdSimpan" onclick="simpanMedia('${esc(n)}')">Simpan Media</button>
+  <button class="btn ghost" onclick="tutup()">Batal</button>`);
+}
+
+async function mediaPilih(ev,jenis){
+  const f=ev.target.files&&ev.target.files[0]; if(!f) return;
+  const mb=f.size/1048576;
+  if(mb>MAX_MEDIA_MB){ ev.target.value=""; return toast(`Fail terlalu besar (${mb.toFixed(1)} MB). Maksima ${MAX_MEDIA_MB} MB.`,4500); }
+  const jns=jenis|| (String(f.type).indexOf("video")===0?"VIDEO":"GAMBAR");
+  const kotak=document.getElementById("mdPratonton");
+  if(kotak) kotak.textContent="Menyediakan pratonton…";
+  try{
+    const dataUrl=await fileToDataUrl(f);
+    MEDIA_PILIH={dataUrl,nama:f.name||(jns+"_"+Date.now()),mime:f.type||"application/octet-stream",jenis:jns,saiz:f.size};
+    if(kotak) kotak.innerHTML=(jns==="VIDEO"
+      ?`<video class="media-pratonton" src="${dataUrl}" controls playsinline></video>`
+      :`<img class="media-pratonton" src="${dataUrl}" alt="Pratonton media"/>`)
+      +`<div class="small" style="margin-top:6px">${esc(MEDIA_PILIH.nama)} • ${mb.toFixed(2)} MB • ${jns}</div>`;
+  }catch(e){ if(kotak) kotak.textContent="Gagal membaca fail."; }
+}
+
+async function simpanMedia(n){
+  if(!MEDIA_PILIH) return toast("Sila ambil gambar, rakam video atau pilih fail dahulu.");
+  const tajuk=(document.getElementById("mdTajuk")||{}).value||"";
+  const catatan=(document.getElementById("mdCatatan")||{}).value||"";
+  if(!tajuk.trim()&&!catatan.trim()) return toast("Sila isi tajuk atau catatan media.");
+  const atletId=(document.getElementById("mdAtlet")||{}).value||"";
+  const at=atletId?penyertaan(n).find(a=>String(a["ATLET ID"])===String(atletId)):null;
+  const btn=document.getElementById("mdSimpan");
+  if(btn){ btn.disabled=true; btn.textContent="Memuat naik…"; }
+  try{
+    const rec=await api("muatNaikMedia",{
+      acara:n, kategori:at?at.KATEGORI:"", atletId, namaAtlet:at?at["NAMA ATLET"]:"",
+      jenis:MEDIA_PILIH.jenis, tajuk:tajuk.trim(), catatan:catatan.trim(),
+      namaFail:MEDIA_PILIH.nama, mime:MEDIA_PILIH.mime, dataBase64:MEDIA_PILIH.dataUrl, ...who()
+    });
+    (DB.media=DB.media||[]).push(rec);
+    MEDIA_PILIH=null; tutup(); render(); toast("Media disimpan ke Google Drive & catatan ke Google Sheet");
+  }catch(e){ toastRalat(e); if(btn){ btn.disabled=false; btn.textContent="Simpan Media"; } }
+}
+
+function historiMedia(n){
+  const sen=mediaAcara(n);
+  overlay(`<div class="big">🕘 Sejarah Media — ${esc(n)}</div>
+  <div class="small">${sen.length} media direkod. Fail disimpan dalam Google Drive.</div>
+  ${bolehRekod(n)?`<button class="btn sm" onclick="tutup();formMedia('${esc(n)}')">📷 Tambah Media Baharu</button>`:""}
+  <div id="mdSenarai" class="media-grid" style="margin-top:10px">
+  ${sen.length?sen.map(m=>{
+    const jns=String(m["JENIS MEDIA"]||"GAMBAR").toUpperCase();
+    return `<div class="media-kad" id="md-${esc(m.ID)}">
+      ${jns==="VIDEO"
+        ?`<iframe src="${esc(m["URL PAPAR"])}" allow="autoplay" loading="lazy"></iframe>`
+        :`<img src="${esc(m["URL PAPAR"])}" alt="${esc(m.TAJUK||"Media latihan")}" loading="lazy"/>`}
+      <div class="mk-b">
+        <div class="nm" style="font-size:13px">${esc(m.TAJUK||(jns==="VIDEO"?"Video latihan":"Gambar latihan"))}</div>
+        ${m.CATATAN?`<div class="sub">${esc(m.CATATAN)}</div>`:""}
+        ${m["NAMA ATLET"]?`<span class="chip">🏃 ${esc(m["NAMA ATLET"])}</span>`:""}
+        <div class="sub">${esc(m["TARIKH & MASA"]||m.TARIKH||"")} • ${esc(m["DIMUAT NAIK OLEH"]||"")}</div>
+        <div class="acara-acts" style="justify-content:flex-start">
+          <a class="btn sm ghost" href="${esc(m.PAUTAN)}" target="_blank" rel="noopener">↗ Buka</a>
+          ${bolehRekod(n)?`<button class="btn sm bad" onclick="padamMediaUI('${esc(m.ID)}')">🗑</button>`:""}
+        </div>
+      </div>
+    </div>`;
+  }).join(""):`<div class="small">Belum ada media untuk acara ini.</div>`}
+  </div>
+  <button class="btn ghost" onclick="tutup()">Tutup</button>`);
+}
+
+async function padamMediaUI(id){
+  if(!confirm("Padam media ini dari Google Drive & Google Sheet?")) return;
+  const el=document.getElementById("md-"+id); if(el) el.style.opacity=.4;
+  try{
+    await api("padamMedia",{id,...who()});
+    DB.media=(DB.media||[]).filter(m=>String(m.ID)!==String(id));
+    if(el) el.remove(); toast("Media dipadam");
+  }catch(e){ if(el) el.style.opacity=1; toastRalat(e); }
 }
 
 /* ---------- Overlay ---------- */
