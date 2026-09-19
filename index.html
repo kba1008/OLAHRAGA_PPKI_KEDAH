@@ -339,7 +339,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzblV6hoDn4HvVonq7fAvj8ZeLXI14pRjCAFFX-WqA7GN1JO7NdzwSzeeZW85cvkn53/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbwjBhs01lLY2hbHVITlH8RmKYWiyj5dwGEUQWng4JP5VHizqAUvu-ToUs7-hWWGAV8U/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -632,6 +632,7 @@ function ikonAcaraHtml(a,kelas=""){
 }
 const modRekod=()=>String(((typeof DB!=="undefined"&&DB&&DB.tetapan)||{}).MOD_REKOD||"JURULATIH").toUpperCase();
 const rekodTerbuka=()=>modRekod()==="SEMUA";
+const bolehUrusMedia=m=>!!U&&(isAdmin()||jurulatihAcara(String((m&&m.ACARA)||"")).some(j=>String(j["EMEL JURULATIH"]||"").toLowerCase().trim()===String((U&&U.emel)||"").toLowerCase().trim()));
 const bolehRekod=n=>!!U&&(isAdmin()||rekodTerbuka()||jurulatihAcara(n).some(j=>String(j["EMEL JURULATIH"]||"").toLowerCase().trim()===String((U&&U.emel)||"").toLowerCase().trim()));
 const penyertaan=n=>((DB&&DB.penyertaan)||[]).filter(p=>p.ACARA===n);
 const rekodAcara=n=>((DB&&DB.rekod&&DB.rekod[n])||[]);
@@ -3531,7 +3532,9 @@ const saizTeks=b=>{const n=Number(b||0); if(!n) return ""; return n>1048576?(n/1
 function kadMedia(m,bolehPadam){
   const jns=String(m["JENIS MEDIA"]||"FAIL").toUpperCase();
   const tajuk=m.TAJUK||(jns==="CATATAN"?"Catatan latihan":`${jns.charAt(0)}${jns.slice(1).toLowerCase()} latihan`);
-  const bolehEdit=!!U&&(isAdmin()||String(m.EMEL||"").toLowerCase().trim()===String(U.emel||"").toLowerCase().trim());
+  const urus=bolehUrusMedia(m);
+  const bolehEdit=urus||(!!U&&String(m.EMEL||"").toLowerCase().trim()===String(U.emel||"").toLowerCase().trim());
+  bolehPadam=urus;
   const driveId=String(m["DRIVE ID"]||"").trim();
   let atas="";
   if(driveId){
@@ -3556,6 +3559,7 @@ function kadMedia(m,bolehPadam){
       <div class="mk-aksi">
         ${m.PAUTAN?`<a class="btn sm ghost" href="${esc(m.PAUTAN)}" target="_blank" rel="noopener" title="Buka atau muat turun" aria-label="Buka atau muat turun">↗ <span class="mk-label">Buka</span></a>`:""}
         ${bolehEdit?`<button class="btn sm ghost" onclick="formNamaMedia('${esc(m.ID)}')" title="Edit nama" aria-label="Edit nama">✎ <span class="mk-label">Edit</span></button>`:""}
+        ${urus&&driveId?`<button class="btn sm ghost" onclick="formGantiMedia('${esc(m.ID)}')" title="Ganti fail" aria-label="Ganti fail">🔄 <span class="mk-label">Ganti</span></button>`:""}
         ${bolehPadam?`<button class="btn sm bad" onclick="padamMediaUI('${esc(m.ID)}')" title="Padam" aria-label="Padam">🗑 <span class="mk-label">Padam</span></button>`:""}
       </div>
     </div>
@@ -3660,8 +3664,8 @@ function historiMedia(n){
 function formNamaMedia(id){
   const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
   if(!m) return toast("Media tidak dijumpai");
-  const boleh=!!U&&(isAdmin()||String(m.EMEL||"").toLowerCase().trim()===String(U.emel||"").toLowerCase().trim());
-  if(!boleh) return toast("Hanya pemuat naik, Master Admin atau Sub Admin boleh mengubah nama.");
+  const boleh=bolehUrusMedia(m)||(!!U&&String(m.EMEL||"").toLowerCase().trim()===String(U.emel||"").toLowerCase().trim());
+  if(!boleh) return toast("Hanya pemuat naik, jurulatih acara, Master Admin atau Sub Admin boleh mengubah nama.");
   const asal=m.TAJUK||(String(m["JENIS MEDIA"]||"Fail").toLowerCase()+" latihan");
   tutup();
   overlay(`<div class="big">✎ Edit Nama Media</div>
@@ -3685,6 +3689,8 @@ async function simpanNamaMedia(id){
 }
 
 async function padamMediaUI(id){
+  const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
+  if(m&&!bolehUrusMedia(m)) return toast("Hanya jurulatih acara, Master Admin atau Sub Admin boleh memadam media.");
   if(!confirm("Padam media ini dari Google Drive & Google Sheet?")) return;
   const el=document.getElementById("md-"+id); if(el) el.style.opacity=.4;
   try{
@@ -3692,6 +3698,43 @@ async function padamMediaUI(id){
     DB.media=(DB.media||[]).filter(m=>String(m.ID)!==String(id));
     if(el) el.remove(); toast("Media dipadam");
   }catch(e){ if(el) el.style.opacity=1; toastRalat(e); }
+}
+
+/* Ganti fail media dengan fail lain (jurulatih acara / Master Admin / Sub Admin) */
+let MEDIA_GANTI=null;
+function formGantiMedia(id){
+  const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
+  if(!m) return toast("Media tidak dijumpai");
+  if(!bolehUrusMedia(m)) return toast("Hanya jurulatih acara, Master Admin atau Sub Admin boleh menggantikan fail.");
+  MEDIA_GANTI=null; tutup();
+  overlay(`<div class="big">🔄 Ganti Fail Media</div>
+    <div class="small">Fail lama <b>${esc(m["NAMA FAIL"]||"")}</b> akan dipadam dari Google Drive dan digantikan dengan fail baharu. Nama, catatan dan maklumat lain kekal.</div>
+    <button class="btn ghost" onclick="document.getElementById('mdGantiFail').click()">📁 Pilih Fail Baharu</button>
+    <input type="file" id="mdGantiFail" class="hide" onchange="gantiPilih(event)"/>
+    <div id="mdGantiInfo" class="small" style="margin-top:8px">Belum ada fail dipilih.</div>
+    <button class="btn" id="mdGantiSimpan" onclick="simpanGantiMedia('${esc(id)}')" disabled>Ganti Fail</button>
+    <button class="btn ghost" onclick="tutup()">Batal</button>`);
+}
+async function gantiPilih(ev){
+  const f=(ev.target.files||[])[0]; ev.target.value=""; if(!f) return;
+  const mb=f.size/1048576;
+  if(mb>MAX_MEDIA_MB) return toast(`${f.name}: terlalu besar (${mb.toFixed(1)} MB). Maksima ${MAX_MEDIA_MB} MB.`,4500);
+  try{
+    const dataUrl=await fileToDataUrl(f);
+    MEDIA_GANTI={dataUrl,nama:f.name,mime:f.type||"application/octet-stream",saiz:f.size};
+    const info=document.getElementById("mdGantiInfo"); if(info) info.innerHTML=`${ikonFail(jenisFail(f.type,f.name),f.name)} <b>${esc(f.name)}</b> (${saizTeks(f.size)})`;
+    const b=document.getElementById("mdGantiSimpan"); if(b) b.disabled=false;
+  }catch(e){ toast("Gagal membaca fail "+f.name); }
+}
+async function simpanGantiMedia(id){
+  if(!MEDIA_GANTI) return toast("Sila pilih fail baharu.");
+  const btn=document.getElementById("mdGantiSimpan"); if(btn){btn.disabled=true;btn.textContent="Memuat naik…";}
+  try{
+    const r=await api("gantiFailMedia",{id,namaFail:MEDIA_GANTI.nama,mime:MEDIA_GANTI.mime,dataBase64:MEDIA_GANTI.dataUrl,...who()});
+    const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
+    if(m){ m["JENIS MEDIA"]=r.jenis; m["NAMA FAIL"]=r.namaFail; m.MIME=r.mime; m["SAIZ (BYTES)"]=r.saiz; m.PAUTAN=r.pautan; m["URL PAPAR"]=r.urlPapar; m["DRIVE ID"]=r.driveId; }
+    MEDIA_GANTI=null; tutup(); render(); toast("Fail media berjaya diganti");
+  }catch(e){ toastRalat(e); if(btn){btn.disabled=false;btn.textContent="Ganti Fail";} }
 }
 
 /* ---------- GALERI LATIHAN (semua acara) ---------- */

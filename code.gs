@@ -494,40 +494,88 @@ function kemaskiniCatatanMedia(p) {
   throw new Error("Media tidak dijumpai.");
 }
 
-/* Nama paparan media boleh diubah oleh pemuat naik, Master Admin atau Sub Admin. */
+/* Siapa boleh urus (edit nama / padam / ganti) media sesuatu acara:
+   Master Admin, Sub Admin, atau mana-mana jurulatih yang dilantik untuk acara tersebut. */
+function isJurulatihAcara(emel, acara) {
+  var e = String(emel || "").toLowerCase().trim(), a = String(acara || "").toUpperCase().trim();
+  if (!e || !a) return false;
+  return baca(SHEET_JURULATIH).some(function (j) {
+    return String(j["ACARA"] || "").toUpperCase().trim() === a &&
+      String(j["EMEL JURULATIH"] || "").toLowerCase().trim() === e;
+  });
+}
+function bolehUrusMedia(emel, acara) { return isAdmin(emel) || isJurulatihAcara(emel, acara); }
+
+function cariBarisMedia(id) {
+  var s = ss().getSheetByName(SHEET_MEDIA);
+  if (!s) throw new Error("Tiada rekod media.");
+  var v = s.getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][0]) === String(id)) return { sheet: s, row: i + 1, data: v[i] };
+  }
+  throw new Error("Media tidak dijumpai.");
+}
+
+/* Nama paparan media boleh diubah oleh pemuat naik, jurulatih acara, Master Admin atau Sub Admin. */
 function kemaskiniNamaMedia(p) {
   if (!p || !p.id) throw new Error("ID media diperlukan.");
   var nama = String(p.nama || "").trim().slice(0, 120);
   if (!nama) throw new Error("Nama media diperlukan.");
   var emel = String(p.olehEmel || "").toLowerCase().trim();
-  var s = ss().getSheetByName(SHEET_MEDIA);
-  if (!s) throw new Error("Tiada rekod media.");
-  var v = s.getDataRange().getValues();
-  for (var i = 1; i < v.length; i++) {
-    if (String(v[i][0]) === String(p.id)) {
-      var emelPemuatNaik = String(v[i][16] || "").toLowerCase().trim();
-      if (!isAdmin(emel) && (!emel || emel !== emelPemuatNaik)) {
-        throw new Error("Hanya pemuat naik, Master Admin atau Sub Admin boleh mengubah nama media.");
-      }
-      s.getRange(i + 1, 8).setValue(nama);
-      return { ok: true, nama: nama };
-    }
+  var b = cariBarisMedia(p.id);
+  var emelPemuatNaik = String(b.data[16] || "").toLowerCase().trim();
+  if (!bolehUrusMedia(emel, b.data[2]) && (!emel || emel !== emelPemuatNaik)) {
+    throw new Error("Hanya pemuat naik, jurulatih acara, Master Admin atau Sub Admin boleh mengubah nama media.");
   }
-  throw new Error("Media tidak dijumpai.");
+  b.sheet.getRange(b.row, 8).setValue(nama);
+  return { ok: true, nama: nama };
 }
 
+/* Padam media — jurulatih acara, Master Admin atau Sub Admin. */
 function padamMedia(p) {
-  var s = ss().getSheetByName(SHEET_MEDIA);
-  if (!s) throw new Error("Tiada rekod media.");
-  var v = s.getDataRange().getValues();
-  for (var i = 1; i < v.length; i++) {
-    if (String(v[i][0]) === String(p.id)) {
-      try { DriveApp.getFileById(String(v[i][14])).setTrashed(true); } catch (e) {}
-      s.deleteRow(i + 1);
-      return { ok: true };
-    }
+  if (!p || !p.id) throw new Error("ID media diperlukan.");
+  var b = cariBarisMedia(p.id);
+  if (!bolehUrusMedia(p.olehEmel, b.data[2])) {
+    throw new Error("Hanya jurulatih acara, Master Admin atau Sub Admin boleh memadam media.");
   }
-  throw new Error("Media tidak dijumpai.");
+  try { if (b.data[14]) DriveApp.getFileById(String(b.data[14])).setTrashed(true); } catch (e) {}
+  b.sheet.deleteRow(b.row);
+  return { ok: true };
+}
+
+/* Ganti fail media dengan fail lain — jurulatih acara, Master Admin atau Sub Admin.
+   p: { id, namaFail, mime, dataBase64, olehNama, olehEmel } */
+function gantiFailMedia(p) {
+  if (!p || !p.id) throw new Error("ID media diperlukan.");
+  if (!p.dataBase64) throw new Error("Sila pilih fail baharu.");
+  var b = cariBarisMedia(p.id);
+  var acara = b.data[2];
+  if (!bolehUrusMedia(p.olehEmel, acara)) {
+    throw new Error("Hanya jurulatih acara, Master Admin atau Sub Admin boleh menggantikan fail media.");
+  }
+  var data = String(p.dataBase64), mime = p.mime || "application/octet-stream";
+  var m = data.match(/^data:([^;]+);base64,(.*)$/);
+  if (m) { mime = m[1]; data = m[2]; }
+  var bytes = Utilities.base64Decode(data);
+  if (bytes.length > MAX_SAIZ_MEDIA) throw new Error("Saiz fail terlalu besar (maksima " + Math.round(MAX_SAIZ_MEDIA / 1048576) + " MB).");
+
+  var jenis = jenisDariMime(mime, p.namaFail);
+  var asas = String(p.namaFail || (jenis + "_" + nowStr())).replace(/[\\/:*?"<>|]/g, "_").slice(0, 110);
+  var nama = String(acara).toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "__" + asas;
+  var fail = folderMediaAcara(acara).createFile(Utilities.newBlob(bytes, mime, nama));
+  try { fail.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  var driveId = fail.getId();
+  var pautan = pautanDrive(driveId);
+  var urlPapar = jenis === "GAMBAR" ? urlGambarDrive(driveId) : ("https://drive.google.com/file/d/" + driveId + "/preview");
+
+  /* Buang fail lama selepas fail baharu berjaya disimpan */
+  var lamaId = String(b.data[14] || "");
+  if (lamaId) { try { DriveApp.getFileById(lamaId).setTrashed(true); } catch (e) {} }
+
+  /* Kemas kini lajur: JENIS MEDIA(7), NAMA FAIL(10), MIME(11), SAIZ(12), PAUTAN(13), URL PAPAR(14), DRIVE ID(15) */
+  b.sheet.getRange(b.row, 7).setValue(jenis);
+  b.sheet.getRange(b.row, 10, 1, 6).setValues([[asas, mime, bytes.length, pautan, urlPapar, driveId]]);
+  return { ok: true, jenis: jenis, namaFail: asas, mime: mime, saiz: bytes.length, pautan: pautan, urlPapar: urlPapar, driveId: driveId };
 }
 
 function senaraiMedia(p) {
@@ -1266,6 +1314,7 @@ var TINDAKAN = {
   kemaskiniCatatanMedia: kemaskiniCatatanMedia,
   kemaskiniNamaMedia: kemaskiniNamaMedia,
   padamMedia: padamMedia,
+  gantiFailMedia: gantiFailMedia,
   tambahAtlet: tambahAtlet,
   padamAtlet: padamAtlet,
   simpanTetapan: simpanTetapan,
