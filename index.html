@@ -117,12 +117,10 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .media-kad .mk-thumb-tag{position:absolute;left:8px;bottom:8px;padding:4px 8px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;font-weight:900}
 .media-kad .mk-catatan{width:100%;aspect-ratio:1/1;height:auto;padding:14px;display:flex;align-items:center;overflow:hidden;background:rgba(255,255,255,.06);color:var(--mut);font-size:12px;line-height:1.45;white-space:pre-wrap}
 .media-kad .mk-b{padding:8px}
-.media-kad .mk-pilih{display:flex;align-items:center;gap:8px;padding:8px 10px;margin:0;font-size:12px;font-weight:800;color:var(--txt);background:rgba(255,77,109,.16);border-bottom:1px solid var(--line);cursor:pointer}
-.media-kad.mk-dipilih{outline:2px solid var(--bad);outline-offset:-2px}
 .media-kad .mk-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:5px}
 .media-kad .mk-info{font-size:11px;color:var(--mut);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.media-kad .mk-aksi{display:flex;align-items:center;gap:8px;margin-top:8px}
-.media-kad .mk-aksi .btn{margin:0;min-width:42px;min-height:42px}
+.media-kad .mk-aksi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:5px;margin-top:8px}
+.media-kad .mk-aksi .btn{width:100%;min-width:0;min-height:32px;height:32px;margin:0;padding:4px 5px;border-radius:9px;font-size:10.5px;line-height:1;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:3px}
 .media-kad .mk-aksi .mk-label{display:inline}
 .media-pratonton{width:100%;max-height:230px;object-fit:contain;border-radius:14px;background:#000;margin-top:8px}
 .media-kad .mk-ikon{display:flex;align-items:center;justify-content:center;height:120px;font-size:38px;background:linear-gradient(135deg,rgba(109,40,249,.35),rgba(0,198,255,.25));color:#fff}
@@ -228,8 +226,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
   /* Sejarah media: maklumat minimum dan butang ikon besar untuk sentuhan. */
   .sheet:has(#mdSenarai) .big{font-size:18px;line-height:1.25}
   .sheet:has(#mdSenarai) > .acara-acts{display:flex;justify-content:flex-start;gap:10px}
-  .sheet:has(#mdSenarai) > .acara-acts .btn,
-  .media-kad .mk-aksi .btn{
+  .sheet:has(#mdSenarai) > .acara-acts .btn{
     width:48px;height:48px;min-width:48px;min-height:48px;padding:0;
     border-radius:50%;font-size:20px;line-height:1;flex:0 0 48px;
   }
@@ -240,8 +237,9 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
   .media-kad .mk-b{padding:10px}
   .media-kad .mk-b .nm{font-size:13px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .media-kad .mk-nota{display:none}
-  .media-kad .mk-aksi{justify-content:flex-start;gap:9px}
-  .media-kad .mk-aksi .mk-label{display:none}
+  .media-kad .mk-aksi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .media-kad .mk-aksi .btn{width:100%;min-width:0;height:32px;min-height:32px;padding:4px;border-radius:9px;font-size:10.5px;line-height:1;flex:none}
+  .media-kad .mk-aksi .mk-label{display:inline}
   .media-kad .mk-meta .chip{margin:0}
 }
 
@@ -341,7 +339,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxz8p7FjU_oa6xDszkzpKS_aoRT7Y4P-uAMcKhnLtpr2L19B6AFJyykhh4uANozkT7y/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbwjBhs01lLY2hbHVITlH8RmKYWiyj5dwGEUQWng4JP5VHizqAUvu-ToUs7-hWWGAV8U/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -3531,11 +3529,11 @@ function ikonFail(jns,nama){
 const saizTeks=b=>{const n=Number(b||0); if(!n) return ""; return n>1048576?(n/1048576).toFixed(2)+" MB":(n/1024).toFixed(0)+" KB";};
 
 /* Satu kad media untuk Sejarah & Galeri */
-function kadMedia(m,bolehPadam,pilihMod){
+function kadMedia(m,bolehPadam){
   const jns=String(m["JENIS MEDIA"]||"FAIL").toUpperCase();
   const tajuk=m.TAJUK||(jns==="CATATAN"?"Catatan latihan":`${jns.charAt(0)}${jns.slice(1).toLowerCase()} latihan`);
   const urus=bolehUrusMedia(m);
-  const bolehEdit=urus; /* hanya Master Admin, Sub Admin & jurulatih acara ini */
+  const bolehEdit=urus||(!!U&&String(m.EMEL||"").toLowerCase().trim()===String(U.emel||"").toLowerCase().trim());
   bolehPadam=urus;
   const driveId=String(m["DRIVE ID"]||"").trim();
   let atas="";
@@ -3548,9 +3546,7 @@ function kadMedia(m,bolehPadam,pilihMod){
   }else{
     atas=`<div class="mk-catatan">${esc(m.CATATAN||tajuk)}</div>`;
   }
-  const kotakPilih=(pilihMod&&urus)?`<label class="mk-pilih"><input type="checkbox" ${G_PILIH.has(String(m.ID))?"checked":""} onchange="togglePilihMedia('${esc(m.ID)}',this.checked)"/> Pilih untuk padam</label>`:"";
-  return `<div class="media-kad${(pilihMod&&urus&&G_PILIH.has(String(m.ID)))?" mk-dipilih":""}" id="md-${esc(m.ID)}">
-    ${kotakPilih}
+  return `<div class="media-kad" id="md-${esc(m.ID)}">
     ${atas}
     <div class="mk-b">
       <div class="nm" style="font-size:13px">${esc(tajuk)}</div>
@@ -3744,23 +3740,6 @@ async function simpanGantiMedia(id){
 
 /* ---------- GALERI LATIHAN (semua acara) ---------- */
 let gAcara="__ALL__", gJenis="__ALL__", gCari="";
-let G_PADAM_MOD=false; const G_PILIH=new Set();
-function togglePadamGaleri(){ G_PADAM_MOD=!G_PADAM_MOD; G_PILIH.clear(); render(); }
-function togglePilihMedia(id,ada){ ada?G_PILIH.add(String(id)):G_PILIH.delete(String(id)); render(); }
-async function padamPilihanGaleri(){
-  const sen=[...G_PILIH];
-  if(!sen.length) return toast("Sila tanda fail yang hendak dipadam.");
-  const bolehSemua=sen.every(id=>{const m=(DB.media||[]).find(x=>String(x.ID)===String(id)); return m&&bolehUrusMedia(m);});
-  if(!bolehSemua) return toast("Hanya Master Admin, Sub Admin atau jurulatih acara berkenaan boleh memadam fail ini.");
-  if(!confirm(`Padam ${sen.length} fail terpilih dari Google Drive & Google Sheet?`)) return;
-  let ok=0, gagal=0;
-  for(const id of sen){
-    try{ await api("padamMedia",{id,...who()}); DB.media=(DB.media||[]).filter(x=>String(x.ID)!==String(id)); ok++; }
-    catch(e){ gagal++; }
-  }
-  G_PILIH.clear(); simpanCacheDB(DB); render();
-  toast(`${ok} fail dipadam${gagal?` • ${gagal} gagal`:""}`);
-}
 const G_JENIS=[["__ALL__","🗂 Semua"],["GAMBAR","🖼 Gambar"],["VIDEO","🎬 Video"],["AUDIO","🎵 Audio"],["FAIL","📄 Fail"],["CATATAN","📝 Catatan"]];
 
 function vGaleri(){
@@ -3798,7 +3777,7 @@ function vGaleri(){
           ${bolehRekod(k)?`<button class="btn sm" style="margin-left:auto" onclick="formMedia('${esc(k)}')">📎 Tambah</button>`:""}
         </div>
       </div>
-      <div class="media-grid">${arr.map(m=>kadMedia(m,bolehRekod(k),G_PADAM_MOD)).join("")}</div>
+      <div class="media-grid">${arr.map(m=>kadMedia(m,bolehRekod(k))).join("")}</div>
     </div>`;
   }).join("");
 
@@ -3812,11 +3791,6 @@ function vGaleri(){
       <span class="chip">🖼 ${bil("GAMBAR")}</span><span class="chip">🎬 ${bil("VIDEO")}</span>
       <span class="chip">🎵 ${bil("AUDIO")}</span><span class="chip">📄 ${bil("FAIL")}</span><span class="chip">📝 ${bil("CATATAN")}</span>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
-      <button class="btn sm ${G_PADAM_MOD?"bad":"ghost"}" onclick="togglePadamGaleri()">${G_PADAM_MOD?"✖ Batal Mod Padam":"🗑 Padam Fail"}</button>
-      ${G_PADAM_MOD?`<button class="btn sm bad" onclick="padamPilihanGaleri()">🗑 Padam ${G_PILIH.size} Fail Dipilih</button>`:""}
-    </div>
-    ${G_PADAM_MOD?`<p class="small">Tanda fail yang hendak dipadam. Hanya <b>Master Admin</b>, <b>Sub Admin</b> dan <b>jurulatih acara berkenaan</b> boleh memadam atau mengedit fail.</p>`:""}
     <label>Cari (tajuk, catatan, nama atlet, nama fail)</label>
     <input id="galCari" value="${esc(gCari)}" placeholder="Cth: teknik permulaan" oninput="gCari=this.value;clearTimeout(window.__gT);window.__gT=setTimeout(render,350)"/>
     <div class="tabs" style="margin-top:8px">
