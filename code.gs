@@ -516,7 +516,8 @@ function cariBarisMedia(id) {
   throw new Error("Media tidak dijumpai.");
 }
 
-/* Nama paparan media boleh diubah oleh pemuat naik, jurulatih acara, Master Admin atau Sub Admin. */
+/* Nama paparan dan nama fail Drive boleh diubah oleh pemuat naik,
+   jurulatih acara, Master Admin atau Sub Admin. */
 function kemaskiniNamaMedia(p) {
   if (!p || !p.id) throw new Error("ID media diperlukan.");
   var nama = String(p.nama || "").trim().slice(0, 120);
@@ -527,8 +528,19 @@ function kemaskiniNamaMedia(p) {
   if (!bolehUrusMedia(emel, b.data[2]) && (!emel || emel !== emelPemuatNaik)) {
     throw new Error("Hanya pemuat naik, jurulatih acara, Master Admin atau Sub Admin boleh mengubah nama media.");
   }
+  var namaFail = String(b.data[9] || "");
+  var driveId = String(b.data[14] || "");
+  if (driveId) {
+    var sambungan = "";
+    var padan = namaFail.match(/(\.[^./\\]+)$/);
+    if (padan && nama.slice(-padan[1].length).toLowerCase() !== padan[1].toLowerCase()) sambungan = padan[1];
+    namaFail = nama.replace(/[\\/:*?"<>|]/g, "_").slice(0, Math.max(1, 110 - sambungan.length)) + sambungan;
+    try { DriveApp.getFileById(driveId).setName(namaFail); }
+    catch (e) { throw new Error("Nama fail tidak dapat diubah di Google Drive. Sila pastikan skrip mempunyai kebenaran Drive."); }
+    b.sheet.getRange(b.row, 10).setValue(namaFail);
+  }
   b.sheet.getRange(b.row, 8).setValue(nama);
-  return { ok: true, nama: nama };
+  return { ok: true, nama: nama, namaFail: namaFail };
 }
 
 /* Padam media — jurulatih acara, Master Admin atau Sub Admin. */

@@ -111,11 +111,11 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .acara-acts .rnd .bil{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--ok);color:#03301f;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center}
 .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .media-kad{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.05)}
-.media-kad img,.media-kad iframe,.media-kad video{width:100%;height:120px;object-fit:cover;display:block;border:0;background:#000}
-.media-kad .mk-thumb-wrap{position:relative;height:120px;overflow:hidden;background:rgba(255,255,255,.06)}
+.media-kad img,.media-kad iframe,.media-kad video{width:100%;aspect-ratio:1/1;height:auto;object-fit:cover;display:block;border:0;background:#000}
+.media-kad .mk-thumb-wrap{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;background:rgba(255,255,255,.06);display:block}
 .media-kad .mk-thumb{width:100%;height:100%;object-fit:cover;display:block}
 .media-kad .mk-thumb-tag{position:absolute;left:8px;bottom:8px;padding:4px 8px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;font-weight:900}
-.media-kad .mk-catatan{height:120px;padding:14px;display:flex;align-items:center;overflow:hidden;background:rgba(255,255,255,.06);color:var(--mut);font-size:12px;line-height:1.45;white-space:pre-wrap}
+.media-kad .mk-catatan{width:100%;aspect-ratio:1/1;height:auto;padding:14px;display:flex;align-items:center;overflow:hidden;background:rgba(255,255,255,.06);color:var(--mut);font-size:12px;line-height:1.45;white-space:pre-wrap}
 .media-kad .mk-b{padding:8px}
 .media-kad .mk-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:5px}
 .media-kad .mk-info{font-size:11px;color:var(--mut);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -234,7 +234,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
   .sheet:has(#mdSenarai) .mk-label{display:none}
   .sheet:has(#mdSenarai) .media-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .sheet:has(#mdSenarai) .media-kad .mk-thumb-wrap,
-  .sheet:has(#mdSenarai) .media-kad .mk-catatan{height:112px}
+  .sheet:has(#mdSenarai) .media-kad .mk-catatan{height:auto;aspect-ratio:1/1}
   .media-kad .mk-b{padding:10px}
   .media-kad .mk-b .nm{font-size:13px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .media-kad .mk-nota{display:none}
@@ -339,7 +339,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxkbYIPVDTlke_PyJyY2ixJroTUHRtPxmpKBEzlbKApCil9R24gWDfeQaqnlC43qz9n/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbwjBhs01lLY2hbHVITlH8RmKYWiyj5dwGEUQWng4JP5VHizqAUvu-ToUs7-hWWGAV8U/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -3558,7 +3558,7 @@ function kadMedia(m,bolehPadam){
       <div class="mk-info">${esc(m["TARIKH & MASA"]||m.TARIKH||"")}${m["DIMUAT NAIK OLEH"]?" • "+esc(m["DIMUAT NAIK OLEH"]):""}</div>
       <div class="mk-aksi">
         ${m.PAUTAN?`<a class="btn sm ghost" href="${esc(m.PAUTAN)}" target="_blank" rel="noopener" title="Buka atau muat turun" aria-label="Buka atau muat turun">↗ <span class="mk-label">Buka</span></a>`:""}
-        ${bolehEdit?`<button class="btn sm ghost" onclick="formNamaMedia('${esc(m.ID)}')" title="Edit nama" aria-label="Edit nama">✎ <span class="mk-label">Edit</span></button>`:""}
+        ${bolehEdit?`<button class="btn sm ghost" onclick="formNamaMedia('${esc(m.ID)}')" title="Edit nama fail atau media" aria-label="Edit nama fail atau media">✎ <span class="mk-label">Edit</span></button>`:""}
         ${urus&&driveId?`<button class="btn sm ghost" onclick="formGantiMedia('${esc(m.ID)}')" title="Ganti fail" aria-label="Ganti fail">🔄 <span class="mk-label">Ganti</span></button>`:""}
         ${bolehPadam?`<button class="btn sm bad" onclick="padamMediaUI('${esc(m.ID)}')" title="Padam" aria-label="Padam">🗑 <span class="mk-label">Padam</span></button>`:""}
       </div>
@@ -3668,9 +3668,9 @@ function formNamaMedia(id){
   if(!boleh) return toast("Hanya pemuat naik, jurulatih acara, Master Admin atau Sub Admin boleh mengubah nama.");
   const asal=m.TAJUK||(String(m["JENIS MEDIA"]||"Fail").toLowerCase()+" latihan");
   tutup();
-  overlay(`<div class="big">✎ Edit Nama Media</div>
-    <div class="small">Nama ini sahaja akan dipaparkan pada kad media.</div>
-    <label>Nama media</label>
+  overlay(`<div class="big">✎ Edit Nama Fail / Media</div>
+    <div class="small">Nama baharu akan digunakan pada kad galeri dan fail di Google Drive.</div>
+    <label>Nama fail / media</label>
     <input id="mdNamaEdit" maxlength="120" value="${esc(asal)}" placeholder="Contoh: Latihan pecut sesi pagi"/>
     <button class="btn" id="mdNamaSimpan" onclick="simpanNamaMedia('${esc(id)}')">Simpan Nama</button>
     <button class="btn ghost" onclick="tutup()">Batal</button>`);
@@ -3682,9 +3682,10 @@ async function simpanNamaMedia(id){
   if(!nama) return toast("Nama media diperlukan.");
   const btn=document.getElementById("mdNamaSimpan"); if(btn){btn.disabled=true;btn.textContent="Menyimpan…";}
   try{
-    await api("kemaskiniNamaMedia",{id,nama,...who()});
-    const m=(DB.media||[]).find(x=>String(x.ID)===String(id)); if(m) m.TAJUK=nama;
-    tutup(); render(); toast("Nama media dikemas kini");
+    const r=await api("kemaskiniNamaMedia",{id,nama,...who()});
+    const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
+    if(m){ m.TAJUK=nama; if(r&&r.namaFail) m["NAMA FAIL"]=r.namaFail; }
+    simpanCacheDB(DB); tutup(); render(); toast("Nama fail / media dikemas kini");
   }catch(e){toastRalat(e);if(btn){btn.disabled=false;btn.textContent="Simpan Nama";}}
 }
 
