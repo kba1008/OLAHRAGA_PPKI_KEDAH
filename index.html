@@ -118,7 +118,10 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .media-kad .mk-catatan{width:100%;aspect-ratio:1/1;height:auto;padding:14px;display:flex;align-items:center;overflow:hidden;background:rgba(255,255,255,.06);color:var(--mut);font-size:12px;line-height:1.45;white-space:pre-wrap}
 .media-kad .mk-b{padding:8px}
 .media-kad .mk-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:5px}
-.media-kad .mk-info{font-size:11px;color:var(--mut);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.media-kad .mk-info{display:grid;gap:3px;font-size:11px;color:var(--mut);margin-top:7px;line-height:1.3}
+.media-kad .mk-info-row{display:flex;align-items:flex-start;gap:5px;min-width:0}
+.media-kad .mk-info-ic{flex:0 0 14px;text-align:center}
+.media-kad .mk-info-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .media-kad .mk-aksi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:5px;margin-top:8px}
 .media-kad .mk-aksi .btn{width:100%;min-width:0;min-height:32px;height:32px;margin:0;padding:4px 5px;border-radius:9px;font-size:10.5px;line-height:1;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:3px}
 .media-kad .mk-aksi .mk-label{display:inline}
@@ -339,7 +342,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbyY8woNgjX9M5zNOFov8X2EcvCmvcg2UPWxuaNCpszfFcigpGGykXwy-zh8IJp0k0wx/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbwjBhs01lLY2hbHVITlH8RmKYWiyj5dwGEUQWng4JP5VHizqAUvu-ToUs7-hWWGAV8U/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -3533,7 +3536,7 @@ function kadMedia(m,bolehPadam){
   const jns=String(m["JENIS MEDIA"]||"FAIL").toUpperCase();
   const tajuk=m.TAJUK||(jns==="CATATAN"?"Catatan latihan":`${jns.charAt(0)}${jns.slice(1).toLowerCase()} latihan`);
   const urus=bolehUrusMedia(m);
-  const bolehEdit=urus||(!!U&&String(m.EMEL||"").toLowerCase().trim()===String(U.emel||"").toLowerCase().trim());
+  const bolehEdit=urus;
   bolehPadam=urus;
   const driveId=String(m["DRIVE ID"]||"").trim();
   let atas="";
@@ -3555,15 +3558,44 @@ function kadMedia(m,bolehPadam){
         <span class="chip">${ikonFail(jns,m["NAMA FAIL"])} ${esc(jns)}</span>
         ${m["NAMA ATLET"]?`<span class="chip">🏃 ${esc(m["NAMA ATLET"])}</span>`:""}
       </div>
-      <div class="mk-info">${esc(m["TARIKH & MASA"]||m.TARIKH||"")}${m["DIMUAT NAIK OLEH"]?" • "+esc(m["DIMUAT NAIK OLEH"]):""}</div>
+      <div class="mk-info">
+        <div class="mk-info-row" title="Dimuat naik oleh ${esc(m["DIMUAT NAIK OLEH"]||"Tidak dinyatakan")}"><span class="mk-info-ic">👤</span><span class="mk-info-txt">${esc(m["DIMUAT NAIK OLEH"]||"Tidak dinyatakan")}</span></div>
+        <div class="mk-info-row"><span class="mk-info-ic">🗓</span><span class="mk-info-txt">${esc(fmtTarikhMasa(m["TARIKH & MASA"]||m.TARIKH||""))}</span></div>
+      </div>
       <div class="mk-aksi">
         ${m.PAUTAN?`<a class="btn sm ghost" href="${esc(m.PAUTAN)}" target="_blank" rel="noopener" title="Buka atau muat turun" aria-label="Buka atau muat turun">↗ <span class="mk-label">Buka</span></a>`:""}
-        ${bolehEdit?`<button class="btn sm ghost" onclick="formNamaMedia('${esc(m.ID)}')" title="Edit nama fail atau media" aria-label="Edit nama fail atau media">✎ <span class="mk-label">Edit</span></button>`:""}
-        ${urus&&driveId?`<button class="btn sm ghost" onclick="formGantiMedia('${esc(m.ID)}')" title="Ganti fail" aria-label="Ganti fail">🔄 <span class="mk-label">Ganti</span></button>`:""}
-        ${bolehPadam?`<button class="btn sm bad" onclick="padamMediaUI('${esc(m.ID)}')" title="Padam" aria-label="Padam">🗑 <span class="mk-label">Padam</span></button>`:""}
+        ${bolehEdit?`<button class="btn sm ghost" onclick="event.stopPropagation();menuEditMedia('${esc(m.ID)}',this)" title="Pilihan edit" aria-label="Buka pilihan edit">✎ <span class="mk-label">Edit</span></button>`:""}
       </div>
     </div>
   </div>`;
+}
+
+/* Semua tindakan pengurusan media dihimpunkan dalam satu butang Edit. */
+function menuEditMedia(id,btn){
+  const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
+  if(!m||!bolehUrusMedia(m)) return toast("Hanya jurulatih acara, Master Admin atau Sub Admin boleh mengurus media.");
+  const buka=btn&&btn.dataset.ddOpen==="1";
+  tutupDropdown();
+  document.querySelectorAll("[data-dd-open]").forEach(b=>b.dataset.ddOpen="0");
+  if(buka) return;
+  const driveId=String(m["DRIVE ID"]||"").trim();
+  const menu=document.createElement("div");
+  menu.className="dd-menu";
+  menu.onclick=e=>e.stopPropagation();
+  menu.innerHTML=`<div class="dd-tajuk">Urus Fail</div>
+    <button class="dd-item" onclick="tutupDropdown();formNamaMedia('${esc(id)}')">✎ Edit nama</button>
+    ${driveId?`<button class="dd-item" onclick="tutupDropdown();formGantiMedia('${esc(id)}')">🔄 Ganti fail</button>`:""}
+    <button class="dd-item bad" onclick="tutupDropdown();padamMediaUI('${esc(id)}')">🗑 Padam fail</button>`;
+  document.body.appendChild(menu);
+  if(btn){
+    btn.dataset.ddOpen="1";
+    const r=btn.getBoundingClientRect(), lebar=menu.offsetWidth||210, tinggi=menu.offsetHeight||150;
+    let kiri=r.right-lebar; if(kiri<8) kiri=8;
+    if(kiri+lebar>window.innerWidth-8) kiri=window.innerWidth-lebar-8;
+    let atas=r.bottom+6;
+    if(atas+tinggi>window.innerHeight-8) atas=Math.max(8,r.top-tinggi-6);
+    menu.style.left=kiri+"px"; menu.style.top=atas+"px";
+  }
 }
 
 function formMedia(n){
@@ -3664,8 +3696,8 @@ function historiMedia(n){
 function formNamaMedia(id){
   const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
   if(!m) return toast("Media tidak dijumpai");
-  const boleh=bolehUrusMedia(m)||(!!U&&String(m.EMEL||"").toLowerCase().trim()===String(U.emel||"").toLowerCase().trim());
-  if(!boleh) return toast("Hanya pemuat naik, jurulatih acara, Master Admin atau Sub Admin boleh mengubah nama.");
+  const boleh=bolehUrusMedia(m);
+  if(!boleh) return toast("Hanya jurulatih acara, Master Admin atau Sub Admin boleh mengubah nama.");
   const asal=m.TAJUK||(String(m["JENIS MEDIA"]||"Fail").toLowerCase()+" latihan");
   tutup();
   overlay(`<div class="big">✎ Edit Nama Fail / Media</div>

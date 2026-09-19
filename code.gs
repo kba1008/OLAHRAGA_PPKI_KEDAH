@@ -516,7 +516,7 @@ function cariBarisMedia(id) {
   throw new Error("Media tidak dijumpai.");
 }
 
-/* Nama paparan dan nama fail Drive boleh diubah oleh pemuat naik,
+/* Nama paparan dan nama fail Drive hanya boleh diubah oleh
    jurulatih acara, Master Admin atau Sub Admin. */
 function kemaskiniNamaMedia(p) {
   if (!p || !p.id) throw new Error("ID media diperlukan.");
@@ -524,9 +524,8 @@ function kemaskiniNamaMedia(p) {
   if (!nama) throw new Error("Nama media diperlukan.");
   var emel = String(p.olehEmel || "").toLowerCase().trim();
   var b = cariBarisMedia(p.id);
-  var emelPemuatNaik = String(b.data[16] || "").toLowerCase().trim();
-  if (!bolehUrusMedia(emel, b.data[2]) && (!emel || emel !== emelPemuatNaik)) {
-    throw new Error("Hanya pemuat naik, jurulatih acara, Master Admin atau Sub Admin boleh mengubah nama media.");
+  if (!bolehUrusMedia(emel, b.data[2])) {
+    throw new Error("Hanya jurulatih acara, Master Admin atau Sub Admin boleh mengubah nama media.");
   }
   var namaFail = String(b.data[9] || "");
   var driveId = String(b.data[14] || "");
