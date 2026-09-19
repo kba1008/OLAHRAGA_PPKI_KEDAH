@@ -112,7 +112,16 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .media-kad{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.05)}
 .media-kad img,.media-kad iframe,.media-kad video{width:100%;height:120px;object-fit:cover;display:block;border:0;background:#000}
+.media-kad .mk-thumb-wrap{position:relative;height:120px;overflow:hidden;background:rgba(255,255,255,.06)}
+.media-kad .mk-thumb{width:100%;height:100%;object-fit:cover;display:block}
+.media-kad .mk-thumb-tag{position:absolute;left:8px;bottom:8px;padding:4px 8px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;font-weight:900}
+.media-kad .mk-catatan{height:120px;padding:14px;display:flex;align-items:center;overflow:hidden;background:rgba(255,255,255,.06);color:var(--mut);font-size:12px;line-height:1.45;white-space:pre-wrap}
 .media-kad .mk-b{padding:8px}
+.media-kad .mk-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:5px}
+.media-kad .mk-info{font-size:11px;color:var(--mut);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.media-kad .mk-aksi{display:flex;align-items:center;gap:8px;margin-top:8px}
+.media-kad .mk-aksi .btn{margin:0;min-width:42px;min-height:42px}
+.media-kad .mk-aksi .mk-label{display:inline}
 .media-pratonton{width:100%;max-height:230px;object-fit:contain;border-radius:14px;background:#000;margin-top:8px}
 .media-kad .mk-ikon{display:flex;align-items:center;justify-content:center;height:120px;font-size:38px;background:linear-gradient(135deg,rgba(109,40,249,.35),rgba(0,198,255,.25));color:#fff}
 .media-kad .mk-jns{position:relative;top:-24px;left:8px;height:0}
@@ -214,6 +223,24 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
   .media-lampiran + input + input + input + #mdPratonton{
     clear:both;margin-top:12px!important;line-height:1.4;min-height:18px;
   }
+  /* Sejarah media: maklumat minimum dan butang ikon besar untuk sentuhan. */
+  .sheet:has(#mdSenarai) .big{font-size:18px;line-height:1.25}
+  .sheet:has(#mdSenarai) > .acara-acts{display:flex;justify-content:flex-start;gap:10px}
+  .sheet:has(#mdSenarai) > .acara-acts .btn,
+  .media-kad .mk-aksi .btn{
+    width:48px;height:48px;min-width:48px;min-height:48px;padding:0;
+    border-radius:50%;font-size:20px;line-height:1;flex:0 0 48px;
+  }
+  .sheet:has(#mdSenarai) .mk-label{display:none}
+  .sheet:has(#mdSenarai) .media-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .sheet:has(#mdSenarai) .media-kad .mk-thumb-wrap,
+  .sheet:has(#mdSenarai) .media-kad .mk-catatan{height:112px}
+  .media-kad .mk-b{padding:10px}
+  .media-kad .mk-b .nm{font-size:13px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .media-kad .mk-nota{display:none}
+  .media-kad .mk-aksi{justify-content:flex-start;gap:9px}
+  .media-kad .mk-aksi .mk-label{display:none}
+  .media-kad .mk-meta .chip{margin:0}
 }
 
 .sp{width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--p2);border-radius:50%;animation:s 1s linear infinite;margin:24px auto}
@@ -312,7 +339,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbx830NBtimuXM1GED873Y-sC5AW_O3V6J9yLSHBVc902vVAqj6ymFiA4uqI2Gi8P9BQ/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbwjBhs01lLY2hbHVITlH8RmKYWiyj5dwGEUQWng4JP5VHizqAUvu-ToUs7-hWWGAV8U/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -3503,26 +3530,33 @@ const saizTeks=b=>{const n=Number(b||0); if(!n) return ""; return n>1048576?(n/1
 /* Satu kad media untuk Sejarah & Galeri */
 function kadMedia(m,bolehPadam){
   const jns=String(m["JENIS MEDIA"]||"FAIL").toUpperCase();
-  const tajuk=m.TAJUK||(jns==="CATATAN"?"Catatan latihan":(m["NAMA FAIL"]||"Fail latihan"));
+  const tajuk=m.TAJUK||(jns==="CATATAN"?"Catatan latihan":`${jns.charAt(0)}${jns.slice(1).toLowerCase()} latihan`);
+  const bolehEdit=!!U&&(isAdmin()||String(m.EMEL||"").toLowerCase().trim()===String(U.emel||"").toLowerCase().trim());
+  const driveId=String(m["DRIVE ID"]||"").trim();
   let atas="";
-  if(jns==="GAMBAR") atas=`<img src="${esc(m["URL PAPAR"])}" alt="${esc(tajuk)}" loading="lazy"/>`;
-  else if(jns==="VIDEO") atas=`<iframe src="${esc(m["URL PAPAR"])}" allow="autoplay" loading="lazy"></iframe>`;
-  else atas=`<div class="mk-ikon">${ikonFail(jns,m["NAMA FAIL"])}</div>`;
+  if(driveId){
+    const thumb=`https://drive.google.com/thumbnail?id=${encodeURIComponent(driveId)}&sz=w600`;
+    atas=`<a class="mk-thumb-wrap" href="${esc(m.PAUTAN||m["URL PAPAR"]||thumb)}" target="_blank" rel="noopener" aria-label="Buka ${esc(tajuk)}">
+      <img class="mk-thumb" src="${esc(thumb)}" alt="Pratonton ${esc(tajuk)}" loading="lazy"/>
+      <span class="mk-thumb-tag">${esc(jns)}</span>
+    </a>`;
+  }else{
+    atas=`<div class="mk-catatan">${esc(m.CATATAN||tajuk)}</div>`;
+  }
   return `<div class="media-kad" id="md-${esc(m.ID)}">
     ${atas}
     <div class="mk-b">
       <div class="nm" style="font-size:13px">${esc(tajuk)}</div>
       ${m.CATATAN?`<div class="sub mk-nota">${esc(m.CATATAN)}</div>`:""}
-      <div style="margin-top:4px">
+      <div class="mk-meta">
         <span class="chip">${ikonFail(jns,m["NAMA FAIL"])} ${esc(jns)}</span>
         ${m["NAMA ATLET"]?`<span class="chip">🏃 ${esc(m["NAMA ATLET"])}</span>`:""}
-        ${saizTeks(m["SAIZ (BYTES)"])?`<span class="chip">${saizTeks(m["SAIZ (BYTES)"])}</span>`:""}
       </div>
-      ${m["NAMA FAIL"]?`<div class="sub">${esc(m["NAMA FAIL"])}</div>`:""}
-      <div class="sub">${esc(m["TARIKH & MASA"]||m.TARIKH||"")}${m["DIMUAT NAIK OLEH"]?" • "+esc(m["DIMUAT NAIK OLEH"]):""}</div>
-      <div class="acara-acts" style="justify-content:flex-start">
-        ${m.PAUTAN?`<a class="btn sm ghost" href="${esc(m.PAUTAN)}" target="_blank" rel="noopener">↗ Buka / Muat Turun</a>`:""}
-        ${bolehPadam?`<button class="btn sm bad" onclick="padamMediaUI('${esc(m.ID)}')">🗑</button>`:""}
+      <div class="mk-info">${esc(m["TARIKH & MASA"]||m.TARIKH||"")}${m["DIMUAT NAIK OLEH"]?" • "+esc(m["DIMUAT NAIK OLEH"]):""}</div>
+      <div class="mk-aksi">
+        ${m.PAUTAN?`<a class="btn sm ghost" href="${esc(m.PAUTAN)}" target="_blank" rel="noopener" title="Buka atau muat turun" aria-label="Buka atau muat turun">↗ <span class="mk-label">Buka</span></a>`:""}
+        ${bolehEdit?`<button class="btn sm ghost" onclick="formNamaMedia('${esc(m.ID)}')" title="Edit nama" aria-label="Edit nama">✎ <span class="mk-label">Edit</span></button>`:""}
+        ${bolehPadam?`<button class="btn sm bad" onclick="padamMediaUI('${esc(m.ID)}')" title="Padam" aria-label="Padam">🗑 <span class="mk-label">Padam</span></button>`:""}
       </div>
     </div>
   </div>`;
@@ -3614,13 +3648,40 @@ function historiMedia(n){
   overlay(`<div class="big">🕘 Sejarah Media — ${esc(n)}</div>
   <div class="small">${sen.length} rekod. Fail disimpan dalam Google Drive.</div>
   <div class="acara-acts" style="justify-content:flex-start">
-    ${bolehRekod(n)?`<button class="btn sm" onclick="tutup();formMedia('${esc(n)}')">📎 Tambah Baharu</button>`:""}
-    <button class="btn sm ghost" onclick="tutup();go('galeri',{acara:'${esc(n)}'})">🖼 Buka Galeri</button>
+    ${bolehRekod(n)?`<button class="btn sm" onclick="tutup();formMedia('${esc(n)}')" title="Tambah baharu" aria-label="Tambah baharu">📎 <span class="mk-label">Tambah Baharu</span></button>`:""}
+    <button class="btn sm ghost" onclick="tutup();go('galeri',{acara:'${esc(n)}'})" title="Buka galeri" aria-label="Buka galeri">🖼 <span class="mk-label">Buka Galeri</span></button>
   </div>
   <div id="mdSenarai" class="media-grid" style="margin-top:10px">
   ${sen.length?sen.map(m=>kadMedia(m,bolehRekod(n))).join(""):`<div class="small">Belum ada media untuk acara ini.</div>`}
   </div>
   <button class="btn ghost" onclick="tutup()">Tutup</button>`);
+}
+
+function formNamaMedia(id){
+  const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
+  if(!m) return toast("Media tidak dijumpai");
+  const boleh=!!U&&(isAdmin()||String(m.EMEL||"").toLowerCase().trim()===String(U.emel||"").toLowerCase().trim());
+  if(!boleh) return toast("Hanya pemuat naik, Master Admin atau Sub Admin boleh mengubah nama.");
+  const asal=m.TAJUK||(String(m["JENIS MEDIA"]||"Fail").toLowerCase()+" latihan");
+  tutup();
+  overlay(`<div class="big">✎ Edit Nama Media</div>
+    <div class="small">Nama ini sahaja akan dipaparkan pada kad media.</div>
+    <label>Nama media</label>
+    <input id="mdNamaEdit" maxlength="120" value="${esc(asal)}" placeholder="Contoh: Latihan pecut sesi pagi"/>
+    <button class="btn" id="mdNamaSimpan" onclick="simpanNamaMedia('${esc(id)}')">Simpan Nama</button>
+    <button class="btn ghost" onclick="tutup()">Batal</button>`);
+  setTimeout(()=>{const x=document.getElementById("mdNamaEdit");if(x){x.focus();x.select();}},50);
+}
+
+async function simpanNamaMedia(id){
+  const nama=((document.getElementById("mdNamaEdit")||{}).value||"").trim();
+  if(!nama) return toast("Nama media diperlukan.");
+  const btn=document.getElementById("mdNamaSimpan"); if(btn){btn.disabled=true;btn.textContent="Menyimpan…";}
+  try{
+    await api("kemaskiniNamaMedia",{id,nama,...who()});
+    const m=(DB.media||[]).find(x=>String(x.ID)===String(id)); if(m) m.TAJUK=nama;
+    tutup(); render(); toast("Nama media dikemas kini");
+  }catch(e){toastRalat(e);if(btn){btn.disabled=false;btn.textContent="Simpan Nama";}}
 }
 
 async function padamMediaUI(id){

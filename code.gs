@@ -494,6 +494,28 @@ function kemaskiniCatatanMedia(p) {
   throw new Error("Media tidak dijumpai.");
 }
 
+/* Nama paparan media boleh diubah oleh pemuat naik, Master Admin atau Sub Admin. */
+function kemaskiniNamaMedia(p) {
+  if (!p || !p.id) throw new Error("ID media diperlukan.");
+  var nama = String(p.nama || "").trim().slice(0, 120);
+  if (!nama) throw new Error("Nama media diperlukan.");
+  var emel = String(p.olehEmel || "").toLowerCase().trim();
+  var s = ss().getSheetByName(SHEET_MEDIA);
+  if (!s) throw new Error("Tiada rekod media.");
+  var v = s.getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][0]) === String(p.id)) {
+      var emelPemuatNaik = String(v[i][16] || "").toLowerCase().trim();
+      if (!isAdmin(emel) && (!emel || emel !== emelPemuatNaik)) {
+        throw new Error("Hanya pemuat naik, Master Admin atau Sub Admin boleh mengubah nama media.");
+      }
+      s.getRange(i + 1, 8).setValue(nama);
+      return { ok: true, nama: nama };
+    }
+  }
+  throw new Error("Media tidak dijumpai.");
+}
+
 function padamMedia(p) {
   var s = ss().getSheetByName(SHEET_MEDIA);
   if (!s) throw new Error("Tiada rekod media.");
@@ -1242,6 +1264,7 @@ var TINDAKAN = {
   muatNaikMedia: muatNaikMedia,
   senaraiMedia: senaraiMedia,
   kemaskiniCatatanMedia: kemaskiniCatatanMedia,
+  kemaskiniNamaMedia: kemaskiniNamaMedia,
   padamMedia: padamMedia,
   tambahAtlet: tambahAtlet,
   padamAtlet: padamAtlet,
