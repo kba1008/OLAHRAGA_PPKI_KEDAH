@@ -300,6 +300,13 @@ function authorizeAll() {
     uji.setTrashed(true);
     log.push("Ujian cipta & padam fail: OK");
   } catch (e) { log.push("Ujian cipta fail: GAGAL - " + e.message); }
+  try {
+    var d = DocumentApp.create("UJIAN_AUTHORIZE_DOC");
+    d.getBody().appendParagraph("ujian kebenaran dokumen");
+    d.saveAndClose();
+    DriveApp.getFileById(d.getId()).setTrashed(true);
+    log.push("Ujian cipta dokumen (Google Docs): OK");
+  } catch (e) { log.push("Ujian cipta dokumen: GAGAL - " + e.message + " -> Pastikan appsscript.json ada scope auth/documents"); }
   try { UrlFetchApp.fetch("https://www.google.com/generate_204"); log.push("Capaian luar: OK"); }
   catch (e) { log.push("Capaian luar: GAGAL - " + e.message); }
   var hasil = log.join("\n");
