@@ -110,6 +110,17 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .acara-acts .rnd.cam{background:var(--grad);border:0;box-shadow:0 8px 18px -10px var(--p1)}
 .acara-acts .rnd .bil{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--ok);color:#03301f;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center}
 .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+#pemapar{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.94);display:none;flex-direction:column}
+#pemapar.on{display:flex}
+#pemapar .pmp-atas{display:flex;align-items:center;gap:8px;padding:10px 12px;color:#fff}
+#pemapar .pmp-tajuk{flex:1;min-width:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pemapar .pmp-btn{background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:10px;min-width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:18px;text-decoration:none;cursor:pointer}
+#pemapar .pmp-isi{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 8px}
+#pemapar .pmp-isi img{max-width:100%;max-height:100%;object-fit:contain}
+#pemapar .pmp-isi iframe{width:100%;height:100%;border:0;background:#000}
+#pemapar .pmp-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.14);color:#fff;border:0;width:44px;height:64px;font-size:34px;border-radius:12px;cursor:pointer}
+#pemapar .pmp-nav.kiri{left:6px} #pemapar .pmp-nav.kanan{right:6px}
+#pemapar .pmp-bawah{color:#ddd;text-align:center;font-size:13px;padding:10px 14px 16px}
 .media-kad{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.05)}
 .media-kad img,.media-kad iframe,.media-kad video{width:100%;aspect-ratio:1/1;height:auto;object-fit:cover;display:block;border:0;background:#000}
 .media-kad .mk-thumb-wrap{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;background:rgba(255,255,255,.06);display:block}
@@ -342,7 +353,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzUmsIZ9NSs54Le9WC4h8Wi446moRE1qZ9Fk13qO1iVnYsO2wGQORPbpI-l8owI4NvF/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzaSZwivSXeRfaHnjdP4WdVHfT4u3nK8FtCaC7QXvp84WRRxKfxuWdoWvJPLNTLU5s/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -3547,7 +3558,7 @@ function kadMedia(m,bolehPadam){
   let atas="";
   if(driveId){
     const thumb=`https://drive.google.com/thumbnail?id=${encodeURIComponent(driveId)}&sz=w600`;
-    atas=`<a class="mk-thumb-wrap" href="${esc(m.PAUTAN||m["URL PAPAR"]||thumb)}" target="_blank" rel="noopener" aria-label="Buka ${esc(tajuk)}">
+    atas=`<a class="mk-thumb-wrap" href="#" onclick="event.preventDefault();bukaPemapar('${esc(m.ID)}',this)" aria-label="Buka ${esc(tajuk)}">
       <img class="mk-thumb" src="${esc(thumb)}" alt="Pratonton ${esc(tajuk)}" loading="lazy"/>
       <span class="mk-thumb-tag">${esc(jns)}</span>
     </a>`;
@@ -3568,12 +3579,65 @@ function kadMedia(m,bolehPadam){
         <div class="mk-info-row"><span class="mk-info-ic">🗓</span><span class="mk-info-txt">${esc(fmtTarikhMasa(m["TARIKH & MASA"]||m.TARIKH||""))}</span></div>
       </div>
       <div class="mk-aksi">
-        ${m.PAUTAN?`<a class="btn sm ghost" href="${esc(m.PAUTAN)}" target="_blank" rel="noopener" title="Buka atau muat turun" aria-label="Buka atau muat turun">↗ <span class="mk-label">Buka</span></a>`:""}
+        ${driveId?`<button class="btn sm ghost" onclick="event.stopPropagation();bukaPemapar('${esc(m.ID)}',this)" title="Buka dalam app" aria-label="Buka dalam app">↗ <span class="mk-label">Buka</span></button>`:""}
         ${bolehEdit?`<button class="btn sm ghost" onclick="event.stopPropagation();menuEditMedia('${esc(m.ID)}',this)" title="Pilihan edit" aria-label="Buka pilihan edit">✎ <span class="mk-label">Edit</span></button>`:""}
       </div>
     </div>
   </div>`;
 }
+
+/* ---------- Pemapar Media dalam app ----------
+   Fail dibuka terus di dalam app (bukan dihantar ke Google Drive), jadi
+   telefon tidak lagi meminta "Pilih akaun Gmail" setiap kali fail dibuka.
+   Boleh leret / tekan ‹ › untuk semak fail seterusnya dengan cepat. */
+let PMP={senarai:[],i:0};
+function bukaPemapar(id,el){
+  const bekas=el&&el.closest?(el.closest(".media-grid")||el.closest(".sheet")||document):document;
+  let ids=[...bekas.querySelectorAll(".media-kad")].map(k=>k.id.replace(/^md-/,""));
+  let senarai=ids.map(x=>(DB.media||[]).find(m=>String(m.ID)===x)).filter(m=>m&&String(m["DRIVE ID"]||"").trim());
+  if(!senarai.length){const m=(DB.media||[]).find(x=>String(x.ID)===String(id)); if(m) senarai=[m];}
+  PMP.senarai=senarai; PMP.i=Math.max(0,senarai.findIndex(m=>String(m.ID)===String(id)));
+  let ov=document.getElementById("pemapar");
+  if(!ov){
+    ov=document.createElement("div"); ov.id="pemapar";
+    ov.innerHTML=`<div class="pmp-atas"><div class="pmp-tajuk" id="pmpTajuk"></div>
+        <a class="pmp-btn" id="pmpDrive" target="_blank" rel="noopener" title="Muat turun">⬇</a>
+        <button class="pmp-btn" onclick="tutupPemapar()" aria-label="Tutup">✕</button></div>
+      <div class="pmp-isi" id="pmpIsi"></div>
+      <button class="pmp-nav kiri" onclick="gerakPemapar(-1)" aria-label="Sebelum">‹</button>
+      <button class="pmp-nav kanan" onclick="gerakPemapar(1)" aria-label="Seterusnya">›</button>
+      <div class="pmp-bawah" id="pmpBawah"></div>`;
+    document.body.appendChild(ov);
+    let x0=null;
+    ov.addEventListener("touchstart",e=>{x0=e.touches[0].clientX;},{passive:true});
+    ov.addEventListener("touchend",e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0; x0=null;
+      if(Math.abs(dx)>60) gerakPemapar(dx<0?1:-1); },{passive:true});
+    document.addEventListener("keydown",e=>{ if(!document.getElementById("pemapar")?.classList.contains("on")) return;
+      if(e.key==="Escape") tutupPemapar(); else if(e.key==="ArrowRight") gerakPemapar(1); else if(e.key==="ArrowLeft") gerakPemapar(-1); });
+  }
+  ov.classList.add("on"); document.body.style.overflow="hidden";
+  paparPemapar();
+}
+function paparPemapar(){
+  const m=PMP.senarai[PMP.i]; if(!m) return tutupPemapar();
+  const id=String(m["DRIVE ID"]).trim(), jns=String(m["JENIS MEDIA"]||"FAIL").toUpperCase();
+  const tajuk=m.TAJUK||m["NAMA FAIL"]||jns;
+  document.getElementById("pmpTajuk").textContent=tajuk;
+  document.getElementById("pmpDrive").href="https://drive.google.com/uc?export=download&id="+encodeURIComponent(id);
+  const isi=document.getElementById("pmpIsi");
+  if(jns==="GAMBAR"){
+    isi.innerHTML=`<img src="https://lh3.googleusercontent.com/d/${encodeURIComponent(id)}=w2000" alt="${esc(tajuk)}"
+      onerror="this.onerror=null;this.src='https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w2000'"/>`;
+  }else{
+    isi.innerHTML=`<iframe src="https://drive.google.com/file/d/${encodeURIComponent(id)}/preview" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  }
+  const n=PMP.senarai.length;
+  document.getElementById("pmpBawah").textContent=`${PMP.i+1} / ${n}${m.CATATAN?" • "+m.CATATAN:""}`;
+  document.querySelectorAll("#pemapar .pmp-nav").forEach(b=>b.style.display=n>1?"":"none");
+}
+function gerakPemapar(d){ const n=PMP.senarai.length; if(n<2) return; PMP.i=(PMP.i+d+n)%n; paparPemapar(); }
+function tutupPemapar(){ const ov=document.getElementById("pemapar"); if(!ov) return;
+  ov.classList.remove("on"); document.getElementById("pmpIsi").innerHTML=""; document.body.style.overflow=""; }
 
 /* Semua tindakan pengurusan media dihimpunkan dalam satu butang Edit. */
 function menuEditMedia(id,btn){
