@@ -469,6 +469,13 @@ function muatNaikMedia(p) {
     urlPapar = jenis === "GAMBAR" ? urlGambarDrive(driveId) : ("https://drive.google.com/file/d/" + driveId + "/preview");
   }
 
+  /* Catatan disimpan sebagai dokumen (boleh dimuat turun sebagai .docx) */
+  if (!adaFail && p.catatan) {
+    var dc = buatDokCatatan(p.acara, p.tajuk || "Catatan latihan", p.catatan, p.olehNama);
+    driveId = dc.id; asas = dc.nama; mime = "application/vnd.google-apps.document";
+    pautan = pautanDok(driveId); urlPapar = "https://docs.google.com/document/d/" + driveId + "/preview";
+  }
+
   dapatSheet(SHEET_MEDIA, HEADERS[SHEET_MEDIA], "#7c3aed");
   var id = idBaharu("M", SHEET_MEDIA);
   var baris = [id, tarikhStr(new Date()), String(p.acara).toUpperCase(), p.kategori || "", p.atletId || "", p.namaAtlet || "",
@@ -479,6 +486,71 @@ function muatNaikMedia(p) {
   var obj = {};
   for (var i = 0; i < HEADERS[SHEET_MEDIA].length; i++) obj[HEADERS[SHEET_MEDIA][i]] = baris[i];
   return obj;
+}
+
+/* ---------- Catatan sebagai dokumen Word (.docx) ----------
+   Setiap catatan disimpan sebagai Google Doc dalam folder acara.
+   Muat turun sentiasa dalam format .docx; catatan baharu ditambah
+   di hujung dokumen yang sama (bertarikh). */
+function pautanDok(id) { return "https://docs.google.com/document/d/" + id + "/edit"; }
+function tulisBlokCatatan(body, teks, oleh) {
+  var h = body.appendParagraph("🗓 " + nowStr() + (oleh ? " — " + oleh : ""));
+  h.setHeading(DocumentApp.ParagraphHeading.HEADING3);
+  String(teks || "").split(/\r?\n/).forEach(function (baris) { body.appendParagraph(baris); });
+}
+function buatDokCatatan(acara, tajuk, teks, oleh) {
+  var nama = String(acara).toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "__" +
+    String(tajuk || "Catatan").replace(/[\\/:*?"<>|]/g, "_").slice(0, 100);
+  var doc = DocumentApp.create(nama);
+  var body = doc.getBody();
+  body.clear();
+  body.appendParagraph(String(tajuk || "Catatan latihan")).setHeading(DocumentApp.ParagraphHeading.TITLE);
+  body.appendParagraph("Acara: " + String(acara).toUpperCase());
+  tulisBlokCatatan(body, teks, oleh);
+  var p0 = body.getParagraphs()[0]; if (p0 && !p0.getText() && body.getNumChildren() > 1) p0.removeFromParent();
+  doc.saveAndClose();
+  var f = DriveApp.getFileById(doc.getId());
+  f.moveTo(folderMediaAcara(acara));
+  kongsiAwam(f);
+  return { id: doc.getId(), nama: nama };
+}
+function teksDok(id) { try { return DocumentApp.openById(id).getBody().getText().slice(0, 45000); } catch (e) { return ""; } }
+
+/* Tambah catatan baharu ke dokumen sedia ada (atau cipta jika belum ada) */
+function tambahCatatanDok(p) {
+  if (!p || !p.id) throw new Error("ID catatan diperlukan.");
+  var teks = String(p.catatan || "").trim();
+  if (!teks) throw new Error("Catatan baharu kosong.");
+  var b = cariBarisMedia(p.id);
+  if (!bolehUrusMedia(String(p.olehEmel || "").toLowerCase().trim(), b.data[2]))
+    throw new Error("Hanya jurulatih acara, Master Admin atau Sub Admin boleh mengemas kini catatan.");
+  var driveId = String(b.data[14] || "");
+  if (!driveId) {
+    var dc = buatDokCatatan(b.data[2], b.data[7] || "Catatan latihan", b.data[8] || "", "");
+    driveId = dc.id;
+    b.sheet.getRange(b.row, 10, 1, 6).setValues([[dc.nama, "application/vnd.google-apps.document", 0,
+      pautanDok(driveId), "https://docs.google.com/document/d/" + driveId + "/preview", driveId]]);
+  }
+  var doc = DocumentApp.openById(driveId);
+  tulisBlokCatatan(doc.getBody(), teks, p.olehNama || "");
+  doc.saveAndClose();
+  var penuh = teksDok(driveId);
+  b.sheet.getRange(b.row, 9).setValue(penuh);
+  return { ok: true, catatan: penuh, driveId: driveId, pautan: pautanDok(driveId) };
+}
+
+/* Jalankan SEKALI dari editor Apps Script: tukar semua catatan lama kepada dokumen. */
+function tukarCatatanLamaKeDokumen() {
+  var s = ss().getSheetByName(SHEET_MEDIA); if (!s) return "Tiada rekod media.";
+  var v = s.getDataRange().getValues(), n = 0;
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][6]).toUpperCase() !== "CATATAN" || v[i][14] || !v[i][8]) continue;
+    var dc = buatDokCatatan(v[i][2], v[i][7] || "Catatan latihan", v[i][8], v[i][15] || "");
+    s.getRange(i + 1, 10, 1, 6).setValues([[dc.nama, "application/vnd.google-apps.document", 0,
+      pautanDok(dc.id), "https://docs.google.com/document/d/" + dc.id + "/preview", dc.id]]);
+    n++;
+  }
+  Logger.log("Catatan ditukar ke dokumen: " + n); return "Ditukar: " + n;
 }
 
 function kemaskiniCatatanMedia(p) {
@@ -1406,6 +1478,7 @@ var TINDAKAN = {
   gantiFailMediaDrive: gantiFailMediaDrive,
   senaraiMedia: senaraiMedia,
   kemaskiniCatatanMedia: kemaskiniCatatanMedia,
+  tambahCatatanDok: tambahCatatanDok,
   kemaskiniNamaMedia: kemaskiniNamaMedia,
   padamMedia: padamMedia,
   gantiFailMedia: gantiFailMedia,

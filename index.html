@@ -110,6 +110,9 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .acara-acts .rnd.cam{background:var(--grad);border:0;box-shadow:0 8px 18px -10px var(--p1)}
 .acara-acts .rnd .bil{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--ok);color:#03301f;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center}
 .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.media-kad .mk-dok{position:relative;cursor:pointer;text-decoration:none;align-items:flex-start}
+.media-kad .mk-dok-teks{display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word}
+#pemapar .pmp-teks{background:#fff;color:#222;max-width:800px;width:100%;max-height:100%;overflow:auto;padding:20px;border-radius:12px;white-space:pre-wrap;line-height:1.55}
 #pemapar{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.94);display:none;flex-direction:column}
 #pemapar.on{display:flex}
 #pemapar .pmp-atas{display:flex;align-items:center;gap:8px;padding:10px 12px;color:#fff}
@@ -353,7 +356,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzHVwmqZbOaTAgOEgp5uGKvlQxRLhjI0EW51PVpCtgmBzYN3q25yZ3kvhjJBFjXs-Iz/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzaSZwivSXeRfaHnjdP4WdVHfT4u3nK8FtCaC7QXvp84WRRxKfxuWdoWvJPLNTLU5s/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -3556,20 +3559,25 @@ function kadMedia(m,bolehPadam){
   bolehPadam=urus;
   const driveId=String(m["DRIVE ID"]||"").trim();
   let atas="";
-  if(driveId){
+  if(jns==="CATATAN"){
+    atas=`<a class="mk-catatan mk-dok" href="#" onclick="event.preventDefault();bukaPemapar('${esc(m.ID)}',this)" aria-label="Buka ${esc(tajuk)}">
+      <span class="mk-dok-teks">${esc(m.CATATAN||tajuk)}</span>
+      <span class="mk-thumb-tag">📝 ${driveId?"DOCX":"CATATAN"}</span>
+    </a>`;
+  }else if(driveId){
     const thumb=`https://drive.google.com/thumbnail?id=${encodeURIComponent(driveId)}&sz=w600`;
     atas=`<a class="mk-thumb-wrap" href="#" onclick="event.preventDefault();bukaPemapar('${esc(m.ID)}',this)" aria-label="Buka ${esc(tajuk)}">
       <img class="mk-thumb" src="${esc(thumb)}" alt="Pratonton ${esc(tajuk)}" loading="lazy"/>
       <span class="mk-thumb-tag">${esc(jns)}</span>
     </a>`;
   }else{
-    atas=`<div class="mk-catatan">${esc(m.CATATAN||tajuk)}</div>`;
+    atas=`<div class="mk-catatan"><span class="mk-dok-teks">${esc(m.CATATAN||tajuk)}</span></div>`;
   }
   return `<div class="media-kad" id="md-${esc(m.ID)}">
     ${atas}
     <div class="mk-b">
       <div class="nm" style="font-size:13px">${esc(tajuk)}</div>
-      ${m.CATATAN?`<div class="sub mk-nota">${esc(m.CATATAN)}</div>`:""}
+      ${m.CATATAN&&jns!=="CATATAN"?`<div class="sub mk-nota">${esc(m.CATATAN)}</div>`:""}
       <div class="mk-meta">
         <span class="chip">${ikonFail(jns,m["NAMA FAIL"])} ${esc(jns)}</span>
         ${m["NAMA ATLET"]?`<span class="chip">🏃 ${esc(m["NAMA ATLET"])}</span>`:""}
@@ -3579,7 +3587,7 @@ function kadMedia(m,bolehPadam){
         <div class="mk-info-row"><span class="mk-info-ic">🗓</span><span class="mk-info-txt">${esc(fmtTarikhMasa(m["TARIKH & MASA"]||m.TARIKH||""))}</span></div>
       </div>
       <div class="mk-aksi">
-        ${driveId?`<button class="btn sm ghost" onclick="event.stopPropagation();bukaPemapar('${esc(m.ID)}',this)" title="Buka dalam app" aria-label="Buka dalam app">↗ <span class="mk-label">Buka</span></button>`:""}
+        ${(driveId||jns==="CATATAN")?`<button class="btn sm ghost" onclick="event.stopPropagation();bukaPemapar('${esc(m.ID)}',this)" title="Buka dalam app" aria-label="Buka dalam app">↗ <span class="mk-label">Buka</span></button>`:""}
         ${bolehEdit?`<button class="btn sm ghost" onclick="event.stopPropagation();menuEditMedia('${esc(m.ID)}',this)" title="Pilihan edit" aria-label="Buka pilihan edit">✎ <span class="mk-label">Edit</span></button>`:""}
       </div>
     </div>
@@ -3594,7 +3602,7 @@ let PMP={senarai:[],i:0};
 function bukaPemapar(id,el){
   const bekas=el&&el.closest?(el.closest(".media-grid")||el.closest(".sheet")||document):document;
   let ids=[...bekas.querySelectorAll(".media-kad")].map(k=>k.id.replace(/^md-/,""));
-  let senarai=ids.map(x=>(DB.media||[]).find(m=>String(m.ID)===x)).filter(m=>m&&String(m["DRIVE ID"]||"").trim());
+  let senarai=ids.map(x=>(DB.media||[]).find(m=>String(m.ID)===x)).filter(m=>m&&(String(m["DRIVE ID"]||"").trim()||String(m["JENIS MEDIA"]).toUpperCase()==="CATATAN"));
   if(!senarai.length){const m=(DB.media||[]).find(x=>String(x.ID)===String(id)); if(m) senarai=[m];}
   PMP.senarai=senarai; PMP.i=Math.max(0,senarai.findIndex(m=>String(m.ID)===String(id)));
   let ov=document.getElementById("pemapar");
@@ -3620,19 +3628,28 @@ function bukaPemapar(id,el){
 }
 function paparPemapar(){
   const m=PMP.senarai[PMP.i]; if(!m) return tutupPemapar();
-  const id=String(m["DRIVE ID"]).trim(), jns=String(m["JENIS MEDIA"]||"FAIL").toUpperCase();
+  const id=String(m["DRIVE ID"]||"").trim(), jns=String(m["JENIS MEDIA"]||"FAIL").toUpperCase();
   const tajuk=m.TAJUK||m["NAMA FAIL"]||jns;
   document.getElementById("pmpTajuk").textContent=tajuk;
-  document.getElementById("pmpDrive").href="https://drive.google.com/uc?export=download&id="+encodeURIComponent(id);
+  const dl=document.getElementById("pmpDrive");
+  dl.style.display=id?"":"none";
+  dl.href=jns==="CATATAN"?"https://docs.google.com/document/d/"+encodeURIComponent(id)+"/export?format=docx"
+    :"https://drive.google.com/uc?export=download&id="+encodeURIComponent(id);
+  dl.title=jns==="CATATAN"?"Muat turun .docx":"Muat turun";
   const isi=document.getElementById("pmpIsi");
-  if(jns==="GAMBAR"){
+  if(jns==="CATATAN"&&!id){
+    isi.innerHTML=`<div class="pmp-teks">${esc(m.CATATAN||tajuk)}</div>`;
+  }else if(jns==="CATATAN"){
+    isi.innerHTML=`<iframe src="https://docs.google.com/document/d/${encodeURIComponent(id)}/preview"></iframe>`;
+  }else if(jns==="GAMBAR"){
     isi.innerHTML=`<img src="https://lh3.googleusercontent.com/d/${encodeURIComponent(id)}=w2000" alt="${esc(tajuk)}"
       onerror="this.onerror=null;this.src='https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w2000'"/>`;
   }else{
     isi.innerHTML=`<iframe src="https://drive.google.com/file/d/${encodeURIComponent(id)}/preview" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
   }
   const n=PMP.senarai.length;
-  document.getElementById("pmpBawah").textContent=`${PMP.i+1} / ${n}${m.CATATAN?" • "+m.CATATAN:""}`;
+  const ktn=jns==="CATATAN"?"":(m.CATATAN?" • "+m.CATATAN:"");
+  document.getElementById("pmpBawah").textContent=`${PMP.i+1} / ${n}${ktn}`;
   document.querySelectorAll("#pemapar .pmp-nav").forEach(b=>b.style.display=n>1?"":"none");
 }
 function gerakPemapar(d){ const n=PMP.senarai.length; if(n<2) return; PMP.i=(PMP.i+d+n)%n; paparPemapar(); }
@@ -3653,7 +3670,8 @@ function menuEditMedia(id,btn){
   menu.onclick=e=>e.stopPropagation();
   menu.innerHTML=`<div class="dd-tajuk">Urus Fail</div>
     <button class="dd-item" onclick="tutupDropdown();formNamaMedia('${esc(id)}')">✎ Edit nama</button>
-    ${driveId?`<button class="dd-item" onclick="tutupDropdown();formGantiMedia('${esc(id)}')">🔄 Ganti fail</button>`:""}
+    ${String(m["JENIS MEDIA"]).toUpperCase()==="CATATAN"?`<button class="dd-item" onclick="tutupDropdown();formTambahCatatan('${esc(id)}')">➕ Tambah catatan baharu</button>`:""}
+    ${driveId&&String(m["JENIS MEDIA"]).toUpperCase()!=="CATATAN"?`<button class="dd-item" onclick="tutupDropdown();formGantiMedia('${esc(id)}')">🔄 Ganti fail</button>`:""}
     <button class="dd-item bad" onclick="tutupDropdown();padamMediaUI('${esc(id)}')">🗑 Padam fail</button>`;
   document.body.appendChild(menu);
   if(btn){
@@ -3842,6 +3860,30 @@ async function simpanNamaMedia(id){
     if(m){ m.TAJUK=nama; if(r&&r.namaFail) m["NAMA FAIL"]=r.namaFail; }
     simpanCacheDB(DB); tutup(); render(); toast("Nama fail / media dikemas kini");
   }catch(e){toastRalat(e);if(btn){btn.disabled=false;btn.textContent="Simpan Nama";}}
+}
+
+function formTambahCatatan(id){
+  const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
+  if(!m||!bolehUrusMedia(m)) return toast("Hanya jurulatih acara, Master Admin atau Sub Admin boleh mengemas kini catatan.");
+  tutup();
+  overlay(`<div class="big">➕ Tambah Catatan Baharu</div>
+    <div class="small">Catatan akan ditambah (bertarikh) di hujung dokumen “${esc(m.TAJUK||"Catatan latihan")}”. Dokumen boleh dimuat turun sebagai .docx.</div>
+    <label>Catatan baharu</label>
+    <textarea id="ctBaharu" rows="8" placeholder="Tulis catatan baharu di sini…"></textarea>
+    <button class="btn" id="ctSimpan" onclick="simpanTambahCatatan('${esc(id)}')">Simpan ke Dokumen</button>
+    <button class="btn ghost" onclick="tutup()">Batal</button>`);
+  setTimeout(()=>{const x=document.getElementById("ctBaharu");if(x)x.focus();},50);
+}
+async function simpanTambahCatatan(id){
+  const catatan=((document.getElementById("ctBaharu")||{}).value||"").trim();
+  if(!catatan) return toast("Sila tulis catatan baharu.");
+  const btn=document.getElementById("ctSimpan"); if(btn){btn.disabled=true;btn.textContent="Menyimpan…";}
+  try{
+    const r=await api("tambahCatatanDok",{id,catatan,...who()});
+    const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
+    if(m){ m.CATATAN=r.catatan; m["DRIVE ID"]=r.driveId; m.PAUTAN=r.pautan; }
+    simpanCacheDB(DB); tutup(); render(); toast("Catatan baharu ditambah ke dokumen");
+  }catch(e){toastRalat(e);if(btn){btn.disabled=false;btn.textContent="Simpan ke Dokumen";}}
 }
 
 async function padamMediaUI(id){
