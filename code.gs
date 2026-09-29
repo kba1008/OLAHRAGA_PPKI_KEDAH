@@ -35,7 +35,8 @@ var FOLDER_GAMBAR_ID = "1Nz0S__dRbA4vP4Ca0xBRhpdPNUj4KVOf";
 var NAMA_FOLDER_GAMBAR = "GAMBAR ATLET";
 var NAMA_FOLDER_FAIL = "FAIL ATLET";
 var NAMA_FOLDER_MEDIA = "MEDIA LATIHAN";
-var MAX_SAIZ_MEDIA = 60 * 1024 * 1024; /* 60 MB satu fail */
+var MAX_SAIZ_MEDIA = 60 * 1024 * 1024; /* Had ini hanya untuk cara lama (base64 melalui Apps Script).
+   Fail besar kini dimuat naik TERUS ke Google Drive dari pelayar — tiada had saiz. */
 var MAX_FAIL_ATLET = 5;
 
 var ADMIN_EMEL = "admin";
@@ -346,7 +347,7 @@ function muatNaikGambar(p) {
   var nama = (p.namaFail || ("ATLET_" + nowStr().replace(/[^0-9]/g, ""))) + (jenis.indexOf("png") > -1 ? ".png" : ".jpg");
   var blob = Utilities.newBlob(Utilities.base64Decode(data), jenis, nama);
   var fail = folderGambar().createFile(blob);
-  try { fail.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  kongsiAwam(fail);
   return { id: fail.getId(), url: urlGambarDrive(fail.getId()) };
 }
 
@@ -367,7 +368,7 @@ function muatNaikFailAtlet(p) {
   var nama = String(p.namaFail || "fail").replace(/[\\/:*?"<>|]/g, "_").slice(0, 120);
   var blob = Utilities.newBlob(bytes, jenis, p.atletId + "__" + nama);
   var fail = folderFail().createFile(blob);
-  try { fail.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  kongsiAwam(fail);
   var url = "https://drive.google.com/uc?export=view&id=" + fail.getId();
   var id = idBaharu("F", SHEET_FAIL);
   dapatSheet(SHEET_FAIL, HEADERS[SHEET_FAIL], "#0aa5d6");
@@ -413,7 +414,7 @@ function folderMediaAcara(acara) {
   var induk = folderMedia();
   var it = induk.getFoldersByName(nama);
   if (it.hasNext()) return it.next();
-  return induk.createFolder(nama);
+  var baru = induk.createFolder(nama); kongsiAwam(baru); return baru;
 }
 
 function pautanDrive(id) { return "https://drive.google.com/file/d/" + id + "/view"; }
@@ -460,7 +461,7 @@ function muatNaikMedia(p) {
 
     var blob = Utilities.newBlob(bytes, mime, nama);
     var fail = folderMediaAcara(p.acara).createFile(blob);
-    try { fail.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+    kongsiAwam(fail);
 
     driveId = fail.getId();
     saiz = bytes.length;
@@ -574,7 +575,7 @@ function gantiFailMedia(p) {
   var asas = String(p.namaFail || (jenis + "_" + nowStr())).replace(/[\\/:*?"<>|]/g, "_").slice(0, 110);
   var nama = String(acara).toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "__" + asas;
   var fail = folderMediaAcara(acara).createFile(Utilities.newBlob(bytes, mime, nama));
-  try { fail.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  kongsiAwam(fail);
   var driveId = fail.getId();
   var pautan = pautanDrive(driveId);
   var urlPapar = jenis === "GAMBAR" ? urlGambarDrive(driveId) : ("https://drive.google.com/file/d/" + driveId + "/preview");
@@ -587,6 +588,85 @@ function gantiFailMedia(p) {
   b.sheet.getRange(b.row, 7).setValue(jenis);
   b.sheet.getRange(b.row, 10, 1, 6).setValues([[asas, mime, bytes.length, pautan, urlPapar, driveId]]);
   return { ok: true, jenis: jenis, namaFail: asas, mime: mime, saiz: bytes.length, pautan: pautan, urlPapar: urlPapar, driveId: driveId };
+}
+
+
+/* ---------- MUAT NAIK TERUS KE GOOGLE DRIVE (TANPA HAD SAIZ) ----------
+   Fail besar (video dll) dimuat naik terus dari pelayar ke Google Drive
+   menggunakan "resumable upload". Apps Script hanya memberi token dan
+   merekodkan maklumat fail ke Sheet, jadi tiada lagi had 45/60 MB. */
+function bolehNaikMedia_(emel) {
+  var e = String(emel || "").toLowerCase().trim();
+  return isAdmin(e) || !!cariGuru(e);
+}
+
+function tokenNaikMedia(p) {
+  if (!p || !p.acara) throw new Error("Acara diperlukan untuk media ini.");
+  if (!bolehNaikMedia_(p.olehEmel)) throw new Error("Sila log masuk untuk memuat naik fail.");
+  return { token: ScriptApp.getOAuthToken(), folderId: folderMediaAcara(p.acara).getId() };
+}
+
+/* p: { acara, kategori, atletId, namaAtlet, jenis, tajuk, catatan,
+       driveId, namaFail, mime, saiz, olehNama, olehEmel } */
+function daftarMediaDrive(p) {
+  if (!p || !p.driveId) throw new Error("Fail tidak dijumpai di Google Drive.");
+  if (!p.acara) throw new Error("Acara diperlukan untuk media ini.");
+  if (!bolehNaikMedia_(p.olehEmel)) throw new Error("Sila log masuk untuk memuat naik fail.");
+
+  var fail = DriveApp.getFileById(String(p.driveId));
+  kongsiAwam(fail);
+
+  var mime = p.mime || fail.getMimeType() || "application/octet-stream";
+  var asas = String(p.namaFail || fail.getName()).replace(/[\\/:*?"<>|]/g, "_").slice(0, 110);
+  var jenis = String(p.jenis || "").toUpperCase();
+  if (["GAMBAR", "VIDEO", "AUDIO", "FAIL"].indexOf(jenis) < 0) jenis = jenisDariMime(mime, asas);
+  var saiz = Number(p.saiz || 0);
+  if (!saiz) { try { saiz = fail.getSize(); } catch (e) {} }
+
+  var driveId = fail.getId();
+  var pautan = pautanDrive(driveId);
+  var urlPapar = jenis === "GAMBAR" ? urlGambarDrive(driveId) : ("https://drive.google.com/file/d/" + driveId + "/preview");
+
+  dapatSheet(SHEET_MEDIA, HEADERS[SHEET_MEDIA], "#7c3aed");
+  var id = idBaharu("M", SHEET_MEDIA);
+  var baris = [id, tarikhStr(new Date()), String(p.acara).toUpperCase(), p.kategori || "", p.atletId || "", p.namaAtlet || "",
+    jenis, p.tajuk || "", p.catatan || "", asas, mime, saiz, pautan, urlPapar, driveId,
+    p.olehNama || "", String(p.olehEmel || "").toLowerCase(), nowStr()];
+  ss().getSheetByName(SHEET_MEDIA).appendRow(baris);
+
+  var obj = {};
+  for (var i = 0; i < HEADERS[SHEET_MEDIA].length; i++) obj[HEADERS[SHEET_MEDIA][i]] = baris[i];
+  return obj;
+}
+
+/* Ganti fail media dengan fail yang telah dimuat naik terus ke Drive.
+   p: { id, driveId, namaFail, mime, saiz, olehNama, olehEmel } */
+function gantiFailMediaDrive(p) {
+  if (!p || !p.id) throw new Error("ID media diperlukan.");
+  if (!p.driveId) throw new Error("Fail baharu tidak dijumpai di Google Drive.");
+  var b = cariBarisMedia(p.id);
+  var acara = b.data[2];
+  if (!bolehUrusMedia(p.olehEmel, acara)) {
+    throw new Error("Hanya jurulatih acara, Master Admin atau Sub Admin boleh menggantikan fail media.");
+  }
+  var fail = DriveApp.getFileById(String(p.driveId));
+  kongsiAwam(fail);
+
+  var mime = p.mime || fail.getMimeType() || "application/octet-stream";
+  var asas = String(p.namaFail || fail.getName()).replace(/[\\/:*?"<>|]/g, "_").slice(0, 110);
+  var jenis = jenisDariMime(mime, asas);
+  var saiz = Number(p.saiz || 0);
+  if (!saiz) { try { saiz = fail.getSize(); } catch (e) {} }
+  var driveId = fail.getId();
+  var pautan = pautanDrive(driveId);
+  var urlPapar = jenis === "GAMBAR" ? urlGambarDrive(driveId) : ("https://drive.google.com/file/d/" + driveId + "/preview");
+
+  var lamaId = String(b.data[14] || "");
+  if (lamaId && lamaId !== driveId) { try { DriveApp.getFileById(lamaId).setTrashed(true); } catch (e) {} }
+
+  b.sheet.getRange(b.row, 7).setValue(jenis);
+  b.sheet.getRange(b.row, 10, 1, 6).setValues([[asas, mime, saiz, pautan, urlPapar, driveId]]);
+  return { ok: true, jenis: jenis, namaFail: asas, mime: mime, saiz: saiz, pautan: pautan, urlPapar: urlPapar, driveId: driveId };
 }
 
 function senaraiMedia(p) {
@@ -1321,6 +1401,9 @@ var TINDAKAN = {
   muatNaikFailAtlet: muatNaikFailAtlet,
   padamFailAtlet: padamFailAtlet,
   muatNaikMedia: muatNaikMedia,
+  tokenNaikMedia: tokenNaikMedia,
+  daftarMediaDrive: daftarMediaDrive,
+  gantiFailMediaDrive: gantiFailMediaDrive,
   senaraiMedia: senaraiMedia,
   kemaskiniCatatanMedia: kemaskiniCatatanMedia,
   kemaskiniNamaMedia: kemaskiniNamaMedia,
@@ -1529,7 +1612,7 @@ function logRalat(payload, err) {
 }
 
 /* Aksi ringan tidak perlu Script Lock — bolehkan parallelism supaya kehadiran laju */
-var TANPA_LOCK = { ping: 1, data: 1, login: 1 };
+var TANPA_LOCK = { ping: 1, data: 1, login: 1, tokenNaikMedia: 1 };
 
 
 /* ============ CACHE PANTAS (Script Cache) ============
@@ -1617,4 +1700,30 @@ function doPost(e) {
   var p = {};
   try { p = JSON.parse(e.postData.contents); } catch (x) { p = (e && e.parameter) || {}; }
   return proses(p, null);
+}
+
+/* ================= PERKONGSIAN AWAM (tanpa login) =================
+   Setiap fail & folder dikongsi "Sesiapa yang ada pautan - Boleh lihat".
+   Nota: akaun sekolah/KPM (Google Workspace) mungkin menyekat perkongsian
+   awam oleh pentadbir. Jika begitu, guna folder Drive milik Gmail peribadi. */
+function kongsiAwam(item) {
+  try { item.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); return true; }
+  catch (e) { Logger.log("Gagal kongsi awam: " + e); return false; }
+}
+
+/* Jalankan SEKALI dari editor Apps Script (pilih fungsi ini > Run)
+   untuk membuka semua fail lama dalam galeri tanpa perlu login. */
+function baikiPerkongsianSemua() {
+  var ok = 0, gagal = 0;
+  function jalan(folder) {
+    kongsiAwam(folder);
+    var f = folder.getFiles();
+    while (f.hasNext()) { kongsiAwam(f.next()) ? ok++ : gagal++; }
+    var sub = folder.getFolders();
+    while (sub.hasNext()) jalan(sub.next());
+  }
+  [folderFail(), folderGambar()].forEach(function (d) { try { jalan(d); } catch (e) {} });
+  try { jalan(folderMedia()); } catch (e) {}
+  Logger.log("Berjaya: " + ok + ", Gagal: " + gagal);
+  return { berjaya: ok, gagal: gagal };
 }

@@ -3509,8 +3509,13 @@ function vDiagnostik(){
    dalam Google Sheet (MEDIA_LATIHAN) supaya app kekal ringan. */
 const mediaAcara=n=>(DB.media||[]).filter(m=>String(m.ACARA||"").toUpperCase()===String(n||"").toUpperCase())
   .sort((a,b)=>String(b["TARIKH & MASA"]||"").localeCompare(String(a["TARIKH & MASA"]||"")));
-let MEDIA_PILIH=[]; /* [{dataUrl,nama,mime,jenis,saiz}] */
-const MAX_MEDIA_MB=45;
+let MEDIA_PILIH=[]; /* [{file,nama,mime,jenis,saiz}] */
+/* TIADA HAD SAIZ: fail besar dimuat naik terus ke Google Drive (resumable upload).
+   MAX_MEDIA_MB hanya had untuk cara lama (melalui Apps Script) jika muat naik
+   terus gagal — cth. pelayar lama atau token Drive tidak tersedia. */
+const MAX_MEDIA_MB=0;              /* 0 = tiada had */
+const MAX_MEDIA_SANDARAN_MB=40;    /* had cara sandaran sahaja */
+const MEDIA_CHUNK=8*1024*1024;     /* 8 MB setiap bahagian */
 
 function jenisFail(mime,nama){
   const m=String(mime||"").toLowerCase(), n=String(nama||"").toLowerCase();
@@ -3598,11 +3603,55 @@ function menuEditMedia(id,btn){
   }
 }
 
+
+/* Muat naik terus ke Google Drive — tiada had saiz fail.
+   Fail dihantar berperingkat (8 MB setiap bahagian) supaya video besar
+   boleh disambung semula dan tidak dihadkan oleh Apps Script. */
+async function naikTerusDrive(f,acara,jenis,onProg){
+  const t=await api("tokenNaikMedia",{acara,...who()});
+  if(!t||!t.token||!t.folderId) throw new Error("Token Google Drive tidak diperoleh.");
+  const bersih=String(f.name||(jenis+"_"+Date.now())).replace(/[\\/:*?"<>|]/g,"_").slice(0,110);
+  const nama=String(acara).toUpperCase().replace(/[^A-Z0-9]+/g,"_")+"__"+bersih;
+  const mime=f.type||"application/octet-stream";
+  const mula=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true",{
+    method:"POST",
+    headers:{Authorization:"Bearer "+t.token,"Content-Type":"application/json; charset=UTF-8",
+      "X-Upload-Content-Type":mime,"X-Upload-Content-Length":String(f.size)},
+    body:JSON.stringify({name:nama,parents:[t.folderId],mimeType:mime})
+  });
+  if(!mula.ok) throw new Error("Google Drive menolak permulaan muat naik ("+mula.status+").");
+  const sesi=mula.headers.get("Location")||mula.headers.get("location");
+  if(!sesi) throw new Error("Pelayar tidak dibenarkan memuat naik terus ke Google Drive.");
+  let pos=0,hasil=null,cuba=0;
+  while(pos<f.size){
+    const akhir=Math.min(pos+MEDIA_CHUNK,f.size);
+    let res;
+    try{
+      res=await fetch(sesi,{method:"PUT",headers:{"Content-Range":`bytes ${pos}-${akhir-1}/${f.size}`},body:f.slice(pos,akhir)});
+    }catch(e){
+      if(++cuba>3) throw new Error("Sambungan terputus semasa muat naik. Sila cuba lagi.");
+      await new Promise(r=>setTimeout(r,1500)); continue;
+    }
+    cuba=0;
+    if(res.status===200||res.status===201){ hasil=await res.json(); pos=f.size; break; }
+    if(res.status===308){
+      const rng=res.headers.get("Range");
+      pos=rng&&rng.indexOf("-")>0?Number(rng.split("-")[1])+1:akhir;
+      if(onProg) onProg(Math.min(99,Math.round(pos/f.size*100)));
+      continue;
+    }
+    throw new Error("Muat naik terhenti ("+res.status+").");
+  }
+  if(!hasil) throw new Error("Muat naik tidak lengkap.");
+  if(onProg) onProg(100);
+  return hasil.id;
+}
+
 function formMedia(n){
   MEDIA_PILIH=[];
   const pl=penyertaan(n);
   overlay(`<div class="big">📎 Media & Fail Latihan — ${esc(n)}</div>
-  <div class="small">Isi catatan atau muat naik fail — <b>tidak wajib semua</b>. Semua jenis fail diterima (gambar, video, audio, PDF, Word, Excel, ZIP...) dan boleh pilih banyak fail sekali gus.</div>
+  <div class="small">Isi catatan atau muat naik fail — <b>tidak wajib semua</b>. Semua jenis fail diterima (gambar, video, audio, PDF, Word, Excel, ZIP...) dan boleh pilih banyak fail sekali gus. <b>Tiada had saiz</b> — video besar dimuat naik terus ke Google Drive.</div>
   <label>Tajuk / Maklumat Media</label>
   <input id="mdTajuk" maxlength="120" placeholder="Cth: Sesi latihan pecut 100m — teknik permulaan"/>
   <label>Catatan Jurulatih</label>
@@ -3641,13 +3690,9 @@ function buangPilihan(i){ MEDIA_PILIH.splice(i,1); lukisPilihan(); }
 async function mediaPilih(ev,jenis){
   const fs=Array.from(ev.target.files||[]); if(!fs.length) return;
   for(const f of fs){
-    const mb=f.size/1048576;
-    if(mb>MAX_MEDIA_MB){ toast(`${f.name}: terlalu besar (${mb.toFixed(1)} MB). Maksima ${MAX_MEDIA_MB} MB.`,4500); continue; }
+    /* Tiada had saiz — fail dihantar terus ke Google Drive. */
     const jns=jenis||jenisFail(f.type,f.name);
-    try{
-      const dataUrl=await fileToDataUrl(f);
-      MEDIA_PILIH.push({dataUrl,nama:f.name||(jns+"_"+Date.now()),mime:f.type||"application/octet-stream",jenis:jns,saiz:f.size});
-    }catch(e){ toast("Gagal membaca fail "+f.name); }
+    MEDIA_PILIH.push({file:f,nama:f.name||(jns+"_"+Date.now()),mime:f.type||"application/octet-stream",jenis:jns,saiz:f.size});
   }
   ev.target.value="";
   lukisPilihan();
@@ -3670,8 +3715,22 @@ async function simpanMedia(n){
     }else{
       for(let i=0;i<MEDIA_PILIH.length;i++){
         const f=MEDIA_PILIH[i];
-        if(btn) btn.textContent=`Memuat naik ${i+1}/${MEDIA_PILIH.length}…`;
-        const rec=await api("muatNaikMedia",{...asas,jenis:f.jenis,namaFail:f.nama,mime:f.mime,dataBase64:f.dataUrl});
+        const tajukBtn=`${i+1}/${MEDIA_PILIH.length}`;
+        const prog=v=>{ if(btn) btn.textContent=`Memuat naik ${tajukBtn} — ${v}%`; };
+        prog(0);
+        let rec=null;
+        try{
+          const driveId=await naikTerusDrive(f.file,n,f.jenis,prog);
+          if(btn) btn.textContent=`Menyimpan maklumat ${tajukBtn}…`;
+          rec=await api("daftarMediaDrive",{...asas,jenis:f.jenis,namaFail:f.nama,mime:f.mime,saiz:f.saiz,driveId});
+        }catch(e){
+          /* Sandaran: hantar melalui Apps Script (hanya untuk fail kecil) */
+          if(f.saiz>MAX_MEDIA_SANDARAN_MB*1048576) throw e;
+          logTambah("INFO","Muat naik terus gagal — guna cara sandaran",String(e&&e.message||e));
+          if(btn) btn.textContent=`Memuat naik ${tajukBtn} (cara sandaran)…`;
+          const dataUrl=await fileToDataUrl(f.file);
+          rec=await api("muatNaikMedia",{...asas,jenis:f.jenis,namaFail:f.nama,mime:f.mime,dataBase64:dataUrl});
+        }
         (DB.media=DB.media||[]).push(rec);
       }
     }
@@ -3750,20 +3809,27 @@ function formGantiMedia(id){
 }
 async function gantiPilih(ev){
   const f=(ev.target.files||[])[0]; ev.target.value=""; if(!f) return;
-  const mb=f.size/1048576;
-  if(mb>MAX_MEDIA_MB) return toast(`${f.name}: terlalu besar (${mb.toFixed(1)} MB). Maksima ${MAX_MEDIA_MB} MB.`,4500);
-  try{
-    const dataUrl=await fileToDataUrl(f);
-    MEDIA_GANTI={dataUrl,nama:f.name,mime:f.type||"application/octet-stream",saiz:f.size};
-    const info=document.getElementById("mdGantiInfo"); if(info) info.innerHTML=`${ikonFail(jenisFail(f.type,f.name),f.name)} <b>${esc(f.name)}</b> (${saizTeks(f.size)})`;
-    const b=document.getElementById("mdGantiSimpan"); if(b) b.disabled=false;
-  }catch(e){ toast("Gagal membaca fail "+f.name); }
+  /* Tiada had saiz — fail dihantar terus ke Google Drive. */
+  MEDIA_GANTI={file:f,nama:f.name,mime:f.type||"application/octet-stream",saiz:f.size};
+  const info=document.getElementById("mdGantiInfo"); if(info) info.innerHTML=`${ikonFail(jenisFail(f.type,f.name),f.name)} <b>${esc(f.name)}</b> (${saizTeks(f.size)})`;
+  const b=document.getElementById("mdGantiSimpan"); if(b) b.disabled=false;
 }
 async function simpanGantiMedia(id){
   if(!MEDIA_GANTI) return toast("Sila pilih fail baharu.");
   const btn=document.getElementById("mdGantiSimpan"); if(btn){btn.disabled=true;btn.textContent="Memuat naik…";}
   try{
-    const r=await api("gantiFailMedia",{id,namaFail:MEDIA_GANTI.nama,mime:MEDIA_GANTI.mime,dataBase64:MEDIA_GANTI.dataUrl,...who()});
+    const m0=(DB.media||[]).find(x=>String(x.ID)===String(id))||{};
+    const prog=v=>{ if(btn) btn.textContent=`Memuat naik — ${v}%`; };
+    let r=null;
+    try{
+      const driveId=await naikTerusDrive(MEDIA_GANTI.file,m0.ACARA||"UMUM",jenisFail(MEDIA_GANTI.mime,MEDIA_GANTI.nama),prog);
+      if(btn) btn.textContent="Menyimpan maklumat…";
+      r=await api("gantiFailMediaDrive",{id,driveId,namaFail:MEDIA_GANTI.nama,mime:MEDIA_GANTI.mime,saiz:MEDIA_GANTI.saiz,...who()});
+    }catch(e){
+      if(MEDIA_GANTI.saiz>MAX_MEDIA_SANDARAN_MB*1048576) throw e;
+      const dataUrl=await fileToDataUrl(MEDIA_GANTI.file);
+      r=await api("gantiFailMedia",{id,namaFail:MEDIA_GANTI.nama,mime:MEDIA_GANTI.mime,dataBase64:dataUrl,...who()});
+    }
     const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
     if(m){ m["JENIS MEDIA"]=r.jenis; m["NAMA FAIL"]=r.namaFail; m.MIME=r.mime; m["SAIZ (BYTES)"]=r.saiz; m.PAUTAN=r.pautan; m["URL PAPAR"]=r.urlPapar; m["DRIVE ID"]=r.driveId; }
     MEDIA_GANTI=null; tutup(); render(); toast("Fail media berjaya diganti");
