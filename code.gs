@@ -181,7 +181,7 @@ function isSubAdmin(emel) {
   var e = String(emel || "").toLowerCase().trim();
   if (!e || e === ADMIN_EMEL) return false;
   var g = cariGuru(e);
-  return !!g && String(g["PERANAN"] || "").toUpperCase().trim() === "SUBADMIN";
+  return !!g && String(g["PERANAN"] || "").toUpperCase().replace(/[^A-Z]/g, "") === "SUBADMIN";
 }
 /* Sub Admin mempunyai kuasa penuh sama seperti Master Admin (kecuali padam Master Admin) */
 function isAdmin(emel) { return isMasterAdmin(emel) || isSubAdmin(emel); }
@@ -479,7 +479,7 @@ function muatNaikMedia(p) {
   dapatSheet(SHEET_MEDIA, HEADERS[SHEET_MEDIA], "#7c3aed");
   var id = idBaharu("M", SHEET_MEDIA);
   var baris = [id, tarikhStr(new Date()), String(p.acara).toUpperCase(), p.kategori || "", p.atletId || "", p.namaAtlet || "",
-    jenis, p.tajuk || "", p.catatan || "", asas, mime, saiz, pautan, urlPapar, driveId,
+    jenis, p.tajuk || "", hadSel(p.catatan || ""), asas, mime, saiz, pautan, urlPapar, driveId,
     p.olehNama || "", String(p.olehEmel || "").toLowerCase(), nowStr()];
   ss().getSheetByName(SHEET_MEDIA).appendRow(baris);
 
@@ -514,7 +514,22 @@ function buatDokCatatan(acara, tajuk, teks, oleh) {
   kongsiAwam(f);
   return { id: doc.getId(), nama: nama };
 }
-function teksDok(id) { try { return DocumentApp.openById(id).getBody().getText().slice(0, 45000); } catch (e) { return ""; } }
+function teksDok(id) { try { return DocumentApp.openById(id).getBody().getText(); } catch (e) { return ""; } }
+/* Sel Google Sheet hanya menerima maksimum 50,000 aksara. Teks penuh sentiasa
+   kekal dalam dokumen Google Docs; sel hanya menyimpan ringkasan. */
+function hadSel(t) {
+  t = String(t == null ? "" : t);
+  return t.length > 45000 ? t.slice(0, 45000) + "\n… (teks penuh dalam dokumen)" : t;
+}
+/* Teks penuh sesuatu catatan — dibaca terus dari dokumen Google Docs. */
+function teksCatatan(p) {
+  if (!p || !p.id) throw new Error("ID catatan diperlukan.");
+  var b = cariBarisMedia(p.id);
+  var driveId = String(b.data[14] || "");
+  var teks = driveId ? teksDok(driveId) : "";
+  if (!teks) teks = String(b.data[8] || "");
+  return { teks: teks, tajuk: b.data[7] || "", driveId: driveId };
+}
 
 /* Tambah catatan baharu ke dokumen sedia ada (atau cipta jika belum ada) */
 function tambahCatatanDok(p) {
@@ -535,7 +550,7 @@ function tambahCatatanDok(p) {
   tulisBlokCatatan(doc.getBody(), teks, p.olehNama || "");
   doc.saveAndClose();
   var penuh = teksDok(driveId);
-  b.sheet.getRange(b.row, 9).setValue(penuh);
+  b.sheet.getRange(b.row, 9).setValue(hadSel(penuh));
   return { ok: true, catatan: penuh, driveId: driveId, pautan: pautanDok(driveId) };
 }
 
@@ -560,7 +575,7 @@ function kemaskiniCatatanMedia(p) {
   for (var i = 1; i < v.length; i++) {
     if (String(v[i][0]) === String(p.id)) {
       s.getRange(i + 1, 8).setValue(p.tajuk || "");
-      s.getRange(i + 1, 9).setValue(p.catatan || "");
+      s.getRange(i + 1, 9).setValue(hadSel(p.catatan || ""));
       return { ok: true };
     }
   }
@@ -577,7 +592,12 @@ function isJurulatihAcara(emel, acara) {
       String(j["EMEL JURULATIH"] || "").toLowerCase().trim() === e;
   });
 }
-function bolehUrusMedia(emel, acara) { return isAdmin(emel) || isJurulatihAcara(emel, acara); }
+function bolehUrusMedia(emel, acara) {
+  var e = String(emel || "").toLowerCase().trim();
+  /* Master Admin & Sub Admin: kuasa penuh ke atas SEMUA fail dalam galeri. */
+  if (isAdmin(e)) return true;
+  return isJurulatihAcara(e, acara);
+}
 
 function cariBarisMedia(id) {
   var s = ss().getSheetByName(SHEET_MEDIA);
@@ -702,7 +722,7 @@ function daftarMediaDrive(p) {
   dapatSheet(SHEET_MEDIA, HEADERS[SHEET_MEDIA], "#7c3aed");
   var id = idBaharu("M", SHEET_MEDIA);
   var baris = [id, tarikhStr(new Date()), String(p.acara).toUpperCase(), p.kategori || "", p.atletId || "", p.namaAtlet || "",
-    jenis, p.tajuk || "", p.catatan || "", asas, mime, saiz, pautan, urlPapar, driveId,
+    jenis, p.tajuk || "", hadSel(p.catatan || ""), asas, mime, saiz, pautan, urlPapar, driveId,
     p.olehNama || "", String(p.olehEmel || "").toLowerCase(), nowStr()];
   ss().getSheetByName(SHEET_MEDIA).appendRow(baris);
 
@@ -1479,6 +1499,7 @@ var TINDAKAN = {
   senaraiMedia: senaraiMedia,
   kemaskiniCatatanMedia: kemaskiniCatatanMedia,
   tambahCatatanDok: tambahCatatanDok,
+  teksCatatan: teksCatatan,
   kemaskiniNamaMedia: kemaskiniNamaMedia,
   padamMedia: padamMedia,
   gantiFailMedia: gantiFailMedia,

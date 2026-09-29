@@ -112,13 +112,13 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .media-kad .mk-dok{position:relative;cursor:pointer;text-decoration:none;align-items:flex-start}
 .media-kad .mk-dok-teks{display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word}
-#pemapar .pmp-teks{background:#fff;color:#222;max-width:800px;width:100%;max-height:100%;overflow:auto;padding:20px;border-radius:12px;white-space:pre-wrap;line-height:1.55}
+#pemapar .pmp-teks{background:#fff;color:#222;max-width:800px;width:100%;height:100%;max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;align-self:stretch;padding:20px;border-radius:12px;white-space:pre-wrap;line-height:1.55}
 #pemapar{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.94);display:none;flex-direction:column}
 #pemapar.on{display:flex}
 #pemapar .pmp-atas{display:flex;align-items:center;gap:8px;padding:10px 12px;color:#fff}
 #pemapar .pmp-tajuk{flex:1;min-width:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pemapar .pmp-btn{background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:10px;min-width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:18px;text-decoration:none;cursor:pointer}
-#pemapar .pmp-isi{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 8px}
+#pemapar .pmp-isi{flex:1;min-height:0;display:flex;align-items:stretch;justify-content:center;padding:0 8px 8px}
 #pemapar .pmp-isi img{max-width:100%;max-height:100%;object-fit:contain}
 #pemapar .pmp-isi iframe{width:100%;height:100%;border:0;background:#000}
 #pemapar .pmp-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.14);color:#fff;border:0;width:44px;height:64px;font-size:34px;border-radius:12px;cursor:pointer}
@@ -356,7 +356,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbyKSk7Nfht10RvDycUUviV5zT3y5mCFn4NOGCZb1CRjtnvH7dAMPAi4TAWoq_3s87vc/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzaSZwivSXeRfaHnjdP4WdVHfT4u3nK8FtCaC7QXvp84WRRxKfxuWdoWvJPLNTLU5s/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -381,8 +381,17 @@ function jamMY(d){ const o=bahagianMY(d); return o.hour+":"+o.minute+":"+o.secon
 function capMY(d){ return tarikhMY(d)+" "+jamMY(d); }              /* yyyy-MM-dd HH:mm:ss */
 function capMasaMY(d){ return fmtTarikh(tarikhMY(d))+" "+fmtMasa(jamMY(d)); } /* dd/MM/yyyy h.mmam */
 const today=()=>tarikhMY();
-const isMaster=()=>!!U&&String(U.peranan||"").toUpperCase()==="ADMIN";
-const isSubAdmin=()=>!!U&&String(U.peranan||"").toUpperCase()==="SUBADMIN";
+const isMaster=()=>!!U&&String(U.peranan||"").toUpperCase().replace(/[^A-Z]/g,"")==="ADMIN";
+const peranSemasa=()=>{
+  if(!U) return "";
+  let p=String(U.peranan||"").toUpperCase().replace(/[^A-Z]/g,"");
+  try{
+    const g=((typeof DB!=="undefined"&&DB&&DB.guru)||[]).find(x=>String(x.emel||x.EMEL||"").toLowerCase().trim()===String(U.emel||"").toLowerCase().trim());
+    if(g){ const pg=String(g.peranan||g.PERANAN||"").toUpperCase().replace(/[^A-Z]/g,""); if(pg) p=pg; }
+  }catch(e){}
+  return p;
+};
+const isSubAdmin=()=>!!U&&peranSemasa()==="SUBADMIN";
 /* Sub Admin ada kuasa penuh sama seperti Master Admin (kecuali padam Master Admin) */
 const isAdmin=()=>isMaster()||isSubAdmin();
 const namaPeranan=()=>isMaster()?"MASTER ADMIN":(isSubAdmin()?"SUB ADMIN":"GURU");
@@ -491,8 +500,13 @@ function apiGetFetch(action,payload){
 const AKSI_BACA={data:1,ping:1,login:1,daftar:1};
 function api(action,payload){
   // Data besar (base64) → POST supaya lebih laju & tanpa had URL
-  const besar = payload && (payload.gambarBase64 || payload.dataBase64);
-  const p = besar ? apiPost(action,payload) : apiJsonp(action,payload)
+  const saizPayload = (()=>{ try{ return JSON.stringify(payload||{}).length; }catch(e){ return 0; } })();
+  const besar = payload && (payload.gambarBase64 || payload.dataBase64 || saizPayload > 1500);
+  const p = besar ? apiPost(action,payload).catch(e=>{
+      if(e&&e.kod&&e.kod!=="DB-003") throw e;
+      logTambah("INFO","POST gagal — cuba fetch GET","Aksi: "+action);
+      return apiGetFetch(action,payload);
+    }) : apiJsonp(action,payload)
     .catch(e=>{
       // Telefon: JSONP kerap gagal (DB-003/DB-002). Cuba fetch GET, kemudian POST.
       if(e&&(e.kod==="DB-003"||e.kod==="DB-002"||e.kod==="DB-005")){
@@ -649,7 +663,7 @@ function ikonAcaraHtml(a,kelas=""){
 }
 const modRekod=()=>String(((typeof DB!=="undefined"&&DB&&DB.tetapan)||{}).MOD_REKOD||"JURULATIH").toUpperCase();
 const rekodTerbuka=()=>modRekod()==="SEMUA";
-const bolehUrusMedia=m=>!!U&&(isAdmin()||jurulatihAcara(String((m&&m.ACARA)||"")).some(j=>String(j["EMEL JURULATIH"]||"").toLowerCase().trim()===String((U&&U.emel)||"").toLowerCase().trim()));
+const bolehUrusMedia=m=>!!U&&(isAdmin()===true||isAdmin()||jurulatihAcara(String((m&&m.ACARA)||"")).some(j=>String(j["EMEL JURULATIH"]||"").toLowerCase().trim()===String((U&&U.emel)||"").toLowerCase().trim()));
 const bolehRekod=n=>!!U&&(isAdmin()||rekodTerbuka()||jurulatihAcara(n).some(j=>String(j["EMEL JURULATIH"]||"").toLowerCase().trim()===String((U&&U.emel)||"").toLowerCase().trim()));
 const penyertaan=n=>((DB&&DB.penyertaan)||[]).filter(p=>p.ACARA===n);
 const rekodAcara=n=>((DB&&DB.rekod&&DB.rekod[n])||[]);
@@ -3640,7 +3654,21 @@ function paparPemapar(){
   if(jns==="CATATAN"&&!id){
     isi.innerHTML=`<div class="pmp-teks">${esc(m.CATATAN||tajuk)}</div>`;
   }else if(jns==="CATATAN"){
-    isi.innerHTML=`<iframe src="https://docs.google.com/document/d/${encodeURIComponent(id)}/preview"></iframe>`;
+    isi.innerHTML=`<div class="pmp-teks" id="pmpTeks">${esc(m.CATATAN||tajuk)}
+
+<i>Memuatkan catatan penuh…</i></div>`;
+    const idKad=String(m.ID);
+    api("teksCatatan",{id:idKad}).then(r=>{
+      const kotak=document.getElementById("pmpTeks");
+      const kini=PMP.senarai[PMP.i];
+      if(!kotak||!kini||String(kini.ID)!==idKad) return;
+      const teks=(r&&r.teks)||m.CATATAN||tajuk;
+      kotak.textContent=teks;
+      kini.CATATAN=teks;
+    }).catch(()=>{
+      const kotak=document.getElementById("pmpTeks");
+      if(kotak) kotak.textContent=m.CATATAN||tajuk;
+    });
   }else if(jns==="GAMBAR"){
     isi.innerHTML=`<img src="https://lh3.googleusercontent.com/d/${encodeURIComponent(id)}=w2000" alt="${esc(tajuk)}"
       onerror="this.onerror=null;this.src='https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w2000'"/>`;
