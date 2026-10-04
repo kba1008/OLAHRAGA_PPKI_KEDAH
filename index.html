@@ -356,7 +356,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycby1N20CFAsf-Mpt-PPVsK3OHF6ZqwnTXzHaoOILiz5rf0QBbHOiENDiAPs81kSjQlqn/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbw6beFtKVZhowLE5sP0jmJbNLfvLWk-WCUIy6zHt4vkjK33-JUJzEPZCJFpvHflFzRJ/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -1053,16 +1053,20 @@ function vKehadiran(){
   const tab=(v,t)=>`<button class="${kTapis===v?"on":""}" data-v="${v}" onclick="setTapisK('${v}')">${t}</button>`;
   app().innerHTML=`${topbar("Kehadiran Atlet","home")}
   <div class="card" style="border-left:4px solid var(--ok)">
+    <button class="btn sm" onclick="togleLaporan()" style="display:flex;align-items:center;gap:8px"><span id="lpIkon">📊</span> Laporan Kehadiran <span id="lpAnak" style="margin-left:auto">▸</span></button>
+    <div id="lpPanel" class="hide" style="margin-top:12px">
     <div style="font-weight:800;letter-spacing:.5px">📊 LAPORAN KEHADIRAN PENUH</div>
     <div class="row" style="margin-top:8px">
-      <div><label>Jenis Laporan</label><select id="lpJenis" onchange="document.getElementById('lpJulat').style.display=this.value==='JULAT'?'':'none'"><option value="HARIAN">Harian</option><option value="JULAT">Dari Tarikh – Hingga Tarikh</option></select></div>
+      <div><label>Jenis Laporan</label><select id="lpJenis" onchange="lpTukarJenis(this.value)"><option value="HARIAN">Harian</option><option value="JULAT">Dari Tarikh – Hingga Tarikh</option><option value="DATA">Data Kehadiran Sedia Ada Sahaja</option></select></div>
       <div><label>Orientasi Cetakan</label><select id="lpOri"><option value="portrait">Tegak (Portrait)</option><option value="landscape">Melintang (Landscape)</option></select></div>
     </div>
-    <div class="row" style="margin-top:6px">
+    <div class="row" style="margin-top:6px" id="lpBarisTarikh">
       <div><label>Tarikh / Dari</label><input type="date" id="lpDari" value="${kTarikh}"/></div>
       <div id="lpJulat" style="display:none"><label>Hingga</label><input type="date" id="lpHingga" value="${kTarikh}"/></div>
     </div>
+    <div id="lpNotaData" class="small hide" style="margin-top:6px;color:var(--mut)">Laporan ini hanya mengandungi tarikh yang mempunyai rekod kehadiran dalam pangkalan data.</div>
     <button class="btn sm" style="margin-top:10px" onclick="janaLaporanKehadiran()">🖨️ Jana & Cetak Laporan</button>
+    </div>
   </div>
   <div class="card">
     <div class="row"><div><label>Tarikh</label><input type="date" id="kt" value="${kTarikh}" onchange="kTarikh=this.value;render()"/></div>
@@ -1082,14 +1086,33 @@ function vKehadiran(){
 }
 
 /* ---------- Laporan Kehadiran Penuh (korporat, boleh cetak) ---------- */
+function togleLaporan(){
+  const p=$("#lpPanel"); if(!p) return;
+  const buka=p.classList.toggle("hide");
+  const anak=$("#lpAnak"); if(anak) anak.textContent=buka?"▸":"▾";
+}
+function lpTukarJenis(v){
+  const julat=$("#lpJulat"), baris=$("#lpBarisTarikh"), nota=$("#lpNotaData");
+  if(julat) julat.style.display=v==="JULAT"?"":"none";
+  if(baris) baris.style.display=v==="DATA"?"none":"";
+  if(nota) nota.classList.toggle("hide", v!=="DATA");
+}
 function janaLaporanKehadiran(){
   const jenis=$("#lpJenis").value, ori=$("#lpOri").value;
-  const dari=$("#lpDari").value; let hingga=jenis==="JULAT"?$("#lpHingga").value:dari;
-  if(!dari||!hingga) return toast("Sila pilih tarikh.");
-  if(hingga<dari) return toast("Tarikh 'Hingga' mesti selepas tarikh 'Dari'.");
-  const tarikhList=[]; for(let d=new Date(dari+"T00:00:00");d<=new Date(hingga+"T00:00:00");d.setDate(d.getDate()+1)){
-    tarikhList.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")); }
-  if(tarikhList.length>366) return toast("Julat maksimum 366 hari.");
+  let dari=$("#lpDari").value, hingga=jenis==="JULAT"?$("#lpHingga").value:dari;
+  const tarikhList=[];
+  if(jenis==="DATA"){
+    const set={}; (DB.kehadiran||[]).forEach(k=>{const t=String(k.TARIKH).slice(0,10); if(t) set[t]=1;});
+    tarikhList.push(...Object.keys(set).sort());
+    if(!tarikhList.length) return toast("Tiada data kehadiran dalam pangkalan data.");
+    dari=tarikhList[0]; hingga=tarikhList[tarikhList.length-1];
+  } else {
+    if(!dari||!hingga) return toast("Sila pilih tarikh.");
+    if(hingga<dari) return toast("Tarikh 'Hingga' mesti selepas tarikh 'Dari'.");
+    for(let d=new Date(dari+"T00:00:00");d<=new Date(hingga+"T00:00:00");d.setDate(d.getDate()+1)){
+      tarikhList.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")); }
+    if(tarikhList.length>366) return toast("Julat maksimum 366 hari.");
+  }
   const h=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const fmt=t=>{const [y,m,d]=t.split("-");return d+"/"+m+"/"+y;};
   const hari=t=>["Ahad","Isnin","Selasa","Rabu","Khamis","Jumaat","Sabtu"][new Date(t+"T00:00:00").getDay()];
@@ -1100,8 +1123,8 @@ function janaLaporanKehadiran(){
     if(st==="HADIR")h1++;else if(st==="TIDAK HADIR"){t1++;butiranTH.push({t,a,k});}});
     const b1=atlet.length-h1-t1;H+=h1;T+=t1;B+=b1;ringkasHari.push({t,h1,t1,b1});});
   const jum=atlet.length*tarikhList.length, pct=x=>jum?(x/jum*100).toFixed(1)+"%":"0.0%";
-  const noRuj="LK/"+dari.replace(/-/g,"")+(jenis==="JULAT"?"-"+hingga.replace(/-/g,""):"");
-  const tempoh=jenis==="HARIAN"?`${hari(dari)}, ${fmt(dari)}`:`${fmt(dari)} hingga ${fmt(hingga)} (${tarikhList.length} hari)`;
+  const noRuj="LK/"+dari.replace(/-/g,"")+(jenis!=="HARIAN"?"-"+hingga.replace(/-/g,""):"");
+  const tempoh=jenis==="HARIAN"?`${hari(dari)}, ${fmt(dari)}`:`${fmt(dari)} hingga ${fmt(hingga)} (${tarikhList.length} hari${jenis==="DATA"?" mempunyai rekod":""})`;
   let utama="";
   if(jenis==="HARIAN"){
     utama=`<h2>3. Senarai Kehadiran Atlet</h2><table><thead><tr><th style="width:5%">Bil.</th><th>Nama Atlet</th><th>Kategori</th><th>Sekolah</th><th style="width:11%">Status</th><th>Catatan / Alasan</th><th>Dicatat Oleh</th></tr></thead><tbody>${
@@ -1141,8 +1164,9 @@ a{color:#0b4f9c}.nota{font-style:italic;color:#556}
 <div class="alat"><button onclick="window.print()">🖨️ Cetak / Simpan PDF</button></div>
 <div class="kop"><div><h1>LAPORAN KEHADIRAN ATLET</h1><div class="sub">ATLETTRANING • SISTEM KEHADIRAN & REKOD LATIHAN ATLET</div></div>
 <div class="ruj">No. Rujukan: <b>${noRuj}</b><br>Tarikh Dijana: ${h(capMY())}<br>Dijana Oleh: ${h(U?U.nama:"-")}</div></div><div class="garis"></div>
-<h2>1. Maklumat Laporan</h2><table class="info"><tr><td>Jenis Laporan</td><td>: ${jenis==="HARIAN"?"Laporan Harian":"Laporan Mengikut Julat Tarikh"}</td></tr>
+<h2>1. Maklumat Laporan</h2><table class="info"><tr><td>Jenis Laporan</td><td>: ${jenis==="HARIAN"?"Laporan Harian":jenis==="DATA"?"Laporan Data Kehadiran Sedia Ada":"Laporan Mengikut Julat Tarikh"}</td></tr>
 <tr><td>Tempoh Laporan</td><td>: ${tempoh}</td></tr><tr><td>Jumlah Atlet Berdaftar</td><td>: ${atlet.length} orang</td></tr></table>
+${jenis==="DATA"?`<p class="nota">Nota: Laporan ini hanya memaparkan tarikh yang mempunyai rekod kehadiran dalam pangkalan data.</p>`:""}
 <h2>2. Ringkasan Eksekutif</h2><div class="kad"><div><b>${atlet.length}</b><span>Jumlah Atlet</span></div><div><b>${H}</b><span>Hadir</span></div><div><b>${T}</b><span>Tidak Hadir</span></div><div><b>${B}</b><span>Belum Ditanda</span></div><div><b>${pct(H)}</b><span>Kadar Kehadiran</span></div></div>
 ${utama}${seksyenTH}
 <div class="ttd"><div><div class="l"></div><b>Disediakan oleh:</b><br>Nama:<br>Jawatan:<br>Tarikh:</div><div><div class="l"></div><b>Disahkan oleh:</b><br>Nama:<br>Jawatan:<br>Tarikh:</div></div>
