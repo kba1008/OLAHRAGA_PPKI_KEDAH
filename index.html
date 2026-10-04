@@ -791,12 +791,12 @@ function fmtTarikhMasa(v){
 
 
 /* Kemas kini kehadiran secara tempatan (optimistik) */
-function setKehadiranLokal(atletId,tarikh,status,nama,kategori,sekolah){
+function setKehadiranLokal(atletId,tarikh,status,nama,kategori,sekolah,catatan,dok){
   if(!DB) return;
   const idx=(DB.kehadiran||[]).findIndex(k=>String(k["ATLET ID"])===String(atletId) && String(k.TARIKH).slice(0,10)===tarikh);
   const row={ "ID":(idx>-1?DB.kehadiran[idx].ID:"K-local-"+Date.now()),
     "TARIKH":tarikh,"ATLET ID":atletId,"NAMA ATLET":nama,"KATEGORI":kategori||"","SEKOLAH":sekolah||"",
-    "STATUS":status,"CATATAN":"","DICATAT OLEH":U?U.nama:"","TARIKH & MASA":capMY() };
+    "STATUS":status,"CATATAN":catatan||"","DICATAT OLEH":U?U.nama:"","TARIKH & MASA":capMY(),"DOKUMEN (URL)":dok||"" };
   if(idx>-1) DB.kehadiran[idx]=row; else (DB.kehadiran=DB.kehadiran||[]).push(row);
 }
 function tambahRekodLokal(acara,rekod){
@@ -1078,7 +1078,7 @@ function itemKehadiran(a,k){
       <div class="nm">${esc(a["NAMA PENUH"])}</div>
       <div class="sub">${esc(a.KATEGORI)} • ${esc(a.SEKOLAH)}</div>
       ${ac.length?`<div class="sub" style="opacity:.85">🏃 ${esc(ac.slice(0,4).join(", "))}${ac.length>4?" +"+(ac.length-4):""}</div>`:``}
-      ${st?`<div class="sub">Status: <b style="color:${st==="HADIR"?"var(--ok)":"var(--bad)"}">${esc(st)}</b>${bz?' <span class="pill warn">Loading</span>':''}</div>`:(bz?'<div class="sub"><span class="pill warn">Loading</span></div>':'')}
+      ${st?`<div class="sub">Status: <b style="color:${st==="HADIR"?"var(--ok)":"var(--bad)"}">${esc(st)}</b>${bz?' <span class="pill warn">Loading</span>':''}</div>${st==="TIDAK HADIR"&&k.CATATAN?`<div class="sub">Alasan: ${esc(k.CATATAN)}${k["DOKUMEN (URL)"]?` • <a href="${esc(k["DOKUMEN (URL)"])}" target="_blank" onclick="event.stopPropagation()" style="color:var(--p2)">📎 Dokumen</a>`:""}</div>`:""}`:(bz?'<div class="sub"><span class="pill warn">Loading</span></div>':'')}
     </div>
     <div class="right">
       <button class="btn sm ${st==="HADIR"?"ok":"ghost"}" ${bz?"disabled":""} onclick="tandaHadir('${esc(a.ID)}','HADIR')">Hadir</button>
@@ -1093,14 +1093,43 @@ function kemasItemK(id){
   if(!el) return;
   el.outerHTML=itemKehadiran(a,rec);
 }
-async function tandaHadir(id,status){
+/* Popup alasan tidak hadir: alasan WAJIB, dokumen (cth: surat MC) PILIHAN */
+function popupAlasanTidakHadir(id,lanjut){
+  const a=atletById(id)||{};
+  overlay(`<div class="big">Alasan Tidak Hadir</div>
+    <div class="small" style="margin-top:4px">${esc(a["NAMA PENUH"]||"")}</div>
+    <label>Alasan <span style="color:var(--bad)">*</span></label>
+    <textarea id="thAlasan" rows="3" maxlength="500" placeholder="Cth: Demam / cuti sakit / urusan keluarga"></textarea>
+    <div id="thErr" class="small" style="color:var(--bad);margin-top:4px"></div>
+    <label>Dokumen sokongan (pilihan) — cth: surat MC</label>
+    <input id="thFail" type="file" accept="image/*,application/pdf,.doc,.docx"/>
+    <button class="btn bad" id="thSimpan">Simpan Tidak Hadir</button>
+    <button class="btn ghost" onclick="tutup()">Batal</button>`);
+  setTimeout(()=>{ const t=document.getElementById("thAlasan"); if(t) t.focus(); },50);
+  document.getElementById("thSimpan").onclick=async()=>{
+    const alasan=(document.getElementById("thAlasan").value||"").trim();
+    if(!alasan){ document.getElementById("thErr").textContent="Alasan wajib diisi."; return; }
+    const f=(document.getElementById("thFail").files||[])[0];
+    let dok=null;
+    if(f){
+      if(f.size>10*1024*1024){ document.getElementById("thErr").textContent="Dokumen melebihi 10MB."; return; }
+      try{ dok={dataBase64:await fileToDataUrl(f),namaFail:f.name,mime:f.type||"application/octet-stream"}; }
+      catch(e){ document.getElementById("thErr").textContent="Gagal membaca fail."; return; }
+    }
+    tutup(); lanjut(alasan,dok);
+  };
+}
+async function tandaHadir(id,status,alasan,dok){
   if(PENDING_KEH[id]) return;
   const a=atletById(id); if(!a) return;
+  if(status==="TIDAK HADIR" && !alasan) return popupAlasanTidakHadir(id,(al,d)=>tandaHadir(id,status,al,d));
   // Optimistic: kemas data tempatan + UI serta-merta
-  setKehadiranLokal(id,kTarikh,status,a["NAMA PENUH"],a.KATEGORI,a.SEKOLAH);
+  setKehadiranLokal(id,kTarikh,status,a["NAMA PENUH"],a.KATEGORI,a.SEKOLAH,alasan||"");
   PENDING_KEH[id]=true; bumpPending(+1); kemasItemK(id);
   try{
-    await api("kehadiran",{tarikh:kTarikh,atletId:id,nama:a["NAMA PENUH"],kategori:a.KATEGORI,sekolah:a.SEKOLAH,status,...who()});
+    const r=await api("kehadiran",{tarikh:kTarikh,atletId:id,nama:a["NAMA PENUH"],kategori:a.KATEGORI,sekolah:a.SEKOLAH,status,catatan:alasan||"",...(dok||{}),...who()});
+    if(r&&r.dokumen) setKehadiranLokal(id,kTarikh,status,a["NAMA PENUH"],a.KATEGORI,a.SEKOLAH,alasan||"",r.dokumen);
+    if(status==="TIDAK HADIR") toast(dok?"Tidak hadir disimpan bersama dokumen":"Tidak hadir disimpan");
   }catch(e){
     toastRalat(e);
   }finally{
@@ -1651,14 +1680,15 @@ async function keluarAtletAcara(n,id){
   }catch(e){ toastRalat(e); }
 }
 /* Tanda kehadiran terus dari mod Rekod Latihan (jurulatih acara / Master Admin) */
-async function tandaHadirAcara(n,id,status){
+async function tandaHadirAcara(n,id,status,alasan,dok){
   if(!bolehRekod(n)) return toast("Hanya jurulatih acara ini atau Master Admin boleh menanda kehadiran.");
   if(PENDING_KEH[id]) return;
+  if(status==="TIDAK HADIR" && !alasan) return popupAlasanTidakHadir(id,(al,d)=>tandaHadirAcara(n,id,status,al,d));
   const a=atletById(id)||{}; const t=today();
-  setKehadiranLokal(id,t,status,a["NAMA PENUH"]||"",a.KATEGORI||"",a.SEKOLAH||"");
+  setKehadiranLokal(id,t,status,a["NAMA PENUH"]||"",a.KATEGORI||"",a.SEKOLAH||"",alasan||"");
   PENDING_KEH[id]=true; bumpPending(+1); kemasItemAD(n,id);
   try{
-    await api("kehadiran",{tarikh:t,atletId:id,nama:a["NAMA PENUH"]||"",kategori:a.KATEGORI||"",sekolah:a.SEKOLAH||"",status,...who()});
+    await api("kehadiran",{tarikh:t,atletId:id,nama:a["NAMA PENUH"]||"",kategori:a.KATEGORI||"",sekolah:a.SEKOLAH||"",status,catatan:alasan||"",...(dok||{}),...who()});
     toast(status==="HADIR"?"Kehadiran ditanda: HADIR":"Kehadiran ditanda: TIDAK HADIR");
   }catch(e){ toastRalat(e); }
   finally{ PENDING_KEH[id]=false; bumpPending(-1); kemasItemAD(n,id); }

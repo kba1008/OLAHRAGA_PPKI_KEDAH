@@ -46,7 +46,7 @@ var MAX_JURULATIH = 10;
 var HEADERS = {};
 HEADERS[SHEET_GURU] = ["ID", "NAMA PENUH", "EMEL", "KATA LALUAN", "JAWATAN", "SEKOLAH", "NO TELEFON", "PERANAN", "TARIKH DAFTAR"];
 HEADERS[SHEET_ATLET] = ["ID", "NAMA PENUH", "NO IC", "JANTINA", "KATEGORI", "SEKOLAH", "GAMBAR (URL)", "CATATAN", "DIDAFTAR OLEH", "TARIKH DAFTAR"];
-HEADERS[SHEET_KEHADIRAN] = ["ID", "TARIKH", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "STATUS", "CATATAN", "DICATAT OLEH", "TARIKH & MASA"];
+HEADERS[SHEET_KEHADIRAN] = ["ID", "TARIKH", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "STATUS", "CATATAN", "DICATAT OLEH", "TARIKH & MASA", "DOKUMEN (URL)"];
 HEADERS[SHEET_ACARA] = ["ACARA", "JENIS", "UNIT", "MOD", "SUSUNAN", "AKTIF"];
 HEADERS[SHEET_JURULATIH] = ["ACARA", "EMEL JURULATIH", "NAMA JURULATIH", "DILANTIK OLEH", "TARIKH LANTIKAN"];
 HEADERS[SHEET_PENYERTAAN] = ["ACARA", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "REKOD PERIBADI", "DIMASUKKAN OLEH", "TARIKH", "SUSUNAN"];
@@ -922,17 +922,38 @@ function kemaskiniAtlet(p) {
 
 
 function simpanKehadiran(p) {
-  dapatSheet(SHEET_KEHADIRAN, HEADERS[SHEET_KEHADIRAN], "#0f9d58");
-  var s = ss().getSheetByName(SHEET_KEHADIRAN);
+  var s = dapatSheet(SHEET_KEHADIRAN, HEADERS[SHEET_KEHADIRAN], "#0f9d58");
+  if (String(s.getRange(1, 11).getValue() || "") === "") s.getRange(1, 11).setValue("DOKUMEN (URL)").setFontWeight("bold");
+  var tidak = String(p.status || "").toUpperCase() === "TIDAK HADIR";
+  if (tidak && !String(p.catatan || "").trim()) throw new Error("Alasan tidak hadir wajib diisi.");
+  var urlDok = "";
+  if (tidak && p.dataBase64) urlDok = simpanDokumenKehadiran_(p);
   var v = s.getDataRange().getValues();
   for (var i = 1; i < v.length; i++) {
     if (tarikhStr(v[i][1]) === p.tarikh && String(v[i][2]) === String(p.atletId)) {
-      s.getRange(i + 1, 7, 1, 4).setValues([[p.status, p.catatan || "", p.olehNama, nowStr()]]);
-      return { ok: true, dikemaskini: true };
+      s.getRange(i + 1, 7, 1, 5).setValues([[p.status, p.catatan || "", p.olehNama, nowStr(), tidak ? urlDok : ""]]);
+      return { ok: true, dikemaskini: true, dokumen: urlDok };
     }
   }
-  s.appendRow([idBaharu("K", SHEET_KEHADIRAN), p.tarikh, p.atletId, p.nama, p.kategori || "", p.sekolah || "", p.status, p.catatan || "", p.olehNama, nowStr()]);
-  return { ok: true };
+  s.appendRow([idBaharu("K", SHEET_KEHADIRAN), p.tarikh, p.atletId, p.nama, p.kategori || "", p.sekolah || "", p.status, p.catatan || "", p.olehNama, nowStr(), urlDok]);
+  return { ok: true, dokumen: urlDok };
+}
+
+/* Simpan dokumen sokongan (cth: surat MC) ke folder "DOKUMEN KEHADIRAN" */
+var NAMA_FOLDER_DOK_KEHADIRAN = "DOKUMEN KEHADIRAN";
+function simpanDokumenKehadiran_(p) {
+  var data = String(p.dataBase64), mime = p.mime || "application/octet-stream";
+  var m = data.match(/^data:([^;]+);base64,(.*)$/);
+  if (m) { mime = m[1]; data = m[2]; }
+  var bytes = Utilities.base64Decode(data);
+  if (bytes.length > 10 * 1024 * 1024) throw new Error("Dokumen melebihi 10MB.");
+  var indukId = null;
+  if (FOLDER_GAMBAR_ID) { try { var par = DriveApp.getFolderById(FOLDER_GAMBAR_ID).getParents(); if (par.hasNext()) indukId = par.next().getId(); } catch (e) {} }
+  var folder = cariAtauCiptaFolder(NAMA_FOLDER_DOK_KEHADIRAN, indukId);
+  var nama = p.tarikh + "_" + p.atletId + "_" + String(p.namaFail || "dokumen").replace(/[\\/:*?"<>|]+/g, "_");
+  var f = folder.createFile(Utilities.newBlob(bytes, mime, nama));
+  try { f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  return f.getUrl();
 }
 
 /* ---------------- Auto Kehadiran ----------------
