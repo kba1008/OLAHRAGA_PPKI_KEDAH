@@ -356,7 +356,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycby1N20CFAsf-Mpt-PPVsK3OHF6ZqwnTXzHaoOILiz5rf0QBbHOiENDiAPs81kSjQlqn/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbw6beFtKVZhowLE5sP0jmJbNLfvLWk-WCUIy6zHt4vkjK33-JUJzEPZCJFpvHflFzRJ/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -700,7 +700,7 @@ const failAtletList=id=>((DB&&DB.failAtlet)||[]).filter(f=>String(f["ATLET ID"])
 /* Acara berpasukan (relay) — satu rekod dikongsi oleh beberapa atlet */
 const isAcaraRelay=n=>/(?:^|[^A-Z0-9])4\s*[xX]\s*\d+|MIX\s*RELAY|RELAY/i.test(String(n||""));
 const acaraMod=n=>{ const a=(DB.acara||[]).find(x=>String(x.ACARA).toUpperCase()===String(n).toUpperCase()); return String((a&&a.MOD)||"").toUpperCase(); };
-const isBerpasukan=n=>{ const m=acaraMod(n); if(m==="BERPASUKAN") return true; if(m==="INDIVIDU") return false; return isBerpasukan(n); };
+const isBerpasukan=n=>{ const m=acaraMod(n); return m==="BERPASUKAN"; };
 const idsRekod=r=>String((r&&r["ATLET ID"])||"").split(",").map(s=>s.trim()).filter(Boolean);
 const rekodMilik=(r,id)=>idsRekod(r).indexOf(String(id))>=0;
 function terbaik(n,id){
@@ -1584,12 +1584,17 @@ function vAcaraDetail(){
       ? "Seret ikon ⠿ untuk menyusun peserta. Susunan hanya boleh diubah <b>dalam kategori yang sama</b> dan disimpan automatik."
       : "Pilih <b>Susunan Jurulatih</b> untuk menyeret & menyusun peserta dalam kategori."}</div>`:""}
   </div>
+  <div class="card" style="padding:10px 12px">
+    <label style="margin:0">🔍 Cari Atlet</label>
+    <input id="adCari" placeholder="Taip nama, kategori, atau sekolah…" autocomplete="off" oninput="tapisAcaraDetail(this.value)" style="margin-top:4px"/>
+    <div class="small" id="adKira" style="margin-top:4px"></div>
+  </div>
   <div id="senaraiAD">
   ${Object.keys(groups).length===0?`<div class="card small">Belum ada atlet dalam acara ini.</div>`:
     Object.keys(groups).sort().map(k=>{
       const list=groups[k];
       const hdr=headerKategoriRekod(n,info,k,list.length,boleh);
-      return hdr + `<div class="katGroup" data-kat="${esc(k)}">` + list.map(p=>itemAcaraDetail(n,p,info,boleh,t,dragOn)).join("") + `</div>`;
+      return `<div class="adGroup">` + hdr + `<div class="katGroup" data-kat="${esc(k)}">` + list.map(p=>itemAcaraDetail(n,p,info,boleh,t,dragOn)).join("") + `</div></div>`;
     }).join("")}
   </div>`;
   if(dragOn) pasangDragPeserta(n);
@@ -1715,6 +1720,22 @@ async function padamKejohanan(n,id){
     render(); toast("Rekod kejohanan dipadam");
   }catch(e){ toastRalat(e); }
 }
+/* Tapis senarai atlet dalam halaman acara mengikut carian */
+function tapisAcaraDetail(q){
+  q=String(q||"").toLowerCase().trim();
+  let n=0;
+  document.querySelectorAll("#senaraiAD .adGroup").forEach(g=>{
+    let bil=0;
+    g.querySelectorAll(".item[data-cari]").forEach(el=>{
+      const ok=!q||String(el.dataset.cari||"").indexOf(q)>=0;
+      el.style.display=ok?"":"none";
+      if(ok) bil++;
+    });
+    g.style.display=bil?"":"none";
+    n+=bil;
+  });
+  const k=$("#adKira"); if(k) k.textContent=q?(n+" atlet ditemui"):"";
+}
 function itemAcaraDetail(n,p,info,boleh,t,dragOn){
   const a=atletById(p["ATLET ID"])||{"NAMA PENUH":p["NAMA ATLET"],KATEGORI:p.KATEGORI,SEKOLAH:p.SEKOLAH,ID:p["ATLET ID"]};
   const b=terbaik(n,p["ATLET ID"]), hadir=hadirHariIni(p["ATLET ID"],t);
@@ -1755,7 +1776,8 @@ function itemAcaraDetail(n,p,info,boleh,t,dragOn){
     ${rk?`<span>🏆 Sasaran (${esc(rk.KATEGORI)}): <b>${esc(rk.KEPUTUSAN||fmtNilai(Number(rk.NILAI),info))}</b></span>${jurang}`:""}
     ${hadir?'<span style="color:var(--ok)">• hadir hari ini</span>':'<span style="color:var(--warn)">• belum tanda kehadiran</span>'}
   </div>`;
-  return `<div class="item" id="ad-${esc(n)}-${esc(p["ATLET ID"])}" data-atlet="${esc(p["ATLET ID"])}" ${dragOn?'draggable="true"':""}>
+  const cari=(String(a["NAMA PENUH"]||p["NAMA ATLET"]||"")+" "+String(a.KATEGORI||p.KATEGORI||"")+" "+String(a.SEKOLAH||p.SEKOLAH||"")).toLowerCase();
+  return `<div class="item" id="ad-${esc(n)}-${esc(p["ATLET ID"])}" data-atlet="${esc(p["ATLET ID"])}" data-cari="${esc(cari)}" ${dragOn?'draggable="true"':""}>
     ${dragOn?`<div class="dragHandle" title="Seret untuk susun dalam kategori ini" onclick="event.stopPropagation()">⠿</div>`:""}
     <img class="av" src="${avatar(a)}" ${avErr(a)}/>
     <div style="flex:1" onclick="go('profil',{id:'${esc(p["ATLET ID"])}'})">
@@ -1950,14 +1972,15 @@ function formRekodRelay(n){
   const kats=[...new Set(semua.map(p=>String(p.KATEGORI||"TANPA KATEGORI").toUpperCase()))].sort();
   const senarai=kats.map(k=>{
     const list=semua.filter(p=>String(p.KATEGORI||"TANPA KATEGORI").toUpperCase()===k);
-    return `<div class="teamKat">${esc(k)}</div>` +
+    return `<div class="teamGroup"><div class="teamKat">${esc(k)}</div>` +
       list.map(p=>{
         const hadir=hadirHariIni(p["ATLET ID"],t);
-        return `<label class="teamRow">
+        const cari=(String(p["NAMA ATLET"]||"")+" "+String(p.KATEGORI||"")+" "+String(p.SEKOLAH||"")).toLowerCase();
+        return `<label class="teamRow" data-cari="${esc(cari)}">
           <input type="checkbox" class="relayChk" value="${esc(p["ATLET ID"])}" data-nama="${esc(p["NAMA ATLET"])}" data-kat="${esc(p.KATEGORI||"")}" data-sek="${esc(p.SEKOLAH||"")}"/>
           <span class="tinfo"><span class="tnama">${esc(p["NAMA ATLET"])}</span><span class="tsub">${esc(p.SEKOLAH||"")} • ${hadir?'<span class="ok">✓ hadir</span>':'<span class="no">auto hadir</span>'}</span></span>
         </label>`;
-      }).join("");
+      }).join("") + `</div>`;
   }).join("");
   overlay(`<div class="big">Rekod Berpasukan — ${esc(n)}</div>
   <div class="small">Pilih semua atlet dalam pasukan. Satu keputusan akan dikongsi bersama.</div>
@@ -1967,10 +1990,24 @@ function formRekodRelay(n){
   ${info.JENIS==="MASA"?`<div class="small">Format: <b>45.12</b> (saat) atau <b>1:45.12</b> / <b>1.45.12</b> (1 minit 45.12 saat).</div>`:""}
   <label>Catatan</label><textarea id="rrc" rows="2" placeholder="Cth: pusingan akhir, susunan larian"></textarea>
   <div class="small" style="margin-top:8px"><b>Ahli Pasukan</b> — atlet yang dipilih akan automatik ditanda HADIR.</div>
+  <input id="rrCari" placeholder="🔍 Cari atlet (nama, kategori, sekolah)…" autocomplete="off" oninput="tapisTeam(this.value)" style="margin-top:6px"/>
   <div class="teamBox">${senarai||'<div class="small">Tiada atlet.</div>'}</div>
   <button class="btn" id="btnRR" onclick="simpanRRelay('${esc(n)}')">Simpan Rekod Pasukan</button>
   <button class="btn ghost" onclick="tutup()">Tutup</button>`);
   setTimeout(()=>{ const el=$("#rrv"); if(el) el.focus(); },50);
+}
+/* Tapis senarai ahli pasukan dalam borang rekod berpasukan */
+function tapisTeam(q){
+  q=String(q||"").toLowerCase().trim();
+  document.querySelectorAll(".teamBox .teamGroup").forEach(g=>{
+    let bil=0;
+    g.querySelectorAll(".teamRow[data-cari]").forEach(el=>{
+      const ok=!q||String(el.dataset.cari||"").indexOf(q)>=0;
+      el.style.display=ok?"":"none";
+      if(ok) bil++;
+    });
+    g.style.display=bil?"":"none";
+  });
 }
 async function simpanRRelay(n){
   const btn=$("#btnRR"); if(btn){btn.disabled=true;btn.textContent="Menyimpan…";}
