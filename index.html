@@ -148,6 +148,10 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .mk-nota{white-space:pre-wrap;word-break:break-word}
 .gal-kosong{padding:18px;text-align:center;color:var(--mut)}
 .acara-menu-btn{width:42px;height:42px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:20px;line-height:1;font-weight:700}
+.acara-settings-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.acara-settings-btn{width:auto;margin:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.acara-settings-panel{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.acara-settings-panel.on{display:block}
 .dd-menu{position:fixed;z-index:9999;min-width:210px;background:var(--card,#fff);border:1px solid rgba(0,0,0,.12);border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.18);padding:6px;overflow:hidden}
 .dd-tajuk{font-size:11px;font-weight:800;opacity:.6;padding:6px 10px 8px;text-transform:uppercase;letter-spacing:.4px}
 .dd-item{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:inherit}
@@ -1507,6 +1511,14 @@ async function simpanAcara(){
 /* Acara MIX: lelaki & perempuan bertanding dalam acara yang sama, jadi
    senarai kategori BPL/BPP digabungkan menjadi satu kumpulan sahaja. */
 function isAcaraMix(n){ return /(^|[^A-Z0-9])MIX([^A-Z0-9]|$)/i.test(String(n||"")); }
+function toggleTetapanAcara(){
+  const panel=document.getElementById("tetapanAcara"), btn=document.getElementById("btnTetapanAcara");
+  if(!panel||!btn) return;
+  const buka=!panel.classList.contains("on");
+  panel.classList.toggle("on",buka);
+  btn.setAttribute("aria-expanded",buka?"true":"false");
+  btn.innerHTML=buka?"✕ Tutup Tetapan":"⚙️ Tetapan";
+}
 function katKunci(n,kat){
   const k=String(kat||"TANPA KATEGORI").toUpperCase().trim();
   if(!isAcaraMix(n)) return k;
@@ -1561,19 +1573,24 @@ function vAcaraDetail(){
 
   app().innerHTML=`${topbar(n,"acara")}
   <div class="card">
-    <span class="badge">${info.JENIS==="MASA"?"MASA (saat / minit — cth 1:15.45)":"JARAK (METER)"}</span>
+    <div class="acara-settings-head">
+      <span class="badge">${info.JENIS==="MASA"?"MASA (saat / minit — cth 1:15.45)":"JARAK (METER)"}</span>
+      <button id="btnTetapanAcara" class="btn sm ghost acara-settings-btn" type="button" aria-expanded="false" aria-controls="tetapanAcara" onclick="toggleTetapanAcara()">⚙️ Tetapan</button>
+    </div>
     ${tagGugur(n)}
     ${dipertandingkan(n)?"":`<div class="small" style="margin-top:8px">⚠️ Acara ini telah digugurkan daripada pertandingan. Rekod latihan <b>tidak wajib</b> diisi dan acara ini ditandakan "${LABEL_GUGUR}" dalam semua laporan.</div>`}
-    ${bolehTukarStatus(n)?`<div style="margin-top:8px"><button class="btn sm ghost" onclick="tukarStatusAcara('${esc(n)}')">${dipertandingkan(n)?"🚫 Tanda Digugurkan":"✅ Tanda Dipertandingkan"}</button></div>`:""}
-    <div class="small" style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span>Jurulatih dilantik (${jl.length}/10)</span>
-      <button class="btn sm ghost" onclick="(function(el){var w=document.getElementById('jlListWrap');var show=w.style.display==='none';w.style.display=show?'block':'none';el.textContent=show?'Sembunyi senarai':'Papar senarai';})(this)">Papar senarai</button>
+    <div id="tetapanAcara" class="acara-settings-panel">
+      ${bolehTukarStatus(n)?`<div><button class="btn sm ghost" onclick="tukarStatusAcara('${esc(n)}')">${dipertandingkan(n)?"🚫 Tanda Digugurkan":"✅ Tanda Dipertandingkan"}</button></div>`:""}
+      <div class="small" style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span>Jurulatih dilantik (${jl.length}/10)</span>
+        <button class="btn sm ghost" onclick="(function(el){var w=document.getElementById('jlListWrap');var show=w.style.display==='none';w.style.display=show?'block':'none';el.textContent=show?'Sembunyi senarai':'Papar senarai';})(this)">Papar senarai</button>
+      </div>
+      <div id="jlListWrap" style="display:none">${jl.map(j=>`<span class="chip">👤 ${esc(j["NAMA JURULATIH"])} ${boleh?`<a href="#" onclick="event.preventDefault();buangJ('${esc(n)}','${esc(j["EMEL JURULATIH"])}')" style="color:var(--bad)">✕</a>`:""}</span>`).join("")||'<span class="chip">Tiada</span>'}</div>
+      ${boleh?`<button class="btn sm ghost" style="margin-top:10px" onclick="formJurulatih('${esc(n)}')">+ Lantik Rakan Jurulatih</button>`:""}
+      ${boleh?`<button class="btn sm" style="margin-top:10px" onclick="formPenyertaan('${esc(n)}')">+ Tambah Atlet ke Acara</button>`:`<div class="small" style="margin-top:10px">Hanya jurulatih acara ini atau Master Admin boleh menambah/merekod.</div>`}
+      ${boleh && isBerpasukan(n)?`<button class="btn sm" style="margin-top:8px;background:var(--p2)" onclick="formRekodRelay('${esc(n)}')">👥 + Rekod Berpasukan</button><div class="small" style="margin-top:4px">Acara berpasukan — satu rekod dikongsi oleh semua atlet dalam pasukan.</div>`:""}
+      <button class="btn ghost sm" style="margin-top:10px" onclick="go('sejarah',{acara:'${esc(n)}'})">🕘 Sejarah Rekod Acara</button>
     </div>
-    <div id="jlListWrap" style="display:none">${jl.map(j=>`<span class="chip">👤 ${esc(j["NAMA JURULATIH"])} ${boleh?`<a href="#" onclick="event.preventDefault();buangJ('${esc(n)}','${esc(j["EMEL JURULATIH"])}')" style="color:var(--bad)">✕</a>`:""}</span>`).join("")||'<span class="chip">Tiada</span>'}</div>
-    ${boleh?`<button class="btn sm ghost" style="margin-top:10px" onclick="formJurulatih('${esc(n)}')">+ Lantik Rakan Jurulatih</button>`:""}
-    ${boleh?`<button class="btn sm" style="margin-top:10px" onclick="formPenyertaan('${esc(n)}')">+ Tambah Atlet ke Acara</button>`:`<div class="small" style="margin-top:10px">Hanya jurulatih acara ini atau Master Admin boleh menambah/merekod.</div>`}
-    ${boleh && isBerpasukan(n)?`<button class="btn sm" style="margin-top:8px;background:var(--p2)" onclick="formRekodRelay('${esc(n)}')">👥 + Rekod Berpasukan</button><div class="small" style="margin-top:4px">Acara berpasukan — satu rekod dikongsi oleh semua atlet dalam pasukan.</div>`:""}
-    <button class="btn ghost sm" style="margin-top:10px" onclick="go('sejarah',{acara:'${esc(n)}'})">🕘 Sejarah Rekod Acara</button>
   </div>
   <div class="card">
     <h3 style="margin:0 0 6px">Analisis Atlet</h3>
