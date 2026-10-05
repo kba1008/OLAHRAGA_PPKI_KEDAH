@@ -347,6 +347,30 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
   .mx-scroll{overflow:visible;border:1px solid #0b1533;border-radius:0}
   table.mx tbody tr.group-start td{border-top:2px solid #0b1533;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* Kad rekod atlet — Compact Metadata Bar (jimat ruang) */
+.item.cmb{display:block;padding:0;overflow:hidden}
+.cmb-top{display:flex;align-items:center;gap:8px;padding:8px 10px}
+.cmb-top .dragHandle{margin:0}
+.cmb-av{width:32px!important;height:32px!important;flex:0 0 32px}
+.cmb-id{flex:1;min-width:0;cursor:pointer}
+.cmb-nm{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmb-sub{font-size:10.5px;opacity:.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmb-pill{flex:0 0 auto;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:999px;border:1px solid currentColor}
+.cmb-pill.ok{color:var(--ok)}.cmb-pill.warn{color:var(--warn)}
+.cmb-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;padding:5px 10px;border-top:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.035)}
+.cmb-stats{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11px;opacity:.9}
+.cmb-stats b{font-weight:700}
+.cmb-ed{font-style:normal;cursor:pointer;margin-left:3px;opacity:.7}
+.cmb-gap{font-style:normal;color:var(--warn);margin-left:3px;font-size:10px}
+.cmb-gap.ok{color:var(--ok)}
+.cmb-act{display:flex;gap:4px;margin-left:auto}
+.cmb-btn{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:transparent;color:inherit;cursor:pointer}
+.cmb-btn.pri{background:var(--ok);border-color:var(--ok);color:#06130d}
+.cmb-btn.ok{color:var(--ok);border-color:var(--ok)}
+.cmb-btn:disabled{opacity:.5}
+.cmb-chips{padding:0 10px 6px}
+.cmb-chips>div{margin-top:4px!important}
 </style>
 </head>
 <body>
@@ -1783,31 +1807,36 @@ function itemAcaraDetail(n,p,info,boleh,t,dragOn){
     const capai=info.JENIS==="MASA"? b<=target : b>=target;
     const beza=Math.abs(b-target);
     jurang=capai
-      ? `<span style="color:var(--ok)">• ✅ sudah mencapai rekod</span>`
-      : `<span style="color:var(--warn)">• perlu ${info.JENIS==="MASA"?"laju":"tambah"} ${esc(fmtNilai(beza,info))} lagi</span>`;
+      ? `<em class="cmb-gap ok">✅ capai</em>`
+      : `<em class="cmb-gap">(${info.JENIS==="MASA"?"-":"+"}${esc(fmtNilai(beza,info))})</em>`;
   }
-  const barisInfo=`<div class="sub" style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">
-    <span>🏅 Rekod Peribadi: <b>${rp?esc(rp):"-"}</b>${boleh?` <span class="pill" style="cursor:pointer" onclick="event.stopPropagation();formRekodPeribadi('${esc(n)}','${esc(p["ATLET ID"])}')">✎</span>`:""}</span>
-    <span>⭐ Terbaik Latihan: <b>${b!==null?fmtNilai(b,info):"-"}</b></span>
-    <span>📅 Terbaik Hari Ini: <b>${bHariIni!==null&&isFinite(bHariIni)&&bHariIni>0?fmtNilai(bHariIni,info):"-"}</b></span>
-    ${rk?`<span>🏆 Sasaran (${esc(rk.KATEGORI)}): <b>${esc(rk.KEPUTUSAN||fmtNilai(Number(rk.NILAI),info))}</b></span>${jurang}`:""}
-    ${hadir?'<span style="color:var(--ok)">• hadir hari ini</span>':'<span style="color:var(--warn)">• belum tanda kehadiran</span>'}
-  </div>`;
+  const nilaiHI=bHariIni!==null&&isFinite(bHariIni)&&bHariIni>0?fmtNilai(bHariIni,info):"-";
+  const pending=PENDING_KEH[p["ATLET ID"]];
   const cari=(String(a["NAMA PENUH"]||p["NAMA ATLET"]||"")+" "+String(a.KATEGORI||p.KATEGORI||"")+" "+String(a.SEKOLAH||p.SEKOLAH||"")).toLowerCase();
-  return `<div class="item" id="ad-${esc(n)}-${esc(p["ATLET ID"])}" data-atlet="${esc(p["ATLET ID"])}" data-cari="${esc(cari)}" ${dragOn?'draggable="true"':""}>
-    ${dragOn?`<div class="dragHandle" title="Seret untuk susun dalam kategori ini" onclick="event.stopPropagation()">⠿</div>`:""}
-    <img class="av" src="${avatar(a)}" ${avErr(a)}/>
-    <div style="flex:1" onclick="go('profil',{id:'${esc(p["ATLET ID"])}'})">
-      <div class="nm">${esc(p["NAMA ATLET"])}</div>
-      <div class="sub">${esc(p.KATEGORI)} • ${esc(p.SEKOLAH)}</div>
-      ${barisInfo}
-      ${rHariIni.length?`<div class="sub">Rekod hari ini (${rHariIni.length}) — terbaik di hadapan:</div>${chips}`:""}
+  return `<div class="item cmb" id="ad-${esc(n)}-${esc(p["ATLET ID"])}" data-atlet="${esc(p["ATLET ID"])}" data-cari="${esc(cari)}" ${dragOn?'draggable="true"':""}>
+    <div class="cmb-top">
+      ${dragOn?`<div class="dragHandle" title="Seret untuk susun dalam kategori ini" onclick="event.stopPropagation()">⠿</div>`:""}
+      <img class="av cmb-av" src="${avatar(a)}" ${avErr(a)}/>
+      <div class="cmb-id" onclick="go('profil',{id:'${esc(p["ATLET ID"])}'})">
+        <div class="nm cmb-nm">${esc(p["NAMA ATLET"])}</div>
+        <div class="cmb-sub">${esc(p.KATEGORI)} • ${esc(p.SEKOLAH)}</div>
+      </div>
+      <span class="cmb-pill ${hadir?"ok":"warn"}">${hadir?"Hadir":"Belum Hadir"}</span>
     </div>
-    ${boleh?`<div class="right">
-      ${!isBerpasukan(n)?`<button class="btn sm" onclick="event.stopPropagation();formRekod('${esc(n)}','${esc(p["ATLET ID"])}')">+ Rekod</button>`:""}
-      <button class="btn sm ${hadir?"ok":"ghost"}" ${PENDING_KEH[p["ATLET ID"]]?"disabled":""} style="margin-top:6px" onclick="event.stopPropagation();tandaHadirAcara('${esc(n)}','${esc(p["ATLET ID"])}','${hadir?"TIDAK HADIR":"HADIR"}')">${PENDING_KEH[p["ATLET ID"]]?"…":(hadir?"✅ Hadir":"✅ Tanda Hadir")}</button>
-      <button class="btn sm ghost" style="margin-top:6px" title="Edit / padam rekod ralat" onclick="event.stopPropagation();urusRekodAtlet('${esc(n)}','${esc(p["ATLET ID"])}')">🗂 Urus Rekod</button>
-    </div>`:""}
+    <div class="cmb-bar">
+      <div class="cmb-stats">
+        <span>RP: <b>${rp?esc(rp):"-"}</b>${boleh?`<i class="cmb-ed" onclick="event.stopPropagation();formRekodPeribadi('${esc(n)}','${esc(p["ATLET ID"])}')">✎</i>`:""}</span>
+        <span>TL: <b>${b!==null?fmtNilai(b,info):"-"}</b></span>
+        <span>HI: <b>${nilaiHI}</b></span>
+        ${rk?`<span>Sasaran: <b>${esc(rk.KEPUTUSAN||fmtNilai(Number(rk.NILAI),info))}</b>${jurang}</span>`:""}
+      </div>
+      ${boleh?`<div class="cmb-act">
+        ${!isBerpasukan(n)?`<button class="cmb-btn pri" onclick="event.stopPropagation();formRekod('${esc(n)}','${esc(p["ATLET ID"])}')">+ Rekod</button>`:""}
+        <button class="cmb-btn ${hadir?"ok":""}" ${pending?"disabled":""} onclick="event.stopPropagation();tandaHadirAcara('${esc(n)}','${esc(p["ATLET ID"])}','${hadir?"TIDAK HADIR":"HADIR"}')">${pending?"…":(hadir?"✅ Hadir":"Tanda Hadir")}</button>
+        <button class="cmb-btn" title="Edit / padam rekod ralat" onclick="event.stopPropagation();urusRekodAtlet('${esc(n)}','${esc(p["ATLET ID"])}')">Urus</button>
+      </div>`:""}
+    </div>
+    ${rHariIni.length?`<div class="cmb-chips">${chips}</div>`:""}
   </div>`;
 }
 
