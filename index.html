@@ -15,6 +15,8 @@
   --grad:linear-gradient(135deg,#6d28f9,#00c6ff 55%,#ff2d95);
   --sh:0 18px 40px -18px rgba(0,0,0,.85),0 2px 0 rgba(255,255,255,.09) inset;
   --r:20px;
+  --edit-face:linear-gradient(180deg,var(--p2),var(--p1));
+  --edit-edge:var(--bg); --edit-highlight:var(--txt);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -454,7 +456,11 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
 }
 .media-kad{position:relative}
 .mk-seret{position:absolute;top:6px;left:6px;z-index:3;width:34px;height:34px;border-radius:10px;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:18px;cursor:grab;touch-action:none}
-.media-kad.dragging{opacity:.5;outline:2px dashed currentColor}
+.media-kad.dragging{opacity:.5;outline:2px dashed currentColor;pointer-events:none}
+.media-kad .mk-aksi .mk-edit3d{background:var(--edit-face);color:var(--txt);border:1px solid var(--p2);box-shadow:0 4px 0 var(--edit-edge),inset 0 1px 0 var(--edit-highlight);transform:translateY(-2px);transition:transform .12s,box-shadow .12s}
+.media-kad .mk-aksi .mk-edit3d:active{transform:translateY(2px);box-shadow:0 0 0 var(--edit-edge),inset 0 1px 0 var(--edit-highlight)}
+.media-kad .mk-aksi .mk-edit3d:focus-visible{outline:2px solid var(--p2);outline-offset:4px}
+@media(prefers-reduced-motion:reduce){.media-kad .mk-aksi .mk-edit3d{transition:none}}
 body.seret-on{user-select:none;cursor:grabbing}
 .gal-drop{grid-column:1/-1;border:2px dashed rgba(127,127,127,.4);border-radius:12px;padding:10px;text-align:center;opacity:.7}
 </style>
@@ -471,7 +477,7 @@ body.seret-on{user-select:none;cursor:grabbing}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbwsUlQ1iNPovlLrdoWv5EDktcl9dy0ThgMfe2aUs8d_W68IZumEhsz41Lq4BoIoxeql/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -943,10 +949,12 @@ function lencanaSegerak(on){
   } else if(b) b.remove();
 }
 async function segerakSenyap(){
-  if(SEGERAK||!API) return;
+  if(SEGERAK||!API||SRT||GAL_MENYIMPAN) return;
+  const versiGaleri=GAL_VERSI;
   SEGERAK=true; lencanaSegerak(true);
   try{
     const d=await apiJsonp("data",{paksa:1},45000);
+    if(SRT||GAL_MENYIMPAN||versiGaleri!==GAL_VERSI) return;
     DB=d; simpanCacheDB(d);
     if(bolehRenderSemula()) render();  /* jangan ganggu bila borang/input sedang digunakan */
   }catch(e){ /* senyap sahaja */ }
@@ -956,6 +964,7 @@ function jadualSegerak(ms){ clearTimeout(T_SEGERAK); T_SEGERAK=setTimeout(segera
 /* Segerak berkala & bila app kembali aktif */
 /* Jangan render semula bila pengguna sedang menaip (borang akan hilang isinya) */
 function bolehRenderSemula(){
+  if(SRT||GAL_MENYIMPAN) return false;
   if($("#ov")) return false;                 /* overlay/borang terbuka */
   if(modeAuth==="daftar" && !U) return false; /* borang pendaftaran sedang diisi */
   const a=document.activeElement;
@@ -3912,8 +3921,12 @@ function vDiagnostik(){
 /* ---------- Media Latihan (Kamera / Video / Muat Naik) ----------
    Fail media disimpan dalam Google Drive; catatan & maklumat disimpan
    dalam Google Sheet (MEDIA_LATIHAN) supaya app kekal ringan. */
+function bandingSusunanMedia(a,b){
+  const sn=m=>{const n=Number(m.SUSUNAN);return n>0?n:1e9;};
+  return sn(a)-sn(b)||String(b["TARIKH & MASA"]||"").localeCompare(String(a["TARIKH & MASA"]||""));
+}
 const mediaAcara=n=>(DB.media||[]).filter(m=>String(m.ACARA||"").toUpperCase()===String(n||"").toUpperCase())
-  .sort((a,b)=>String(b["TARIKH & MASA"]||"").localeCompare(String(a["TARIKH & MASA"]||"")));
+  .sort(bandingSusunanMedia);
 let MEDIA_PILIH=[]; /* [{file,nama,mime,jenis,saiz}] */
 /* TIADA HAD SAIZ: fail besar dimuat naik terus ke Google Drive (resumable upload).
    MAX_MEDIA_MB hanya had untuk cara lama (melalui Apps Script) jika muat naik
@@ -3964,7 +3977,7 @@ function kadMedia(m,bolehPadam){
   }else{
     atas=`<div class="mk-catatan"><span class="mk-dok-teks">${esc(m.CATATAN||tajuk)}</span></div>`;
   }
-  const seret=GAL_SUSUN&&isAdmin();
+  const seret=GAL_SUSUN&&isAdmin()&&!GAL_MENYIMPAN;
   return `<div class="media-kad" id="md-${esc(m.ID)}">
     ${seret?`<button class="mk-seret" onpointerdown="mulaSeretMedia(event,this)" title="Seret untuk susun / pindah acara" aria-label="Seret untuk susun">⠿</button>`:""}
     ${atas}
@@ -3981,8 +3994,7 @@ function kadMedia(m,bolehPadam){
       </div>
       <div class="mk-aksi">
         ${(driveId||jns==="CATATAN")?`<button class="btn sm ghost" onclick="event.stopPropagation();bukaPemapar('${esc(m.ID)}',this)" title="Buka dalam app" aria-label="Buka dalam app">↗ <span class="mk-label">Buka</span></button>`:""}
-        ${isAdmin()?`<button class="btn sm ghost" onclick="event.stopPropagation();formInfoMedia('${esc(m.ID)}')" title="Edit tajuk & catatan" aria-label="Edit tajuk dan catatan">📝 <span class="mk-label">Tajuk</span></button>`:""}
-        ${bolehEdit?`<button class="btn sm ghost" onclick="event.stopPropagation();menuEditMedia('${esc(m.ID)}',this)" title="Pilihan edit" aria-label="Buka pilihan edit">✎ <span class="mk-label">Edit</span></button>`:""}
+        ${bolehEdit?`<button class="btn sm mk-edit3d" onclick="event.stopPropagation();menuEditMedia('${esc(m.ID)}',this)" title="Pilihan edit" aria-label="Buka pilihan edit">✎ <span class="mk-label">Edit</span></button>`:""}
       </div>
     </div>
   </div>`;
@@ -4090,6 +4102,7 @@ function menuEditMedia(id,btn){
   menu.className="dd-menu";
   menu.onclick=e=>e.stopPropagation();
   menu.innerHTML=`<div class="dd-tajuk">Urus Fail</div>
+    ${isAdmin()?`<button class="dd-item" onclick="tutupDropdown();formInfoMedia('${esc(id)}')">📝 Edit tajuk &amp; catatan</button>`:""}
     <button class="dd-item" onclick="tutupDropdown();formNamaMedia('${esc(id)}')">✎ Edit nama</button>
     ${String(m["JENIS MEDIA"]).toUpperCase()==="CATATAN"?`<button class="dd-item" onclick="tutupDropdown();formTambahCatatan('${esc(id)}')">➕ Tambah catatan baharu</button>`:""}
     ${driveId&&String(m["JENIS MEDIA"]).toUpperCase()!=="CATATAN"?`<button class="dd-item" onclick="tutupDropdown();formGantiMedia('${esc(id)}')">🔄 Ganti fail</button>`:""}
@@ -4377,7 +4390,7 @@ async function simpanGantiMedia(id){
 }
 
 /* ---------- GALERI: edit tajuk/catatan & seret susun (Master Admin & Sub Admin) ---------- */
-let GAL_SUSUN=false, SRT=null;
+let GAL_SUSUN=false, SRT=null, GAL_MENYIMPAN=false, GAL_VERSI=0;
 function formInfoMedia(id){
   if(!isAdmin()) return toast("Hanya Master Admin & Sub Admin boleh mengedit tajuk dan catatan.");
   const m=(DB.media||[]).find(x=>String(x.ID)===String(id)); if(!m) return toast("Media tidak dijumpai");
@@ -4398,37 +4411,52 @@ async function simpanInfoMedia(id){
   }catch(e){toastRalat(e);if(btn){btn.disabled=false;btn.textContent="Simpan";}}
 }
 function mulaSeretMedia(e,h){
-  if(!isAdmin()) return;
+  if(!isAdmin()||GAL_MENYIMPAN||SRT||e.button>0) return;
   e.preventDefault(); e.stopPropagation();
   const kad=h.closest(".media-kad"); if(!kad) return;
-  SRT={kad}; kad.classList.add("dragging"); document.body.classList.add("seret-on");
+  const asal=kad.parentNode, selepasAsal=kad.nextSibling, pointerId=e.pointerId;
+  GAL_VERSI++; SRT={kad}; kad.classList.add("dragging"); document.body.classList.add("seret-on");
   const gerak=ev=>{
+    if(ev.pointerId!==pointerId) return;
     const el=document.elementFromPoint(ev.clientX,ev.clientY); if(!el) return;
-    const sasar=el.closest(".media-kad"), grid=el.closest(".media-grid");
+    const sasar=el.closest(".media-kad"), grid=el.closest(".media-grid[data-acara]");
+    if(!grid) return;
     if(sasar&&sasar!==kad){ const r=sasar.getBoundingClientRect();
-      const selepas=(ev.clientX-r.left)>r.width/2||(ev.clientY-r.top)>r.height*0.75;
-      sasar.parentNode.insertBefore(kad, selepas?sasar.nextSibling:sasar); }
-    else if(grid&&!sasar){ const d=grid.querySelector(".gal-drop"); grid.insertBefore(kad,d||null); }
+      const selepas=ev.clientY>r.bottom||(ev.clientY>=r.top&&ev.clientY<=r.bottom&&ev.clientX>r.left+r.width/2);
+      grid.insertBefore(kad,selepas?sasar.nextSibling:sasar);
+    }else{const d=grid.querySelector(".gal-drop");grid.insertBefore(kad,d||null);}
     if(ev.clientY<60) window.scrollBy(0,-14); else if(ev.clientY>innerHeight-60) window.scrollBy(0,14);
   };
-  const habis=()=>{ document.removeEventListener("pointermove",gerak); document.removeEventListener("pointerup",habis); document.removeEventListener("pointercancel",habis);
-    kad.classList.remove("dragging"); document.body.classList.remove("seret-on"); SRT=null; simpanSusunanMedia(); };
+  const habis=ev=>{
+    if(ev.pointerId!==pointerId) return;
+    document.removeEventListener("pointermove",gerak); document.removeEventListener("pointerup",habis); document.removeEventListener("pointercancel",habis);
+    kad.classList.remove("dragging"); document.body.classList.remove("seret-on"); SRT=null;
+    if(ev.type==="pointercancel"){asal.insertBefore(kad,selepasAsal&&selepasAsal.parentNode===asal?selepasAsal:null);return;}
+    simpanSusunanMedia();
+  };
   document.addEventListener("pointermove",gerak); document.addEventListener("pointerup",habis); document.addEventListener("pointercancel",habis);
 }
 async function simpanSusunanMedia(){
+  if(!isAdmin()||GAL_MENYIMPAN) return;
   const senarai=[];
-  document.querySelectorAll(".media-grid[data-acara]").forEach(g=>{ const ac=g.dataset.acara;
-    g.querySelectorAll(".media-kad").forEach(k=>senarai.push({id:k.id.replace(/^md-/,""),acara:ac})); });
+  document.querySelectorAll(".media-grid[data-acara]").forEach(g=>{
+    g.querySelectorAll(".media-kad").forEach(k=>senarai.push({id:k.id.replace(/^md-/,""),acara:g.dataset.acara}));
+  });
   if(!senarai.length) return;
-  const urut={}; let ubah=false;
-  senarai.forEach(x=>{ const m=(DB.media||[]).find(y=>String(y.ID)===x.id); if(!m) return;
+  const lama=(DB.media||[]).map(m=>({...m})), urut={}; let ubah=false;
+  senarai.forEach(x=>{const m=(DB.media||[]).find(y=>String(y.ID)===x.id);if(!m)return;
     urut[x.acara]=(urut[x.acara]||0)+1;
     if(String(m.ACARA||"").toUpperCase()!==x.acara||Number(m.SUSUNAN)!==urut[x.acara]) ubah=true;
-    m.ACARA=x.acara; m.SUSUNAN=urut[x.acara]; });
+    m.ACARA=x.acara;m.SUSUNAN=urut[x.acara];
+  });
   if(!ubah) return;
-  simpanCacheDB(DB); render();
-  try{ await api("susunMedia",{senarai,...who()}); toast("Susunan galeri disimpan untuk semua pengguna"); }
-  catch(e){ toastRalat(e); }
+  GAL_MENYIMPAN=true;GAL_VERSI++;render();
+  try{
+    const r=await api("susunMedia",{senarai,...who()});
+    if(!r||!r.ok) throw new Error("Susunan belum disahkan. Sila cuba semula.");
+    simpanCacheDB(DB);toast("Susunan galeri disimpan untuk semua pengguna");
+  }catch(e){DB.media=lama;simpanCacheDB(DB);toastRalat(e);}
+  finally{GAL_MENYIMPAN=false;GAL_VERSI++;render();jadualSegerak(600);}
 }
 
 /* ---------- GALERI LATIHAN (semua acara) ---------- */
@@ -4437,9 +4465,7 @@ const G_JENIS=[["__ALL__","🗂 Semua"],["GAMBAR","🖼 Gambar"],["VIDEO","🎬 
 
 function vGaleri(){
   if(CTX && CTX.acara){ gAcara=String(CTX.acara); CTX={}; }
-  const sn=m=>{const n=Number(m.SUSUNAN); return n>0?n:1e9;};
-  const semua=(DB.media||[]).slice()
-    .sort((a,b)=>(sn(a)-sn(b))||String(b["TARIKH & MASA"]||"").localeCompare(String(a["TARIKH & MASA"]||"")));
+  const semua=(DB.media||[]).slice().sort(bandingSusunanMedia);
   const q=gCari.trim().toLowerCase();
   const tapis=semua.filter(m=>{
     if(gAcara!=="__ALL__" && String(m.ACARA||"").toUpperCase()!==gAcara.toUpperCase()) return false;

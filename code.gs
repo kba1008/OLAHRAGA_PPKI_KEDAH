@@ -679,6 +679,7 @@ function susunMedia(p) {
     }
     s.getRange(r + 1, kol).setValue(urut[acara]);
   });
+  SpreadsheetApp.flush();
   return { ok: true };
 }
 
