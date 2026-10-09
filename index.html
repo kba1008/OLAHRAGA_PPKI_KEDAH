@@ -147,7 +147,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .media-kad .mk-dok{position:relative;cursor:pointer;text-decoration:none;align-items:flex-start}
 .media-kad .mk-dok-teks{display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word}
 #pemapar .pmp-teks{background:#fff;color:#222;max-width:800px;width:100%;height:100%;max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;align-self:stretch;padding:20px;border-radius:12px;white-space:pre-wrap;line-height:1.55}
-#pemapar{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.94);display:none;flex-direction:column}
+#pemapar{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.94);display:none;flex-direction:column}
 #pemapar.on{display:flex}
 #pemapar .pmp-atas{display:flex;align-items:center;gap:8px;padding:10px 12px;color:#fff}
 #pemapar .pmp-tajuk{flex:1;min-width:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -538,7 +538,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxHgrypz9phUbVOnEAltJTYWLncjDMGRWUbkYU-_YbVq3sXbNBU65AWyBTYMWHEr-tx/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -1553,7 +1553,7 @@ function vAcara(){
       </div>
       <div class="right small">${boleh?'<span class="badge">BOLEH REKOD</span>':"Lihat sahaja"}
       <div class="acara-acts">
-        <button class="rnd" title="Sejarah media acara ini" onclick="event.stopPropagation();historiMedia('${esc(n)}')">🕘${mediaAcara(n).length?`<span class="bil">${mediaAcara(n).length}</span>`:""}</button>
+        <button class="rnd" title="Sejarah media acara ini" onclick="event.stopPropagation();historiMedia('${esc(n)}')">🖼️${mediaAcara(n).length?`<span class="bil">${mediaAcara(n).length}</span>`:""}</button>
         ${boleh?`<button class="rnd cam" title="Ambil gambar / rakam video" onclick="event.stopPropagation();formMedia('${esc(n)}')">📷</button>`:""}
         ${isAdmin()?`<button class="btn sm ghost acara-menu-btn" title="Tindakan acara" onclick="event.stopPropagation();menuAcara('${esc(n)}',this)">⋯</button>`:""}
       </div></div>
@@ -4083,7 +4083,8 @@ function kadMedia(m,bolehPadam){
     atas=`<div class="mk-catatan"><span class="mk-dok-teks">${esc(m.CATATAN||tajuk)}</span></div>`;
   }
   const seret=GAL_SUSUN&&isAdmin();
-  return `<div class="media-kad" id="md-${esc(m.ID)}">
+  const bolehBuka=driveId||jns==="CATATAN";
+  return `<div class="media-kad" id="md-${esc(m.ID)}" ${bolehBuka?`style="cursor:pointer" onclick="bukaPemapar('${esc(m.ID)}',this)"`:""}>
     ${seret?`<button class="mk-seret" onpointerdown="mulaSeretMedia(event,this)" title="Seret untuk susun / pindah acara" aria-label="Seret untuk susun">⠿</button>`:""}
     ${atas}
     <div class="mk-b">
@@ -4098,7 +4099,6 @@ function kadMedia(m,bolehPadam){
         <div class="mk-info-row"><span class="mk-info-ic">🗓</span><span class="mk-info-txt">${esc(fmtTarikhMasa(m["TARIKH & MASA"]||m.TARIKH||""))}</span></div>
       </div>
       <div class="mk-aksi">
-        ${(driveId||jns==="CATATAN")?`<button class="btn sm ghost" onclick="event.stopPropagation();bukaPemapar('${esc(m.ID)}',this)" title="Buka dalam app" aria-label="Buka dalam app">↗ <span class="mk-label">Buka</span></button>`:""}
         ${bolehEdit?`<button class="btn sm mk-edit3d" onclick="event.stopPropagation();menuEditMedia('${esc(m.ID)}',this)" title="Pilihan edit" aria-label="Buka pilihan edit">✎ <span class="mk-label">Edit</span></button>`:""}
       </div>
     </div>
@@ -4360,7 +4360,7 @@ async function simpanMedia(n){
 
 function historiMedia(n){
   const sen=mediaAcara(n);
-  overlay(`<div class="big">🕘 Sejarah Media — ${esc(n)}</div>
+  overlay(`<div class="big">🖼️ Sejarah Media — ${esc(n)}</div>
   <div class="small">${sen.length} rekod. Fail disimpan dalam Google Drive.</div>
   <div class="acara-acts" style="justify-content:flex-start">
     ${bolehRekod(n)?`<button class="btn sm" onclick="tutup();formMedia('${esc(n)}')" title="Tambah baharu" aria-label="Tambah baharu">📎 <span class="mk-label">Tambah Baharu</span></button>`:""}
