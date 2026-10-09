@@ -403,6 +403,26 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
 .cmb-btn:disabled{opacity:.5}
 .cmb-chips{padding:0 10px 6px}
 .cmb-chips>div{margin-top:4px!important}
+/* Graf prestasi mengikut atlet dan acara */
+:root{--graf-latihan:var(--p2);--graf-pb:var(--ok);--graf-mssk:var(--warn);--graf-mssm:var(--p3);--graf-lain:var(--mut)}
+.cmb-btn.graf{color:var(--graf-latihan);border-color:var(--graf-latihan)}
+.cmb-act{flex-wrap:wrap;justify-content:flex-end}
+.sheet:has(#grafPrestasi){max-width:1040px}
+.graf-head{display:flex;align-items:start;justify-content:space-between;gap:12px}
+.graf-head .btn{width:auto;margin:0}
+.graf-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:18px 0;border-bottom:1px solid var(--line)}
+.graf-summary strong{display:block;font-size:18px;margin-top:5px;overflow-wrap:anywhere}
+.graf-tools{display:flex;flex-wrap:wrap;align-items:end;gap:10px;margin:14px 0}
+.graf-tools>div{flex:1;min-width:130px}.graf-tools .btn{width:auto}
+.graf-legend{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}
+.graf-legend label{display:flex;align-items:center;gap:6px;margin:0;cursor:pointer}
+.graf-canvas{height:350px;position:relative;width:100%}
+.graf-history{max-height:220px;overflow:auto;margin:12px 0}
+.graf-history table{width:100%;border-collapse:collapse;font-size:12px}
+.graf-history th,.graf-history td{padding:9px 6px;text-align:left;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.graf-history th{color:var(--mut)}
+.graf-empty{padding:30px 8px;text-align:center;color:var(--mut)}
+@media(max-width:560px){.graf-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.graf-canvas{height:300px}.graf-tools>div{min-width:110px}.graf-history{max-height:180px}}
 </style>
 </head>
 <body>
@@ -411,12 +431,13 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
 <div class="nav hide" id="nav"></div>
 <div class="sync" id="sync"><span class="dot"></span><span class="txt" id="syncTxt">Loading</span></div>
 
+<script src="./vendor/chart.umd.js"></script>
 <script>
 /* ============================================================
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbznf39LDwdaXfQJMpXxzI6jH-zmJtU_tZPJrRo4XFdfJ-EYrY2WvZ26Z6EUDeVS0fPr/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -1862,11 +1883,14 @@ function itemAcaraDetail(n,p,info,boleh,t,dragOn){
         <span>HI: <b>${nilaiHI}</b></span>
         ${rk?`<span>Sasaran: <b>${esc(rk.KEPUTUSAN||fmtNilai(Number(rk.NILAI),info))}</b>${jurang}</span>`:""}
       </div>
-      ${boleh?`<div class="cmb-act">
+      <div class="cmb-act">
+        <button class="cmb-btn graf" title="Graf prestasi atlet mengikut acara" onclick="event.stopPropagation();paparGraf('${esc(n)}','${esc(p["ATLET ID"])}')">📈 Graf</button>
+        ${boleh?`
         ${!isBerpasukan(n)?`<button class="cmb-btn pri" onclick="event.stopPropagation();formRekod('${esc(n)}','${esc(p["ATLET ID"])}')">+ Rekod</button>`:""}
         <button class="cmb-btn ${hadir?"ok":""}" ${pending?"disabled":""} onclick="event.stopPropagation();tandaHadirAcara('${esc(n)}','${esc(p["ATLET ID"])}','${hadir?"TIDAK HADIR":"HADIR"}')">${pending?"…":(hadir?"✅ Hadir":"Tanda Hadir")}</button>
         <button class="cmb-btn" title="Edit / padam rekod ralat" onclick="event.stopPropagation();urusRekodAtlet('${esc(n)}','${esc(p["ATLET ID"])}')">Urus</button>
-      </div>`:""}
+      `:""}
+      </div>
     </div>
     ${rHariIni.length?`<div class="cmb-chips">${chips}</div>`:""}
   </div>`;
@@ -2017,7 +2041,9 @@ function formRekod(n,id){
   <label>Tarikh</label><input type="date" id="rt" value="${today()}"/>
   <label>Keputusan (${esc(labelKeputusan(info))})</label><input id="rv" inputmode="decimal" placeholder="${phKeputusan(info)}"/>
   ${info.JENIS==="MASA"?`<div class="small">Acara jarak jauh: tulis dalam bentuk minit — <b>1:15.45</b> atau <b>1.15.45</b> bermaksud 1 minit 15.45 saat. Jangan tukar kepada saat.</div>`:""}
-  <label>Catatan</label><textarea id="rc" rows="2" placeholder="Cth: pusingan ke-2"></textarea>
+  <label for="rjenis">Jenis rekod</label><select id="rjenis" onchange="$('#rnamaWrap').classList.toggle('hide',this.value!=='EVENT')"><option value="LATIHAN">Latihan</option><option value="EVENT">Keputusan kejohanan atlet</option></select>
+   <div id="rnamaWrap" class="hide"><label for="rnama">Nama kejohanan</label><input id="rnama" placeholder="Cth: MSSK 2026"/></div>
+   <label>Catatan</label><textarea id="rc" rows="2" placeholder="Cth: pusingan ke-2"></textarea>
   <button class="btn" id="btnR" onclick="simpanR('${esc(n)}','${esc(id)}')">Simpan Rekod</button>
   <button class="btn ghost" onclick="tutup()">Tutup</button>`);
   setTimeout(()=>{ const el=$("#rv"); if(el) el.focus(); },50);
@@ -2026,7 +2052,11 @@ async function simpanR(n,id){
   const btn=$("#btnR"); if(btn){btn.disabled=true;btn.textContent="Menyimpan…";}
   const a=atletById(id)||{}, info=acaraInfo(n);
   const mentah=$("#rv").value;
-  const catatan=($("#rc")&&$("#rc").value.trim())||"";
+  const nota=($("#rc")&&$("#rc").value.trim())||"";
+  const jenis=$('#rjenis')&&$('#rjenis').value;
+  const namaEvent=($('#rnama')&&$('#rnama').value.trim())||"";
+  if(jenis==='EVENT'&&!namaEvent){if(btn){btn.disabled=false;btn.textContent="Simpan Rekod";}return toast("Masukkan nama kejohanan.");}
+  const catatan=jenis==='EVENT'?'[EVENT: '+namaEvent.replace(/[\]\r\n]/g,' ')+'] '+nota:nota;
   const tarikh=($("#rt")&&$("#rt").value)||today();
   const nilai=info.JENIS==="MASA"?huraiMasa(mentah):parseFloat(String(mentah).replace(",","."));
   if(!(nilai>0)){ if(btn){btn.disabled=false;btn.textContent="Simpan Rekod";} return toast(info.JENIS==="MASA"?"Masukkan masa yang sah (cth: 15.45 atau 1:15.45)":"Masukkan keputusan yang sah"); }
@@ -2038,6 +2068,63 @@ async function simpanR(n,id){
     render(); /* Sentiasa lukis semula supaya rekod baharu terus muncul tanpa perlu refresh */
     toast("Rekod disimpan");
   }catch(e){ toastRalat(e); if(btn){btn.disabled=false;btn.textContent="Simpan Rekod";} }
+}
+
+
+/* ---------- Graf prestasi: data asal kekal dalam Google Sheet ---------- */
+let GRAF_CART=null, GRAF_CTX=null;
+function jenisRekodGraf(r){return /^\[EVENT:\s*([^\]]+)\]/i.test(String(r.CATATAN||""))?'EVENT':'LATIHAN';}
+function dataGraf(n,id,mula="",akhir=""){
+  const info=acaraInfo(n), p=penyertaan(n).find(x=>String(x["ATLET ID"])===String(id));
+  const semua=rekodAcara(n).filter(r=>rekodMilik(r,id)&&Number.isFinite(Number(r.NILAI))&&Number(r.NILAI)>0)
+    .slice().sort((a,b)=>String(a.TARIKH).slice(0,10).localeCompare(String(b.TARIKH).slice(0,10))||masaKunci(a.MASA).localeCompare(masaKunci(b.MASA))||String(a["TARIKH & MASA REKOD"]||"").localeCompare(String(b["TARIKH & MASA REKOD"]||"")));
+  const rekod=semua.filter(r=>(!mula||String(r.TARIKH).slice(0,10)>=mula)&&(!akhir||String(r.TARIKH).slice(0,10)<=akhir));
+  const rp=String((p&&p["REKOD PERIBADI"])||"").trim().replace(/\s*(saat|min|meter|s|m)\s*$/i,"");
+  const pb=info.JENIS==="MASA"?huraiMasa(rp):Number(rp.replace(",","."));
+  const sasaran=kejohananKatSemua(n,p&&p.KATEGORI).filter(r=>Number.isFinite(Number(r.NILAI))&&Number(r.NILAI)>0);
+  const vals=rekod.map(r=>Number(r.NILAI));
+  const terbaik=vals.length?(info.JENIS==="MASA"?Math.min(...vals):Math.max(...vals)):null;
+  const beza=vals.length>1?(info.JENIS==="MASA"?vals[0]-vals[vals.length-1]:vals[vals.length-1]-vals[0]):null;
+  return {info,p,rekod,semua,pb:Number.isFinite(pb)&&pb>0?pb:null,sasaran,terbaik,beza};
+}
+function paparGraf(n,id){
+  tutup(); GRAF_CTX={n,id};
+  const a=atletById(id)||{}, d=dataGraf(n,id);
+  overlay(`<div class="graf-head"><div><div class="big">Graf Prestasi — ${esc(n)}</div><div class="small">${esc(a["NAMA PENUH"]||(d.p&&d.p["NAMA ATLET"])||"")} • ${esc((d.p&&d.p.KATEGORI)||a.KATEGORI||"")}</div></div><button class="btn ghost sm" title="Tutup graf" aria-label="Tutup graf" onclick="tutup()">✕</button></div>
+  <div id="grafSummary" class="graf-summary"></div>
+  <div class="graf-tools"><div><label for="grafMula">Dari tarikh</label><input type="date" id="grafMula" onchange="lukisGraf()"></div><div><label for="grafAkhir">Hingga tarikh</label><input type="date" id="grafAkhir" onchange="lukisGraf()"></div><button class="btn sm ghost" onclick="$('#grafMula').value='';$('#grafAkhir').value='';lukisGraf()">Semua tarikh</button></div>
+  <div id="grafLegend" class="graf-legend"></div><div id="grafRalat" class="small"></div>
+  <div class="graf-canvas"><canvas id="grafPrestasi" role="img" aria-label="Graf rekod prestasi mengikut tarikh"></canvas></div>
+  <div class="small">${d.info.JENIS==="MASA"?"Masa lebih rendah = lebih baik.":"Nilai lebih tinggi = lebih baik."} PB ialah rekod peribadi tersimpan. Garisan kejohanan ialah penanda aras kategori, bukan keputusan atlet ini.</div>
+  <h3 style="margin-top:16px">Semua Rekod Atlet</h3><div id="grafHistory" class="graf-history"></div>
+  <button class="btn ghost" onclick="tutup()">Tutup</button>`);
+  lukisGraf();
+}
+function lukisGraf(){
+  if(!GRAF_CTX||!$('#grafPrestasi')) return;
+  const {n,id}=GRAF_CTX, mula=$('#grafMula').value, akhir=$('#grafAkhir').value;
+  if(mula&&akhir&&mula>akhir){$('#grafRalat').textContent="Tarikh mula mesti sebelum tarikh akhir.";return;}
+  $('#grafRalat').textContent="";
+  const d=dataGraf(n,id,mula,akhir), fmt=v=>v==null?"—":fmtNilai(v,d.info);
+  const terbaru=d.rekod.length?Number(d.rekod[d.rekod.length-1].NILAI):null;
+  const trend=d.beza==null?"—":Math.abs(d.beza)<0.000001?"Kekal":(d.beza>0?"↑ Meningkat ":"↓ Menurun ")+fmt(Math.abs(d.beza));
+  $('#grafSummary').innerHTML=`<div class="small">Terbaik dalam tempoh<strong>${esc(fmt(d.terbaik))}</strong></div><div class="small">Rekod terkini<strong>${esc(fmt(terbaru))}</strong></div><div class="small">PB tersimpan<strong>${esc(fmt(d.pb))}</strong></div><div class="small">Perubahan awal → terkini<strong>${esc(trend)}</strong></div>`;
+  const rs=d.rekod, warna=getComputedStyle(document.documentElement), token=x=>warna.getPropertyValue(x).trim();
+  // resolve CSS variable references through a temporary element for canvas colours
+  const color=x=>{const el=document.createElement('span');el.style.color=`var(${x})`;document.body.appendChild(el);const c=getComputedStyle(el).color;el.remove();return c;};
+  const labels=rs.length?rs.map(r=>fmtTarikh(r.TARIKH)+" "+fmtMasa(r.MASA)):['Mula','Akhir'];
+  const sets=[];
+  ['LATIHAN','EVENT'].forEach(j=>{if(rs.some(r=>jenisRekodGraf(r)===j))sets.push({label:j==='EVENT'?'Keputusan kejohanan atlet':'Rekod latihan',data:rs.map(r=>jenisRekodGraf(r)===j?Number(r.NILAI):null),borderColor:color(j==='EVENT'?'--graf-mssm':'--graf-latihan'),backgroundColor:color(j==='EVENT'?'--graf-mssm':'--graf-latihan'),pointStyle:j==='EVENT'?'rectRot':'circle',pointRadius:5,pointHoverRadius:7,borderWidth:2,tension:0,spanGaps:true});});
+  const line=(label,v,c)=>sets.push({label,data:labels.map(()=>Number(v)),borderColor:color(c),backgroundColor:color(c),borderDash:[7,5],borderWidth:1.5,pointRadius:0});
+  if(d.pb!=null) line('PB tersimpan',d.pb,'--graf-pb');
+  d.sasaran.forEach(r=>line(String(r['NAMA KEJOHANAN']||'Kejohanan')+(r.TAHUN?' / '+r.TAHUN:''),r.NILAI,namaPeringkat(r)==='MSSM'?'--graf-mssm':namaPeringkat(r)==='MSSK'?'--graf-mssk':'--graf-lain'));
+  if(GRAF_CART){GRAF_CART.destroy();GRAF_CART=null;}
+  if(typeof Chart==='undefined'){ $('#grafRalat').textContent='Fail graf tidak dijumpai. Pastikan folder vendor dimuat naik bersama index.html.'; }
+  else if(sets.length){
+    GRAF_CART=new Chart($('#grafPrestasi'),{type:'line',data:{labels,datasets:sets},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'nearest',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.parsed.y),afterBody:items=>{const c=items[0];return c&&!c.dataset.borderDash&&rs[c.dataIndex]?String(rs[c.dataIndex].CATATAN||''):'';}}}},scales:{x:{title:{display:true,text:'Tarikh rekod',color:color('--mut')},ticks:{color:color('--mut'),maxTicksLimit:6,maxRotation:35},grid:{color:color('--line')}},y:{title:{display:true,text:d.info.JENIS==='MASA'?'Masa (saat)':(d.info.UNIT||'meter'),color:color('--mut')},ticks:{color:color('--mut')},grid:{color:color('--line')}}}}});
+  }
+  $('#grafLegend').innerHTML=sets.map((x,i)=>`<label><input type="checkbox" checked onchange="if(GRAF_CART){GRAF_CART.setDatasetVisibility(${i},this.checked);GRAF_CART.update()}">${esc(x.label)}</label>`).join('');
+  $('#grafHistory').innerHTML=rs.length?`<table><thead><tr><th>Tarikh / Masa</th><th>Keputusan / Jenis</th><th>Catatan</th></tr></thead><tbody>${rs.map(r=>`<tr><td>${esc(fmtTarikh(r.TARIKH))}<br>${esc(fmtMasa(r.MASA))}</td><td>${esc(fmt(Number(r.NILAI)))}<br>${jenisRekodGraf(r)==='EVENT'?'Kejohanan':'Latihan'}</td><td>${esc(r.CATATAN||'—')}</td></tr>`).join('')}</tbody></table>`:`<div class="graf-empty">${d.semua.length?'Tiada rekod dalam tempoh ini.':'Belum ada rekod latihan atlet bagi acara ini.'}</div>`;
 }
 
 /* ---------- Rekod Berpasukan (Relay: 4x100, 4x200, 4x400, Mix Relay) ---------- */
@@ -4325,7 +4412,7 @@ function overlay(html){
   document.body.appendChild(d);
   try{ history.pushState({ov:1},"", "#ov"); }catch(e){}
 }
-function tutup(){ try{ camTutup(); }catch(e){} const o=$("#ov"); if(o) o.remove(); }
+function tutup(){ if(GRAF_CART){GRAF_CART.destroy();GRAF_CART=null;} GRAF_CTX=null; try{ camTutup(); }catch(e){} const o=$("#ov"); if(o) o.remove(); }
 
 /* ---------- Mula ---------- */
 if("serviceWorker" in navigator){
