@@ -456,12 +456,18 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
 }
 .media-kad{position:relative}
 .mk-seret{position:absolute;top:6px;left:6px;z-index:3;width:34px;height:34px;border-radius:10px;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:18px;cursor:grab;touch-action:none}
-.media-kad.dragging{opacity:.5;outline:2px dashed currentColor;pointer-events:none}
+.media-kad.dragging{opacity:.3;outline:2px dashed currentColor;outline-offset:-2px}
+.media-kad.dragging>*{visibility:hidden}
+.media-hantu{position:fixed!important;z-index:90;pointer-events:none!important;margin:0;will-change:transform;box-shadow:0 22px 44px -12px rgba(0,0,0,.7);opacity:.97;transition:none!important}
+.media-hantu .mk-seret{cursor:grabbing}
+.media-kad.gal-flip{transition:transform .18s ease}
+.gal-drop.aktif{opacity:1;border-color:currentColor}
+@media(prefers-reduced-motion:reduce){.media-kad.gal-flip{transition:none}}
 .media-kad .mk-aksi .mk-edit3d{background:var(--edit-face);color:var(--txt);border:1px solid var(--p2);box-shadow:0 4px 0 var(--edit-edge),inset 0 1px 0 var(--edit-highlight);transform:translateY(-2px);transition:transform .12s,box-shadow .12s}
 .media-kad .mk-aksi .mk-edit3d:active{transform:translateY(2px);box-shadow:0 0 0 var(--edit-edge),inset 0 1px 0 var(--edit-highlight)}
 .media-kad .mk-aksi .mk-edit3d:focus-visible{outline:2px solid var(--p2);outline-offset:4px}
 @media(prefers-reduced-motion:reduce){.media-kad .mk-aksi .mk-edit3d{transition:none}}
-body.seret-on{user-select:none;cursor:grabbing}
+body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscroll-behavior:none}
 .gal-drop{grid-column:1/-1;border:2px dashed rgba(127,127,127,.4);border-radius:12px;padding:10px;text-align:center;opacity:.7}
 </style>
 </head>
@@ -477,7 +483,7 @@ body.seret-on{user-select:none;cursor:grabbing}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbw-lzLKHvATsT56yG29wE0g4hPhofeqEDRXKZ2t_yTQrCpO1LOYSM6Dx0THKiOCEED3/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -949,14 +955,18 @@ function lencanaSegerak(on){
   } else if(b) b.remove();
 }
 async function segerakSenyap(){
-  if(SEGERAK||!API||SRT||GAL_MENYIMPAN) return;
+  if(SEGERAK||!API||galSibuk()) return;
   const versiGaleri=GAL_VERSI;
   SEGERAK=true; lencanaSegerak(true);
   try{
     const d=await apiJsonp("data",{paksa:1},45000);
-    if(SRT||GAL_MENYIMPAN||versiGaleri!==GAL_VERSI) return;
+    /* Bacaan lama: susunan galeri berubah semasa bacaan ini berjalan — buang */
+    if(galSibuk()||versiGaleri!==GAL_VERSI) return;
+    let sama=false; try{ sama=JSON.stringify(d)===JSON.stringify(DB); }catch(_){}
+    if(sama) return;                    /* tiada perubahan — elak paparan berkelip */
     DB=d; simpanCacheDB(d);
     if(bolehRenderSemula()) render();  /* jangan ganggu bila borang/input sedang digunakan */
+    else if(VIEW==="galeri") GAL_DOM_LAMA=true;
   }catch(e){ /* senyap sahaja */ }
   finally{ SEGERAK=false; lencanaSegerak(false); }
 }
@@ -964,7 +974,7 @@ function jadualSegerak(ms){ clearTimeout(T_SEGERAK); T_SEGERAK=setTimeout(segera
 /* Segerak berkala & bila app kembali aktif */
 /* Jangan render semula bila pengguna sedang menaip (borang akan hilang isinya) */
 function bolehRenderSemula(){
-  if(SRT||GAL_MENYIMPAN) return false;
+  if(galSibuk()) return false;
   if($("#ov")) return false;                 /* overlay/borang terbuka */
   if(modeAuth==="daftar" && !U) return false; /* borang pendaftaran sedang diisi */
   const a=document.activeElement;
@@ -3977,7 +3987,7 @@ function kadMedia(m,bolehPadam){
   }else{
     atas=`<div class="mk-catatan"><span class="mk-dok-teks">${esc(m.CATATAN||tajuk)}</span></div>`;
   }
-  const seret=GAL_SUSUN&&isAdmin()&&!GAL_MENYIMPAN;
+  const seret=GAL_SUSUN&&isAdmin();
   return `<div class="media-kad" id="md-${esc(m.ID)}">
     ${seret?`<button class="mk-seret" onpointerdown="mulaSeretMedia(event,this)" title="Seret untuk susun / pindah acara" aria-label="Seret untuk susun">⠿</button>`:""}
     ${atas}
@@ -4391,6 +4401,15 @@ async function simpanGantiMedia(id){
 
 /* ---------- GALERI: edit tajuk/catatan & seret susun (Master Admin & Sub Admin) ---------- */
 let GAL_SUSUN=false, SRT=null, GAL_MENYIMPAN=false, GAL_VERSI=0;
+let GAL_TUNGGU=null;      /* susunan yang belum dihantar: {ACARA:[id,...]} */
+let GAL_DOM_LAMA=false;   /* data baharu diterima tetapi galeri belum dipapar semula */
+let GAL_REV=0;
+const GAL_PERANTI=(()=>{ try{ let x=localStorage.getItem("at_peranti_id");
+  if(!x){ x=Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem("at_peranti_id",x); } return x;
+}catch(e){ return "p"+Math.random().toString(36).slice(2); } })();
+/* Galeri sibuk = sedang diseret, sedang disimpan, atau ada susunan menunggu.
+   Semasa sibuk, segerak latar belakang TIDAK boleh menimpa susunan. */
+function galSibuk(){ return !!(SRT||GAL_MENYIMPAN||GAL_TUNGGU); }
 function formInfoMedia(id){
   if(!isAdmin()) return toast("Hanya Master Admin & Sub Admin boleh mengedit tajuk dan catatan.");
   const m=(DB.media||[]).find(x=>String(x.ID)===String(id)); if(!m) return toast("Media tidak dijumpai");
@@ -4410,53 +4429,157 @@ async function simpanInfoMedia(id){
     simpanCacheDB(DB); tutup(); render(); toast("Tajuk & catatan dikemas kini");
   }catch(e){toastRalat(e);if(btn){btn.disabled=false;btn.textContent="Simpan";}}
 }
+const idsGrid=g=>[...g.querySelectorAll(":scope > .media-kad")].map(k=>k.id.replace(/^md-/,""));
+/* Animasi FLIP: kad lain meluncur lembut ke kedudukan baharu */
+function galFlip(grids,ubah){
+  const kad=[]; grids.forEach(g=>g&&g.querySelectorAll(":scope > .media-kad:not(.dragging)").forEach(k=>kad.push(k)));
+  if(kad.length>150){ ubah(); return; }
+  const awal=new Map(kad.map(k=>[k,k.getBoundingClientRect()]));
+  ubah();
+  kad.forEach(k=>{
+    const a=awal.get(k), b=k.getBoundingClientRect(), dx=a.left-b.left, dy=a.top-b.top;
+    if(!dx&&!dy) return;
+    k.classList.remove("gal-flip"); k.style.transform=`translate(${dx}px,${dy}px)`; k.dataset.anim="1";
+    requestAnimationFrame(()=>{ k.classList.add("gal-flip"); k.style.transform="";
+      setTimeout(()=>{ k.classList.remove("gal-flip"); delete k.dataset.anim; },200); });
+  });
+}
 function mulaSeretMedia(e,h){
-  if(!isAdmin()||GAL_MENYIMPAN||SRT||e.button>0) return;
+  if(!isAdmin()||SRT||(e.button!=null&&e.button>0)) return;
+  const kad=h.closest(".media-kad"), gridAsal=kad&&kad.closest(".media-grid[data-acara]"); if(!kad||!gridAsal) return;
   e.preventDefault(); e.stopPropagation();
-  const kad=h.closest(".media-kad"); if(!kad) return;
-  const asal=kad.parentNode, selepasAsal=kad.nextSibling, pointerId=e.pointerId;
+  /* Paparan lama (data baharu belum dipapar) — muat semula dahulu supaya tidak menimpa susunan orang lain */
+  if(GAL_DOM_LAMA&&!GAL_TUNGGU&&!GAL_MENYIMPAN){ GAL_DOM_LAMA=false; render(); toast("Galeri dikemas kini dengan susunan terkini. Sila seret semula."); return; }
+  try{ const a=document.activeElement; if(a&&a!==document.body&&a.blur) a.blur(); }catch(_){}
+  const pointerId=e.pointerId, r=kad.getBoundingClientRect();
+  const idsAsal=idsGrid(gridAsal), selepasAsal=kad.nextSibling;
+  const hantu=kad.cloneNode(true); hantu.removeAttribute("id"); hantu.classList.add("media-hantu");
+  hantu.querySelectorAll("[id]").forEach(x=>x.removeAttribute("id"));
+  Object.assign(hantu.style,{left:r.left+"px",top:r.top+"px",width:r.width+"px",height:r.height+"px"});
+  document.body.appendChild(hantu);
+  const ox=e.clientX, oy=e.clientY;
+  let px=e.clientX, py=e.clientY, raf=0, habisKah=false;
   GAL_VERSI++; SRT={kad}; kad.classList.add("dragging"); document.body.classList.add("seret-on");
+  try{ h.setPointerCapture&&h.setPointerCapture(pointerId); }catch(_){}
+  const tandaDrop=g=>document.querySelectorAll(".gal-drop.aktif").forEach(d=>{ if(!g||d.parentNode!==g) d.classList.remove("aktif"); });
+  const susun=()=>{
+    const el=document.elementFromPoint(px,py); if(!el) return;
+    const grid=el.closest(".media-grid[data-acara]"); if(!grid) return;
+    const drop=el.closest(".gal-drop");
+    const sasar=el.closest(".media-kad");
+    tandaDrop(grid);
+    if(sasar&&sasar!==kad&&sasar.parentNode===grid&&!sasar.dataset.anim){
+      let rujuk;
+      if(sasar.parentNode===kad.parentNode){
+        /* kad sasaran selepas kad yang diseret → letak selepasnya; jika sebelum → letak sebelumnya */
+        const selepas=!!(kad.compareDocumentPosition(sasar)&Node.DOCUMENT_POSITION_FOLLOWING);
+        rujuk=selepas?sasar.nextSibling:sasar;
+      }else{
+        const t=sasar.getBoundingClientRect();
+        rujuk=(px>t.left+t.width/2)?sasar.nextSibling:sasar;
+      }
+      if(rujuk===kad||kad.nextSibling===rujuk&&kad.parentNode===grid) return;
+      const lama=kad.parentNode;
+      galFlip(lama===grid?[grid]:[lama,grid],()=>grid.insertBefore(kad,rujuk));
+      return;
+    }
+    /* Kawasan kosong / "Seret fail ke sini": hanya pindah jika acara lain atau zon drop */
+    if(drop||(!sasar&&kad.parentNode!==grid)){
+      if(drop) drop.classList.add("aktif");
+      const d=grid.querySelector(":scope > .gal-drop");
+      if(kad.parentNode===grid&&(kad.nextSibling===d||(!d&&!kad.nextSibling))) return;
+      const lama=kad.parentNode;
+      galFlip(lama===grid?[grid]:[lama,grid],()=>grid.insertBefore(kad,d||null));
+    }
+  };
+  const langkah=()=>{
+    raf=0; if(habisKah) return;
+    hantu.style.transform=`translate3d(${px-ox}px,${py-oy}px,0) scale(1.03)`;
+    const tepi=70; let laju=0;
+    if(py<tepi) laju=-Math.ceil((tepi-py)/tepi*16); else if(py>innerHeight-tepi) laju=Math.ceil((py-(innerHeight-tepi))/tepi*16);
+    if(laju) window.scrollBy(0,laju);
+    susun();
+    if(laju) raf=requestAnimationFrame(langkah);   /* teruskan auto-skrol walaupun jari tidak bergerak */
+  };
   const gerak=ev=>{
     if(ev.pointerId!==pointerId) return;
-    const el=document.elementFromPoint(ev.clientX,ev.clientY); if(!el) return;
-    const sasar=el.closest(".media-kad"), grid=el.closest(".media-grid[data-acara]");
-    if(!grid) return;
-    if(sasar&&sasar!==kad){ const r=sasar.getBoundingClientRect();
-      const selepas=ev.clientY>r.bottom||(ev.clientY>=r.top&&ev.clientY<=r.bottom&&ev.clientX>r.left+r.width/2);
-      grid.insertBefore(kad,selepas?sasar.nextSibling:sasar);
-    }else{const d=grid.querySelector(".gal-drop");grid.insertBefore(kad,d||null);}
-    if(ev.clientY<60) window.scrollBy(0,-14); else if(ev.clientY>innerHeight-60) window.scrollBy(0,14);
+    ev.preventDefault();
+    px=ev.clientX; py=ev.clientY;
+    if(!raf) raf=requestAnimationFrame(langkah);
   };
   const habis=ev=>{
     if(ev.pointerId!==pointerId) return;
+    habisKah=true; if(raf) cancelAnimationFrame(raf);
     document.removeEventListener("pointermove",gerak); document.removeEventListener("pointerup",habis); document.removeEventListener("pointercancel",habis);
+    try{ h.releasePointerCapture&&h.releasePointerCapture(pointerId); }catch(_){}
+    hantu.remove(); tandaDrop(null);
     kad.classList.remove("dragging"); document.body.classList.remove("seret-on"); SRT=null;
-    if(ev.type==="pointercancel"){asal.insertBefore(kad,selepasAsal&&selepasAsal.parentNode===asal?selepasAsal:null);return;}
-    simpanSusunanMedia();
+    if(!document.body.contains(kad)) return;          /* paparan telah berubah semasa seret */
+    if(ev.type==="pointercancel"){
+      gridAsal.insertBefore(kad,selepasAsal&&selepasAsal.parentNode===gridAsal?selepasAsal:gridAsal.querySelector(":scope > .gal-drop"));
+      if(GAL_TUNGGU) galHantar(); return;
+    }
+    const gridAkhir=kad.closest(".media-grid[data-acara]");
+    const kumpulan=[{acara:gridAsal.dataset.acara,ids:idsGrid(gridAsal)}];
+    if(gridAkhir&&gridAkhir!==gridAsal) kumpulan.push({acara:gridAkhir.dataset.acara,ids:idsGrid(gridAkhir)});
+    else if(kumpulan[0].ids.join("|")===idsAsal.join("|")){ if(GAL_TUNGGU) galHantar(); return; }  /* tiada perubahan */
+    galBeratur(kumpulan);
   };
-  document.addEventListener("pointermove",gerak); document.addEventListener("pointerup",habis); document.addEventListener("pointercancel",habis);
+  document.addEventListener("pointermove",gerak,{passive:false}); document.addEventListener("pointerup",habis); document.addEventListener("pointercancel",habis);
 }
-async function simpanSusunanMedia(){
-  if(!isAdmin()||GAL_MENYIMPAN) return;
-  const senarai=[];
-  document.querySelectorAll(".media-grid[data-acara]").forEach(g=>{
-    g.querySelectorAll(".media-kad").forEach(k=>senarai.push({id:k.id.replace(/^md-/,""),acara:g.dataset.acara}));
+/* Kemas kini data tempatan serta-merta (optimistik) */
+function galGunaLokal(kumpulan){
+  const peta=new Map((DB.media||[]).map(m=>[String(m.ID),m]));
+  kumpulan.forEach(g=>g.ids.forEach((id,i)=>{ const m=peta.get(String(id)); if(m){ m.ACARA=g.acara; m.SUSUNAN=i+1; } }));
+  document.querySelectorAll("[data-bil-acara]").forEach(c=>{
+    const g=document.querySelector(`.media-grid[data-acara="${CSS.escape(c.dataset.bilAcara)}"]`);
+    if(g) c.textContent=g.querySelectorAll(":scope > .media-kad").length+" rekod";
   });
-  if(!senarai.length) return;
-  const lama=(DB.media||[]).map(m=>({...m})), urut={}; let ubah=false;
-  senarai.forEach(x=>{const m=(DB.media||[]).find(y=>String(y.ID)===x.id);if(!m)return;
-    urut[x.acara]=(urut[x.acara]||0)+1;
-    if(String(m.ACARA||"").toUpperCase()!==x.acara||Number(m.SUSUNAN)!==urut[x.acara]) ubah=true;
-    m.ACARA=x.acara;m.SUSUNAN=urut[x.acara];
-  });
-  if(!ubah) return;
-  GAL_MENYIMPAN=true;GAL_VERSI++;render();
+  simpanCacheDB(DB);
+}
+/* Beratur: setiap seretan disimpan mengikut turutan. Seretan baharu semasa
+   simpanan berjalan digabungkan dan dihantar sejurus selepas itu. */
+function galBeratur(kumpulan){
+  if(!isAdmin()) return;
+  GAL_VERSI++;
+  galGunaLokal(kumpulan);
+  GAL_TUNGGU=GAL_TUNGGU||{};
+  kumpulan.forEach(g=>{ GAL_TUNGGU[g.acara]=g.ids.slice(); });
+  galHantar();
+}
+let GAL_ADA_PINDAH=false;
+async function galHantar(){
+  if(GAL_MENYIMPAN||SRT||!GAL_TUNGGU) return;
+  const tunggu=GAL_TUNGGU; GAL_TUNGGU=null; GAL_MENYIMPAN=true;
+  const kumpulan=Object.keys(tunggu).map(acara=>({acara,ids:tunggu[acara]}));
+  if(kumpulan.length>1) GAL_ADA_PINDAH=true;
+  GAL_REV=Math.max(Date.now(),GAL_REV+1);
+  let gagal=false;
   try{
-    const r=await api("susunMedia",{senarai,...who()});
+    const r=await api("susunMedia",{kumpulan,rev:GAL_REV,peranti:GAL_PERANTI,...who()});
     if(!r||!r.ok) throw new Error("Susunan belum disahkan. Sila cuba semula.");
-    simpanCacheDB(DB);toast("Susunan galeri disimpan untuk semua pengguna");
-  }catch(e){DB.media=lama;simpanCacheDB(DB);toastRalat(e);}
-  finally{GAL_MENYIMPAN=false;GAL_VERSI++;render();jadualSegerak(600);}
+    /* Guna nilai sah daripada Sheet (kecuali acara yang ada seretan lebih baharu) */
+    if(Array.isArray(r.susunan)){
+      const peta=new Map((DB.media||[]).map(m=>[String(m.ID),m]));
+      r.susunan.forEach(x=>{ if(GAL_TUNGGU&&GAL_TUNGGU[x.acara]) return; const m=peta.get(String(x.id)); if(m){ m.ACARA=x.acara; m.SUSUNAN=x.susunan; } });
+    }
+    simpanCacheDB(DB);
+  }catch(e){ gagal=true; toastRalat(e); }
+  finally{
+    GAL_MENYIMPAN=false; GAL_VERSI++;
+    if(GAL_TUNGGU&&!gagal){ galHantar(); }
+    else if(gagal){
+      /* Pulihkan kepada susunan sebenar dalam Sheet */
+      GAL_TUNGGU=null; GAL_ADA_PINDAH=false;
+      if(!SRT){ try{ const d=await api("data",{paksa:1}); if(!galSibuk()){ DB=d; simpanCacheDB(d); } }catch(_){}
+        if(!galSibuk()&&VIEW==="galeri") render(); }
+    }else if(!SRT){
+      toast("✓ Susunan galeri disimpan untuk semua pengguna");
+      if(GAL_ADA_PINDAH&&VIEW==="galeri"&&bolehRenderSemula()){ const y=window.scrollY; render(); window.scrollTo(0,y); }
+      GAL_ADA_PINDAH=false;
+      jadualSegerak(2500);
+    }
+  }
 }
 
 /* ---------- GALERI LATIHAN (semua acara) ---------- */
@@ -4487,6 +4610,7 @@ function vGaleri(){
   if(isAdmin() && gAcara==="__ALL__" && gJenis==="__ALL__" && !q)
     (DB.acara||[]).forEach(a=>{ const k=String(a.ACARA||"").toUpperCase(); if(k&&!kump[k]) kump[k]=[]; });
   GAL_SUSUN=isAdmin() && gJenis==="__ALL__" && !q;
+  GAL_DOM_LAMA=false;
   const seksyen=Object.keys(kump).sort().map(k=>{
     const arr=kump[k];
     const kiraan=["GAMBAR","VIDEO","AUDIO","FAIL","CATATAN"]
@@ -4497,7 +4621,7 @@ function vGaleri(){
       <div class="card" style="padding:10px 14px;margin-bottom:8px">
         <div class="gal-hd">
           <div class="gal-tt">🏆 ${esc(k)}</div>
-          <span class="chip">${arr.length} rekod</span>${kiraan}
+          <span class="chip" data-bil-acara="${esc(k)}">${arr.length} rekod</span>${kiraan}
           ${bolehRekod(k)?`<button class="btn sm" style="margin-left:auto" onclick="formMedia('${esc(k)}')">📎 Tambah</button>`:""}
         </div>
       </div>

@@ -54,7 +54,7 @@ HEADERS[SHEET_KEJOHANAN] = ["ID", "ACARA", "KATEGORI", "NAMA KEJOHANAN", "TAHUN"
 HEADERS[SHEET_KAT_GUGUR] = ["ACARA", "KATEGORI", "STATUS", "OLEH", "TARIKH & MASA"];
 HEADERS[SHEET_BMI] = ["ID", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "TARIKH", "TINGGI (CM)", "BERAT (KG)", "BMI", "STATUS", "CATATAN", "DICATAT OLEH", "TARIKH & MASA"];
 HEADERS[SHEET_TETAPAN] = ["KUNCI", "NILAI", "DIKEMASKINI OLEH", "TARIKH & MASA"];
-HEADERS[SHEET_MEDIA] = ["ID", "TARIKH", "ACARA", "KATEGORI", "ATLET ID", "NAMA ATLET", "JENIS MEDIA", "TAJUK", "CATATAN", "NAMA FAIL", "MIME", "SAIZ (BYTES)", "PAUTAN", "URL PAPAR", "DRIVE ID", "DIMUAT NAIK OLEH", "EMEL", "TARIKH & MASA"];
+HEADERS[SHEET_MEDIA] = ["ID", "TARIKH", "ACARA", "KATEGORI", "ATLET ID", "NAMA ATLET", "JENIS MEDIA", "TAJUK", "CATATAN", "NAMA FAIL", "MIME", "SAIZ (BYTES)", "PAUTAN", "URL PAPAR", "DRIVE ID", "DIMUAT NAIK OLEH", "EMEL", "TARIKH & MASA", "SUSUNAN"];
 HEADERS[SHEET_FAIL] = ["ID", "ATLET ID", "NAMA FAIL", "JENIS", "SAIZ (BYTES)", "URL", "DRIVE ID", "DIMUAT NAIK OLEH", "TARIKH & MASA"];
 var HEADER_REKOD = ["ID", "TARIKH", "MASA", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "KEPUTUSAN", "NILAI", "CATATAN", "DICATAT OLEH", "TARIKH & MASA REKOD"];
 
@@ -659,28 +659,94 @@ function kemaskiniInfoMedia(p) {
   b.sheet.getRange(b.row, 9).setValue(hadSel(String(p.catatan || "")));
   return { ok: true, tajuk: tajuk };
 }
-/* p.senarai = [{ id, acara }] mengikut susunan baharu (boleh merentas acara) */
+/* Susun semula galeri (Master Admin & Sub Admin).
+   p.kumpulan = [{ acara, ids:[id,...] }] — susunan PENUH bagi acara yang terlibat sahaja.
+   Acara lain tidak disentuh, jadi paparan lama di peranti lain tidak boleh menimpanya.
+   p.rev + p.peranti: permintaan lama (cth. dihantar semula selepas tamat masa) diabaikan.
+   Format lama p.senarai = [{ id, acara }] masih diterima. */
+function masaMedia_(x) {
+  if (x instanceof Date) return x.getTime();
+  var t = Date.parse(String(x || "").replace(" ", "T"));
+  return isNaN(t) ? 0 : t;
+}
 function susunMedia(p) {
   if (!isAdmin(p && p.olehEmel)) throw new Error("Hanya Master Admin & Sub Admin boleh menyusun fail galeri.");
-  var sen = (p && p.senarai) || [];
-  if (!sen.length) return { ok: true };
+  var kumpulan = (p && p.kumpulan) || null;
+  if (!kumpulan) {
+    var g = {}, urutan = [];
+    ((p && p.senarai) || []).forEach(function (x) {
+      var a = String((x && x.acara) || "").toUpperCase().trim(); if (!a) return;
+      if (!g[a]) { g[a] = []; urutan.push(a); }
+      g[a].push(String(x.id));
+    });
+    kumpulan = urutan.map(function (a) { return { acara: a, ids: g[a] }; });
+  }
+  kumpulan = (kumpulan || []).filter(function (k) { return k && String(k.acara || "").trim() && k.ids && k.ids.length >= 0; })
+    .map(function (k) { return { acara: String(k.acara).toUpperCase().trim(), ids: (k.ids || []).map(String) }; });
+  if (!kumpulan.length) return { ok: true, susunan: [] };
+
+  var rev = Number(p.rev) || 0, peranti = String(p.peranti || "");
+  var props = null, revPeta = {};
+  if (rev && peranti) {
+    try { props = PropertiesService.getScriptProperties(); revPeta = JSON.parse(props.getProperty("GAL_REV") || "{}") || {}; } catch (e) { props = null; revPeta = {}; }
+    kumpulan = kumpulan.filter(function (k) { var o = revPeta[k.acara]; return !(o && o.p === peranti && Number(o.r) >= rev); });
+    if (!kumpulan.length) return { ok: true, lapuk: true, susunan: [] };
+  }
+
   var s = ss().getSheetByName(SHEET_MEDIA); if (!s) throw new Error("Tiada rekod media.");
   var kol = lajurSusunanMedia_(s);
-  var v = s.getDataRange().getValues(), baris = {};
-  for (var i = 1; i < v.length; i++) baris[String(v[i][0])] = i;
-  var urut = {};
-  sen.forEach(function (x) {
-    var r = baris[String(x.id)]; if (r == null) return;
-    var acara = String(x.acara || v[r][2] || "UMUM").toUpperCase();
-    urut[acara] = (urut[acara] || 0) + 1;
-    if (String(v[r][2]).toUpperCase() !== acara) {
-      s.getRange(r + 1, 3).setValue(acara);
-      try { if (v[r][14]) DriveApp.getFileById(String(v[r][14])).moveTo(folderMediaAcara(acara)); } catch (e) {}
-    }
-    s.getRange(r + 1, kol).setValue(urut[acara]);
+  var v = s.getDataRange().getValues();
+  if (v.length < 2) return { ok: true, susunan: [] };
+  var barisId = {};
+  for (var i = 1; i < v.length; i++) { var id0 = String(v[i][0] || ""); if (id0 && barisId[id0] == null) barisId[id0] = i; }
+
+  /* 1) Tetapkan acara baharu bagi fail yang dipindahkan */
+  var milik = {}, acaraBerubah = false, pindahDrive = [];
+  kumpulan.forEach(function (k) {
+    k.ids.forEach(function (id) {
+      var r = barisId[id]; if (r == null || milik[id]) return;
+      milik[id] = k.acara;
+      if (String(v[r][2] || "").toUpperCase().trim() !== k.acara) {
+        v[r][2] = k.acara; acaraBerubah = true;
+        if (v[r][14]) pindahDrive.push([String(v[r][14]), k.acara]);
+      }
+    });
   });
+
+  /* 2) Nombor semula setiap acara terlibat: ikut senarai, kemudian fail yang
+        tidak dilihat oleh peranti ini (cth. baru dimuat naik) mengikut susunan sedia ada */
+  var hasil = [];
+  kumpulan.forEach(function (k) {
+    var dalam = {}, n = 0;
+    k.ids.forEach(function (id) {
+      var r = barisId[id]; if (r == null || milik[id] !== k.acara || dalam[id]) return;
+      dalam[id] = 1; n++; v[r][kol - 1] = n; hasil.push({ id: id, acara: k.acara, susunan: n });
+    });
+    var lain = [];
+    for (var i = 1; i < v.length; i++) {
+      var id = String(v[i][0] || "");
+      if (!id || dalam[id] || barisId[id] !== i) continue;
+      if (String(v[i][2] || "").toUpperCase().trim() !== k.acara) continue;
+      lain.push(i);
+    }
+    lain.sort(function (x, y) {
+      var a = Number(v[x][kol - 1]) > 0 ? Number(v[x][kol - 1]) : 1e9, b = Number(v[y][kol - 1]) > 0 ? Number(v[y][kol - 1]) : 1e9;
+      return (a - b) || (masaMedia_(v[y][17]) - masaMedia_(v[x][17]));
+    });
+    lain.forEach(function (r) { n++; v[r][kol - 1] = n; hasil.push({ id: String(v[r][0]), acara: k.acara, susunan: n }); });
+  });
+
+  /* 3) Tulis sekali gus (satu lajur setiap kali) */
+  if (acaraBerubah) s.getRange(2, 3, v.length - 1, 1).setValues(v.slice(1).map(function (r) { return [r[2] == null ? "" : r[2]]; }));
+  s.getRange(2, kol, v.length - 1, 1).setValues(v.slice(1).map(function (r) { return [r[kol - 1] == null ? "" : r[kol - 1]]; }));
   SpreadsheetApp.flush();
-  return { ok: true };
+
+  if (props) {
+    kumpulan.forEach(function (k) { revPeta[k.acara] = { p: peranti, r: rev }; });
+    try { props.setProperty("GAL_REV", JSON.stringify(revPeta)); } catch (e) {}
+  }
+  pindahDrive.forEach(function (x) { try { DriveApp.getFileById(x[0]).moveTo(folderMediaAcara(x[1])); } catch (e) {} });
+  return { ok: true, susunan: hasil };
 }
 
 /* Padam media — jurulatih acara, Master Admin atau Sub Admin. */
