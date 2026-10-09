@@ -232,7 +232,11 @@ function semuaData(p) {
     penyertaan: baca(SHEET_PENYERTAAN),
     rekod: rekod,
     failAtlet: baca(SHEET_FAIL),
-    media: baca(SHEET_MEDIA).map(function (m) { m["TARIKH"] = tarikhStr(m["TARIKH"]); return m; }),
+    media: baca(SHEET_MEDIA).map(function (m) {
+      m["TARIKH"] = tarikhStr(m["TARIKH"]);
+      if (m["SUSUNAN"] == null) for (var k in m) if (String(k).toUpperCase().trim() === "SUSUNAN") { m["SUSUNAN"] = m[k]; break; }
+      return m;
+    }),
     kejohanan: baca(SHEET_KEJOHANAN),
     katGugur: baca(SHEET_KAT_GUGUR),
     tetapan: bacaTetapan(),
@@ -645,8 +649,19 @@ function kemaskiniNamaMedia(p) {
 /* ===== GALERI: edit tajuk/catatan & susun semula (Master Admin & Sub Admin SAHAJA) ===== */
 function lajurSusunanMedia_(s) {
   var lc = Math.max(1, s.getLastColumn());
-  var h = s.getRange(1, 1, 1, lc).getValues()[0];
-  for (var i = 0; i < h.length; i++) if (String(h[i]).toUpperCase().trim() === "SUSUNAN") return i + 1;
+  var h = s.getRange(1, 1, 1, lc).getValues()[0], kol = 0;
+  for (var i = 0; i < h.length; i++) {
+    if (String(h[i]).toUpperCase().trim() !== "SUSUNAN") continue;
+    if (!kol) {
+      kol = i + 1;
+      /* Pastikan tajuk tepat "SUSUNAN" (tanpa ruang) supaya bacaan data menjumpainya */
+      if (String(h[i]) !== "SUSUNAN") s.getRange(1, kol).setValue("SUSUNAN");
+    } else {
+      /* Lajur SUSUNAN berganda akan mengelirukan bacaan — namakan semula yang lebihan */
+      s.getRange(1, i + 1).setValue("SUSUNAN_LAMA_" + (i + 1));
+    }
+  }
+  if (kol) return kol;
   s.getRange(1, lc + 1).setValue("SUSUNAN").setFontWeight("bold");
   return lc + 1;
 }
@@ -745,8 +760,14 @@ function susunMedia(p) {
     kumpulan.forEach(function (k) { revPeta[k.acara] = { p: peranti, r: rev }; });
     try { props.setProperty("GAL_REV", JSON.stringify(revPeta)); } catch (e) {}
   }
+  /* Sahkan: baca semula lajur SUSUNAN dari Sheet dan pastikan nilai benar-benar disimpan */
+  var semak = s.getRange(2, kol, v.length - 1, 1).getValues();
+  hasil.forEach(function (x) {
+    var r = barisId[x.id];
+    if (Number(semak[r - 1][0]) !== Number(x.susunan)) throw new Error("Susunan gagal disimpan dalam Google Sheet. Sila cuba semula.");
+  });
   pindahDrive.forEach(function (x) { try { DriveApp.getFileById(x[0]).moveTo(folderMediaAcara(x[1])); } catch (e) {} });
-  return { ok: true, susunan: hasil };
+  return { ok: true, versiSusun: 2, disahkan: true, susunan: hasil };
 }
 
 /* Padam media — jurulatih acara, Master Admin atau Sub Admin. */
