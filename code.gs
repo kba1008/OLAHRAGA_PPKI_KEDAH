@@ -2015,7 +2015,7 @@ function bacaJadual_() {
   try { return baca(SHEET_JADUAL); } catch (e) { return []; }
 }
 function wajibMaster_(emel) {
-  if (!isMasterAdmin(emel)) throw new Error("Hanya MASTER ADMIN boleh memuat naik / memadam jadual perlawanan.");
+  if (!isAdmin(emel)) throw new Error("Hanya Master Admin / Sub Admin boleh memuat naik jadual perlawanan.");
 }
 function tokenNaikJadual(p) {
   wajibMaster_(p && p.olehEmel);
@@ -2069,7 +2069,7 @@ function daftarJadual(p) {
   return o;
 }
 function padamJadual(p) {
-  wajibMaster_(p && p.olehEmel);
+  if (!isAdmin(p && p.olehEmel)) throw new Error("Hanya Master Admin / Sub Admin boleh memadam jadual perlawanan.");
   var s = ss().getSheetByName(SHEET_JADUAL); if (!s) throw new Error("Tiada jadual.");
   var v = s.getDataRange().getValues();
   for (var i = 1; i < v.length; i++) {
