@@ -471,9 +471,20 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
 .gal-drop{grid-column:1/-1;border:2px dashed rgba(127,127,127,.4);border-radius:12px;padding:10px;text-align:center;opacity:.7}
 /* ---------- Jadual Perlawanan + Flipbook ---------- */
 .tile.t4{background:linear-gradient(155deg,#22c55e,#0ea5e9)}
-.jd-item{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.04);margin-bottom:10px;cursor:pointer}
-.jd-ic{font-size:30px;width:48px;text-align:center}
-.jd-nm{font-weight:800}
+.jd-list{display:grid;gap:12px;margin-bottom:14px}
+.jd-item{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:start;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card);cursor:pointer}
+.jd-ic{font-size:30px;width:40px;text-align:center;line-height:1.3}
+.jd-info{min-width:0}
+.jd-nm{font-weight:800;font-size:16px;line-height:1.45;overflow-wrap:anywhere}
+.jd-file{margin-top:5px;overflow-wrap:anywhere;line-height:1.5}
+.jd-date{margin-top:4px;line-height:1.5}
+.jd-note{margin-top:6px;overflow-wrap:anywhere;line-height:1.5}
+.jd-actions{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:12px;margin-top:2px}
+.jd-actions.jd-readonly{grid-template-columns:minmax(0,1fr) 44px}
+.jd-actions .btn{display:flex;align-items:center;justify-content:center;min-height:44px;width:44px;margin:0;padding:0;font-size:18px;text-decoration:none}
+.jd-actions .jd-open{width:auto;justify-content:flex-start;gap:7px;padding:0 12px;font-size:13px}
+.jd-actions .btn:focus-visible{outline:2px solid var(--p2);outline-offset:3px}
+@media(max-width:480px){.jd-item{padding:14px;gap:10px;grid-template-columns:34px minmax(0,1fr)}.jd-ic{width:34px;font-size:27px}.jd-nm{font-size:16px}}
 .fb-wrap{position:fixed;inset:0;z-index:9999;background:radial-gradient(900px 600px at 50% 20%,#1b2350,#050817);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}
 .fb-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;padding:12px 14px}
 .fb-top .t{flex:1;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -501,7 +512,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxHgrypz9phUbVOnEAltJTYWLncjDMGRWUbkYU-_YbVq3sXbNBU65AWyBTYMWHEr-tx/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -4702,15 +4713,18 @@ function vJadual(){
   const L=(DB.jadual||[]).slice().sort((a,b)=>String(b["TARIKH & MASA"]||"").localeCompare(String(a["TARIKH & MASA"]||"")));
   app().innerHTML=`${topbar("📅 Jadual Perlawanan")}
   ${isAdmin()?`<div class="card"><button class="btn" onclick="formJadual()">⬆ Muat Naik Jadual</button><div class="small" style="margin-top:6px">Semua jenis fail diterima. PDF & Word boleh diselak seperti buku.</div></div>`:""}
-  <div class="card">${L.length?L.map(j=>`<div class="jd-item" onclick="bukaJadual('${esc(j.ID)}')">
-     <div class="jd-ic">${jdIkon(j)}</div>
-     <div style="flex:1;min-width:0"><div class="jd-nm">${esc(j.TAJUK||j["NAMA FAIL"])}</div>
-     <div class="small">${esc(j["NAMA FAIL"]||"")} • ${esc(String(j["TARIKH & MASA"]||"").slice(0,16))}</div>
-     ${j.CATATAN?`<div class="small">${esc(j.CATATAN)}</div>`:""}</div>
-     ${j["PDF ID"]?`<span class="chip">📖 Buku</span>`:""}
-     <a class="btn sm ghost" style="width:auto;margin:0" title="Muat turun" href="${esc(jdMuatTurun(j))}" target="_blank" onclick="event.stopPropagation()">⬇</a>
-     ${isAdmin()?`<button class="btn sm ghost" style="width:auto;margin:0" title="Padam" onclick="event.stopPropagation();padamJadualUI('${esc(j.ID)}')">🗑</button>`:""}
-   </div>`).join(""):`<div class="small">Belum ada jadual perlawanan dimuat naik.</div>`}</div>`;
+  <div class="jd-list">${L.length?L.map(j=>`<article class="jd-item">
+     <div class="jd-ic" aria-hidden="true">${jdIkon(j)}</div>
+     <div class="jd-info"><div class="jd-nm">${esc(j.TAJUK||j["NAMA FAIL"])}</div>
+     <div class="small jd-file">${esc(j["NAMA FAIL"]||"")}</div>
+     <div class="small jd-date">${esc(String(j["TARIKH & MASA"]||"").slice(0,16))}</div>
+     ${j.CATATAN?`<div class="small jd-note">${esc(j.CATATAN)}</div>`:""}</div>
+     <div class="jd-actions ${isAdmin()?"":"jd-readonly"}">
+     <button class="btn sm ghost jd-open" onclick="bukaJadual('${esc(j.ID)}')">${j["PDF ID"]?"📖 Buku":"📄 Buka fail"}</button>
+     <a class="btn sm ghost" title="Muat turun" aria-label="Muat turun ${esc(j.TAJUK||j["NAMA FAIL"])}" href="${esc(jdMuatTurun(j))}" target="_blank" rel="noopener">⬇</a>
+     ${isAdmin()?`<button class="btn sm ghost" title="Padam" aria-label="Padam ${esc(j.TAJUK||j["NAMA FAIL"])}" onclick="padamJadualUI('${esc(j.ID)}')">🗑</button>`:""}
+     </div>
+   </article>`).join(""):`<div class="card small">Belum ada jadual perlawanan dimuat naik.</div>`}</div>`;
 }
 function formJadual(){
   if(!isAdmin()) return toast("Hanya Master Admin / Sub Admin boleh memuat naik jadual.");
