@@ -203,7 +203,7 @@ function daftarGuru(p) {
 function login(p) {
   var emel = String(p.emel || "").toLowerCase().trim();
   if (emel === ADMIN_EMEL && String(p.kataLaluan) === ADMIN_KATA_LALUAN) {
-    return { id: "ADMIN", nama: "Master Admin", emel: ADMIN_EMEL, jawatan: "Master Admin", sekolah: "-", telefon: "-", peranan: "ADMIN", temaToken: ciptaTokenTema_() };
+    return { id: "ADMIN", nama: "Master Admin", emel: ADMIN_EMEL, jawatan: "Master Admin", sekolah: "-", telefon: "-", peranan: "ADMIN" };
   }
   var g = cariGuru(emel);
   if (!g || String(g["KATA LALUAN"]) !== String(p.kataLaluan)) throw new Error("Emel atau kata laluan salah.");
@@ -1048,20 +1048,8 @@ function buangJurulatih(p) {
 function normEmel(x) { return String(x || "").toLowerCase().trim(); }
 
 /* ---------------- Tetapan Sistem (Master Admin) ---------------- */
-var TETAPAN_LALAI = { MOD_REKOD: "JURULATIH", TEMA_DESIGN: "CERIA" }; /* JURULATIH = hanya jurulatih acara, SEMUA = semua pengguna berdaftar */
+var TETAPAN_LALAI = { MOD_REKOD: "JURULATIH" }; /* JURULATIH = hanya jurulatih acara, SEMUA = semua pengguna berdaftar */
 
-var TEMA_SAH = ["CERIA", "SEGAR", "SURIA", "POP", "SAMUDERA"];
-/* Token hanya dikeluarkan selepas kata laluan Master Admin disahkan oleh login(). */
-function ciptaTokenTema_() {
-  var token = Utilities.getUuid() + Utilities.getUuid();
-  CacheService.getScriptCache().put("AT_TEMA_AUTH_" + token, "MASTER", 21600);
-  return token;
-}
-function sahkanMasterTema_(p) {
-  var token = String(p.temaToken || "");
-  if (!isMasterAdmin(p.olehEmel) || !/^[a-f0-9-]{72}$/i.test(token) || CacheService.getScriptCache().get("AT_TEMA_AUTH_" + token) !== "MASTER")
-    throw new Error("Sesi Master Admin tamat atau tidak sah. Sila log masuk semula.");
-}
 function bacaTetapan() {
   var out = {};
   for (var k in TETAPAN_LALAI) out[k] = TETAPAN_LALAI[k];
@@ -1079,10 +1067,6 @@ function simpanTetapan(p) {
   var kunci = String(p.kunci || "").toUpperCase().trim();
   var nilai = String(p.nilai || "").toUpperCase().trim();
   if (!kunci) throw new Error("Kunci tetapan tidak dinyatakan.");
-  if (kunci === "TEMA_DESIGN") {
-    sahkanMasterTema_(p);
-    if (TEMA_SAH.indexOf(nilai) === -1) throw new Error("Pilih salah satu daripada lima tema yang sah.");
-  }
   if (kunci === "MOD_REKOD" && nilai !== "JURULATIH" && nilai !== "SEMUA") throw new Error("Nilai MOD_REKOD mesti JURULATIH atau SEMUA.");
   var s = dapatSheet(SHEET_TETAPAN, HEADERS[SHEET_TETAPAN], "#0f766e");
   var v = s.getDataRange().getValues();
