@@ -452,6 +452,11 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
   .cmb-act .cmb-btn{min-height:40px;padding:6px 4px;font-size:11px}
   .cmb-act .cmb-btn.pri{min-height:46px;font-size:14px}
 }
+.media-kad{position:relative}
+.mk-seret{position:absolute;top:6px;left:6px;z-index:3;width:34px;height:34px;border-radius:10px;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:18px;cursor:grab;touch-action:none}
+.media-kad.dragging{opacity:.5;outline:2px dashed currentColor}
+body.seret-on{user-select:none;cursor:grabbing}
+.gal-drop{grid-column:1/-1;border:2px dashed rgba(127,127,127,.4);border-radius:12px;padding:10px;text-align:center;opacity:.7}
 </style>
 </head>
 <body>
@@ -466,7 +471,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbznf39LDwdaXfQJMpXxzI6jH-zmJtU_tZPJrRo4XFdfJ-EYrY2WvZ26Z6EUDeVS0fPr/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -3959,7 +3964,9 @@ function kadMedia(m,bolehPadam){
   }else{
     atas=`<div class="mk-catatan"><span class="mk-dok-teks">${esc(m.CATATAN||tajuk)}</span></div>`;
   }
+  const seret=GAL_SUSUN&&isAdmin();
   return `<div class="media-kad" id="md-${esc(m.ID)}">
+    ${seret?`<button class="mk-seret" onpointerdown="mulaSeretMedia(event,this)" title="Seret untuk susun / pindah acara" aria-label="Seret untuk susun">⠿</button>`:""}
     ${atas}
     <div class="mk-b">
       <div class="nm" style="font-size:13px">${esc(tajuk)}</div>
@@ -3974,6 +3981,7 @@ function kadMedia(m,bolehPadam){
       </div>
       <div class="mk-aksi">
         ${(driveId||jns==="CATATAN")?`<button class="btn sm ghost" onclick="event.stopPropagation();bukaPemapar('${esc(m.ID)}',this)" title="Buka dalam app" aria-label="Buka dalam app">↗ <span class="mk-label">Buka</span></button>`:""}
+        ${isAdmin()?`<button class="btn sm ghost" onclick="event.stopPropagation();formInfoMedia('${esc(m.ID)}')" title="Edit tajuk & catatan" aria-label="Edit tajuk dan catatan">📝 <span class="mk-label">Tajuk</span></button>`:""}
         ${bolehEdit?`<button class="btn sm ghost" onclick="event.stopPropagation();menuEditMedia('${esc(m.ID)}',this)" title="Pilihan edit" aria-label="Buka pilihan edit">✎ <span class="mk-label">Edit</span></button>`:""}
       </div>
     </div>
@@ -4368,14 +4376,70 @@ async function simpanGantiMedia(id){
   }catch(e){ toastRalat(e); if(btn){btn.disabled=false;btn.textContent="Ganti Fail";} }
 }
 
+/* ---------- GALERI: edit tajuk/catatan & seret susun (Master Admin & Sub Admin) ---------- */
+let GAL_SUSUN=false, SRT=null;
+function formInfoMedia(id){
+  if(!isAdmin()) return toast("Hanya Master Admin & Sub Admin boleh mengedit tajuk dan catatan.");
+  const m=(DB.media||[]).find(x=>String(x.ID)===String(id)); if(!m) return toast("Media tidak dijumpai");
+  tutup();
+  overlay(`<div class="big">📝 Edit Tajuk &amp; Catatan</div>
+    <label>Tajuk</label><input id="miTajuk" maxlength="120" value="${esc(m.TAJUK||"")}"/>
+    <label>Catatan</label><textarea id="miCatatan" rows="5">${esc(m.CATATAN||"")}</textarea>
+    <button class="btn" id="miSimpan" onclick="simpanInfoMedia('${esc(id)}')">Simpan</button>
+    <button class="btn ghost" onclick="tutup()">Batal</button>`);
+}
+async function simpanInfoMedia(id){
+  const tajuk=($("#miTajuk")||{}).value||"", catatan=($("#miCatatan")||{}).value||"";
+  const btn=$("#miSimpan"); if(btn){btn.disabled=true;btn.textContent="Menyimpan…";}
+  try{
+    await api("kemaskiniInfoMedia",{id,tajuk,catatan,...who()});
+    const m=(DB.media||[]).find(x=>String(x.ID)===String(id)); if(m){m.TAJUK=tajuk.trim();m.CATATAN=catatan;}
+    simpanCacheDB(DB); tutup(); render(); toast("Tajuk & catatan dikemas kini");
+  }catch(e){toastRalat(e);if(btn){btn.disabled=false;btn.textContent="Simpan";}}
+}
+function mulaSeretMedia(e,h){
+  if(!isAdmin()) return;
+  e.preventDefault(); e.stopPropagation();
+  const kad=h.closest(".media-kad"); if(!kad) return;
+  SRT={kad}; kad.classList.add("dragging"); document.body.classList.add("seret-on");
+  const gerak=ev=>{
+    const el=document.elementFromPoint(ev.clientX,ev.clientY); if(!el) return;
+    const sasar=el.closest(".media-kad"), grid=el.closest(".media-grid");
+    if(sasar&&sasar!==kad){ const r=sasar.getBoundingClientRect();
+      const selepas=(ev.clientX-r.left)>r.width/2||(ev.clientY-r.top)>r.height*0.75;
+      sasar.parentNode.insertBefore(kad, selepas?sasar.nextSibling:sasar); }
+    else if(grid&&!sasar){ const d=grid.querySelector(".gal-drop"); grid.insertBefore(kad,d||null); }
+    if(ev.clientY<60) window.scrollBy(0,-14); else if(ev.clientY>innerHeight-60) window.scrollBy(0,14);
+  };
+  const habis=()=>{ document.removeEventListener("pointermove",gerak); document.removeEventListener("pointerup",habis); document.removeEventListener("pointercancel",habis);
+    kad.classList.remove("dragging"); document.body.classList.remove("seret-on"); SRT=null; simpanSusunanMedia(); };
+  document.addEventListener("pointermove",gerak); document.addEventListener("pointerup",habis); document.addEventListener("pointercancel",habis);
+}
+async function simpanSusunanMedia(){
+  const senarai=[];
+  document.querySelectorAll(".media-grid[data-acara]").forEach(g=>{ const ac=g.dataset.acara;
+    g.querySelectorAll(".media-kad").forEach(k=>senarai.push({id:k.id.replace(/^md-/,""),acara:ac})); });
+  if(!senarai.length) return;
+  const urut={}; let ubah=false;
+  senarai.forEach(x=>{ const m=(DB.media||[]).find(y=>String(y.ID)===x.id); if(!m) return;
+    urut[x.acara]=(urut[x.acara]||0)+1;
+    if(String(m.ACARA||"").toUpperCase()!==x.acara||Number(m.SUSUNAN)!==urut[x.acara]) ubah=true;
+    m.ACARA=x.acara; m.SUSUNAN=urut[x.acara]; });
+  if(!ubah) return;
+  simpanCacheDB(DB); render();
+  try{ await api("susunMedia",{senarai,...who()}); toast("Susunan galeri disimpan untuk semua pengguna"); }
+  catch(e){ toastRalat(e); }
+}
+
 /* ---------- GALERI LATIHAN (semua acara) ---------- */
 let gAcara="__ALL__", gJenis="__ALL__", gCari="";
 const G_JENIS=[["__ALL__","🗂 Semua"],["GAMBAR","🖼 Gambar"],["VIDEO","🎬 Video"],["AUDIO","🎵 Audio"],["FAIL","📄 Fail"],["CATATAN","📝 Catatan"]];
 
 function vGaleri(){
   if(CTX && CTX.acara){ gAcara=String(CTX.acara); CTX={}; }
+  const sn=m=>{const n=Number(m.SUSUNAN); return n>0?n:1e9;};
   const semua=(DB.media||[]).slice()
-    .sort((a,b)=>String(b["TARIKH & MASA"]||"").localeCompare(String(a["TARIKH & MASA"]||"")));
+    .sort((a,b)=>(sn(a)-sn(b))||String(b["TARIKH & MASA"]||"").localeCompare(String(a["TARIKH & MASA"]||"")));
   const q=gCari.trim().toLowerCase();
   const tapis=semua.filter(m=>{
     if(gAcara!=="__ALL__" && String(m.ACARA||"").toUpperCase()!==gAcara.toUpperCase()) return false;
@@ -4393,6 +4457,10 @@ function vGaleri(){
 
   const bil=j=>semua.filter(m=>j==="__ALL__"||String(m["JENIS MEDIA"]||"FAIL").toUpperCase()===j).length;
 
+  /* Admin: paparkan semua acara (termasuk kosong) supaya fail boleh diseret ke acara lain */
+  if(isAdmin() && gAcara==="__ALL__" && gJenis==="__ALL__" && !q)
+    (DB.acara||[]).forEach(a=>{ const k=String(a.ACARA||"").toUpperCase(); if(k&&!kump[k]) kump[k]=[]; });
+  GAL_SUSUN=isAdmin() && gJenis==="__ALL__" && !q;
   const seksyen=Object.keys(kump).sort().map(k=>{
     const arr=kump[k];
     const kiraan=["GAMBAR","VIDEO","AUDIO","FAIL","CATATAN"]
@@ -4407,7 +4475,7 @@ function vGaleri(){
           ${bolehRekod(k)?`<button class="btn sm" style="margin-left:auto" onclick="formMedia('${esc(k)}')">📎 Tambah</button>`:""}
         </div>
       </div>
-      <div class="media-grid">${arr.map(m=>kadMedia(m,bolehRekod(k))).join("")}</div>
+      <div class="media-grid" data-acara="${esc(k)}">${arr.map(m=>kadMedia(m,bolehRekod(k))).join("")}${GAL_SUSUN?`<div class="gal-drop small">⬇ Seret fail ke sini</div>`:""}</div>
     </div>`;
   }).join("");
 
@@ -4431,6 +4499,7 @@ function vGaleri(){
       ${G_JENIS.map(([j,l])=>`<button class="${gJenis===j?"on":""}" onclick="gJenis='${j}';render()">${l}</button>`).join("")}
     </div>
   </div>
+  ${GAL_SUSUN?`<div class="card small">⠿ Master Admin &amp; Sub Admin: tekan &amp; seret ikon ⠿ pada kad untuk menyusun semula fail atau memindahkannya ke acara lain. Perubahan dilihat oleh semua pengguna.</div>`:""}
   ${seksyen||`<div class="card gal-kosong">Tiada rekod galeri ditemui untuk tapisan ini.</div>`}`;
   const inp=document.getElementById("galCari");
   if(inp && gCari){ inp.focus(); inp.setSelectionRange(inp.value.length,inp.value.length); }

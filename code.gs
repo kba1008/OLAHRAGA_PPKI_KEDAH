@@ -642,6 +642,46 @@ function kemaskiniNamaMedia(p) {
   return { ok: true, nama: nama, namaFail: namaFail };
 }
 
+/* ===== GALERI: edit tajuk/catatan & susun semula (Master Admin & Sub Admin SAHAJA) ===== */
+function lajurSusunanMedia_(s) {
+  var lc = Math.max(1, s.getLastColumn());
+  var h = s.getRange(1, 1, 1, lc).getValues()[0];
+  for (var i = 0; i < h.length; i++) if (String(h[i]).toUpperCase().trim() === "SUSUNAN") return i + 1;
+  s.getRange(1, lc + 1).setValue("SUSUNAN").setFontWeight("bold");
+  return lc + 1;
+}
+function kemaskiniInfoMedia(p) {
+  if (!p || !p.id) throw new Error("ID media diperlukan.");
+  if (!isAdmin(p.olehEmel)) throw new Error("Hanya Master Admin & Sub Admin boleh mengedit tajuk dan catatan.");
+  var b = cariBarisMedia(p.id);
+  var tajuk = String(p.tajuk || "").trim().slice(0, 120);
+  b.sheet.getRange(b.row, 8).setValue(tajuk);
+  b.sheet.getRange(b.row, 9).setValue(hadSel(String(p.catatan || "")));
+  return { ok: true, tajuk: tajuk };
+}
+/* p.senarai = [{ id, acara }] mengikut susunan baharu (boleh merentas acara) */
+function susunMedia(p) {
+  if (!isAdmin(p && p.olehEmel)) throw new Error("Hanya Master Admin & Sub Admin boleh menyusun fail galeri.");
+  var sen = (p && p.senarai) || [];
+  if (!sen.length) return { ok: true };
+  var s = ss().getSheetByName(SHEET_MEDIA); if (!s) throw new Error("Tiada rekod media.");
+  var kol = lajurSusunanMedia_(s);
+  var v = s.getDataRange().getValues(), baris = {};
+  for (var i = 1; i < v.length; i++) baris[String(v[i][0])] = i;
+  var urut = {};
+  sen.forEach(function (x) {
+    var r = baris[String(x.id)]; if (r == null) return;
+    var acara = String(x.acara || v[r][2] || "UMUM").toUpperCase();
+    urut[acara] = (urut[acara] || 0) + 1;
+    if (String(v[r][2]).toUpperCase() !== acara) {
+      s.getRange(r + 1, 3).setValue(acara);
+      try { if (v[r][14]) DriveApp.getFileById(String(v[r][14])).moveTo(folderMediaAcara(acara)); } catch (e) {}
+    }
+    s.getRange(r + 1, kol).setValue(urut[acara]);
+  });
+  return { ok: true };
+}
+
 /* Padam media — jurulatih acara, Master Admin atau Sub Admin. */
 function padamMedia(p) {
   if (!p || !p.id) throw new Error("ID media diperlukan.");
@@ -1529,6 +1569,8 @@ var TINDAKAN = {
   tambahCatatanDok: tambahCatatanDok,
   teksCatatan: teksCatatan,
   kemaskiniNamaMedia: kemaskiniNamaMedia,
+  kemaskiniInfoMedia: kemaskiniInfoMedia,
+  susunMedia: susunMedia,
   padamMedia: padamMedia,
   gantiFailMedia: gantiFailMedia,
   tambahAtlet: tambahAtlet,
