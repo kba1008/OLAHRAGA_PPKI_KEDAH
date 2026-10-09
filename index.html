@@ -9,7 +9,7 @@
 <link rel="manifest" href="./manifest.json" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=Noto+Emoji:wght@400;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Bricolage+Grotesque:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=Noto+Emoji:wght@400;700&display=swap" rel="stylesheet" />
 <meta property="og:title" content="AtletTraning — Kehadiran & Rekod Latihan Atlet" />
 <meta property="og:description" content="Sistem kehadiran atlet dan rekod prestasi latihan pusat." />
 <meta property="og:type" content="website" />
@@ -575,6 +575,32 @@ input[type=checkbox],input[type=radio]{box-shadow:none}
 @media(prefers-reduced-motion:reduce){.btn:hover,.btn:active,.back:hover,.back:active,.mx-btn:hover,.mx-btn:active{transform:none}}
 @media print{body{background:var(--card)!important}.card::before,.kat3d::before,.tile::before{display:none}.card,.item,.kat3d,.tile,.mx-wrap,.stat,.kpi{box-shadow:none!important}}
 
+
+/* Lima tema kontra — latar putih kekal untuk semua pengguna. */
+:root,html[data-tema="CERIA"]{--p1:oklch(.48 .19 260);--p2:oklch(.49 .18 20);--p3:oklch(.43 .11 175);--font-heading:"Plus Jakarta Sans","Manrope",sans-serif}
+html[data-tema="SEGAR"]{--p1:oklch(.42 .12 170);--p2:oklch(.48 .19 335);--p3:oklch(.49 .15 55);--font-heading:"Outfit","Manrope",sans-serif}
+html[data-tema="SURIA"]{--p1:oklch(.49 .17 45);--p2:oklch(.44 .16 265);--p3:oklch(.43 .11 190);--font-heading:"Bricolage Grotesque","Manrope",sans-serif}
+html[data-tema="POP"]{--p1:oklch(.47 .20 335);--p2:oklch(.42 .12 180);--p3:oklch(.48 .18 275);--font-heading:"Outfit","Manrope",sans-serif}
+html[data-tema="SAMUDERA"]{--p1:oklch(.43 .12 225);--p2:oklch(.48 .18 25);--p3:oklch(.46 .15 300);--font-heading:"Bricolage Grotesque","Manrope",sans-serif}
+:root{--bg:oklch(1 0 0);--bg2:oklch(.98 .003 245);--txt:oklch(.28 .025 260);--mut:oklch(.46 .018 260);--soft:color-mix(in oklch,var(--p1) 8%,var(--card));--line:color-mix(in oklch,var(--p1) 15%,var(--card));--edge:color-mix(in oklch,var(--p1) 24%,var(--card));--ring:color-mix(in oklch,var(--p1) 22%,transparent);--button-edge:var(--p1);--grad:linear-gradient(125deg,var(--p1),var(--p2));--sh:0 2px 8px var(--shade);--sh-raised:0 5px 14px var(--shade)}
+body{background:var(--bg);background-attachment:initial}
+h1,h2,h3,.big,.secttl{color:var(--p1)}
+.hd{border-bottom:2px solid var(--line)}
+.card,.item,.sheet,.mx-wrap,.fileit,.teamRow,.media-kad{background:var(--card)}
+.card::before,.tile::before,.kat3d::before{display:none}
+.tile{--tile-accent:var(--p1);background:color-mix(in oklch,var(--tile-accent) 8%,var(--card));border:1px solid color-mix(in oklch,var(--tile-accent) 24%,var(--card));border-top:4px solid var(--tile-accent);transform:none;padding:28px 16px}
+.tile.t2{--tile-accent:var(--p2)}.tile.t3{--tile-accent:var(--p3)}
+.tile .tt,.tile .ic{color:var(--tile-accent)}.tile .ic{font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;filter:none}
+.tile .tt{font-size:17px}.tile .ts{color:var(--mut)}
+.stat{background:var(--soft);box-shadow:none;border-bottom:3px solid var(--p1)}
+.stat:nth-child(2){border-color:var(--p2);background:color-mix(in oklch,var(--p2) 7%,var(--card))}.stat:nth-child(2) b{color:var(--p2);-webkit-text-fill-color:var(--p2)}
+.stat:nth-child(3){border-color:var(--p3);background:color-mix(in oklch,var(--p3) 7%,var(--card))}.stat:nth-child(3) b{color:var(--p3);-webkit-text-fill-color:var(--p3)}
+.btn.ghost,.back{color:var(--p1);background:var(--soft);box-shadow:none}.nav{background:var(--card)}.nav button.on{color:var(--p1);background:var(--soft);box-shadow:0 -3px 0 var(--p1) inset}
+.theme-settings{margin:26px 0 20px;padding:20px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.theme-settings h2{font-size:18px;margin:0}.theme-controls{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:12px;align-items:end;max-width:620px}.theme-controls .btn{margin:0}.theme-colors{display:flex;gap:7px;margin-top:12px}.theme-colors i{width:24px;height:24px;border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1px var(--line)}.theme-colors i:nth-child(1){background:var(--p1)}.theme-colors i:nth-child(2){background:var(--p2)}.theme-colors i:nth-child(3){background:var(--p3)}
+#syncb{background:var(--card)!important;color:var(--p1)!important;border-color:var(--line)!important;box-shadow:var(--sh)!important;text-shadow:none!important;letter-spacing:0!important;font-family:var(--font-body)!important}
+@media(max-width:640px){.theme-controls{grid-template-columns:1fr}.tile .tt{font-size:14px}.theme-settings{margin:20px 0;padding:16px 0}}
+
 </style>
 </head>
 <body>
@@ -588,7 +614,7 @@ input[type=checkbox],input[type=radio]{box-shadow:none}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxDj_r8eJ4-iy5NKW1gv0smNUZLwQbAJjEroxOi9Og-2I-tmEAGSRka3zwpdEXOvTka/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -599,6 +625,20 @@ let PENDING=0; /* kiraan penulisan latar belakang */
 
 const $=s=>document.querySelector(s), app=()=>$("#app");
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const TEMA_DESIGN=[{id:"CERIA",nama:"Ceria — Biru · Merah koral · Hijau"},{id:"SEGAR",nama:"Segar — Hijau · Magenta · Jingga"},{id:"SURIA",nama:"Suria — Jingga · Biru · Teal"},{id:"POP",nama:"Pop — Magenta · Teal · Violet"},{id:"SAMUDERA",nama:"Samudera — Teal · Koral · Ungu"}];
+function temaSah(id){return TEMA_DESIGN.some(t=>t.id===id)?id:"CERIA";}
+function gunaTema(){document.documentElement.dataset.tema=temaSah(DB&&DB.tetapan&&DB.tetapan.TEMA_DESIGN);}
+function tetapanTemaUI(){return isMaster()?`<section class="theme-settings"><h2>Tema aplikasi</h2><div class="theme-controls"><div><label for="temaDesign">Pilihan reka bentuk</label><select id="temaDesign">${TEMA_DESIGN.map(t=>`<option value="${t.id}" ${temaSah(DB.tetapan&&DB.tetapan.TEMA_DESIGN)===t.id?"selected":""}>${esc(t.nama)}</option>`).join("")}</select></div><button id="simpanTemaBtn" class="btn sm" onclick="simpanTemaDesign()">Simpan tema</button></div><div class="theme-colors" aria-hidden="true"><i></i><i></i><i></i></div></section>`:"";}
+async function simpanTemaDesign(){
+ if(!isMaster()) return;
+ if(!U.temaToken){toast("Sila log masuk semula sebagai Master Admin sebelum menukar tema.");go("login");return;}
+ const el=$("#temaDesign"),btn=$("#simpanTemaBtn");if(!el||!btn)return;
+ const nilai=el.value;btn.disabled=true;btn.textContent="Menyimpan…";
+ try{const r=await apiPost("simpanTetapan",{kunci:"TEMA_DESIGN",nilai,temaToken:U.temaToken,...who()});if(r.tetapan)DB.tetapan=r.tetapan;gunaTema();simpanCacheDB(DB);render();toast("Tema disimpan untuk semua pengguna.");}
+ catch(e){toastRalat(e);btn.disabled=false;btn.textContent="Simpan tema";}
+}
+
 /* ---------- Zon waktu Malaysia (Asia/Kuala_Lumpur, UTC+8) ---------- */
 const TZ_MY="Asia/Kuala_Lumpur";
 function bahagianMY(d){
@@ -1038,7 +1078,8 @@ function tambahRekodLokal(acara,rekod){
 }
 
 /* ---------- Muat data (cache tempatan + segerak senyap) ---------- */
-const LS_DB="at_db_cache_v2";
+const LS_DB="at_db_cache_v3";
+try{ localStorage.removeItem("at_db_cache_v2"); }catch(e){}
 function simpanCacheDB(d){ try{ localStorage.setItem(LS_DB,JSON.stringify({t:Date.now(),d})); }catch(e){} }
 function bacaCacheDB(){ try{ const o=JSON.parse(localStorage.getItem(LS_DB)||"null"); return (o&&o.d)?o:null; }catch(e){ return null; } }
 
@@ -1063,8 +1104,8 @@ async function segerakSenyap(){
   if(SEGERAK||!API) return;
   SEGERAK=true; lencanaSegerak(true);
   try{
-    const d=await apiJsonp("data",{paksa:1},45000);
-    DB=d; simpanCacheDB(d);
+    const d=await api("data",{paksa:1}); /* api() ada sandaran fetch GET/POST — perlu untuk Firefox */
+    DB=d; gunaTema(); simpanCacheDB(d);
     if(bolehRenderSemula()) render();  /* jangan ganggu bila borang/input sedang digunakan */
   }catch(e){ /* senyap sahaja */ }
   finally{ SEGERAK=false; lencanaSegerak(false); }
@@ -1114,6 +1155,7 @@ window.addEventListener("popstate",()=>{ goBack(); try{ history.pushState({view:
 /* ============================ SKRIN ============================ */
 const PAPARAN_AWAM={dashboard:1,profil:1,matriks:1,acara:1,acaraDetail:1,galeri:1};
 function render(){
+  gunaTema();
   $("#nav").classList.add("hide");
   if(!API) return skrinApi();
   if(!DB) return muat();                      /* dashboard awam — tiada login diperlukan */
@@ -1123,12 +1165,15 @@ function render(){
     $("#nav").classList.remove("hide");
     $("#app").classList.toggle("full",VIEW==="matriks");
     navBarAwam();
-    return ({dashboard:vDashboard,matriks:vMatriks,profil:vProfil,acara:vAcara,acaraDetail:vAcaraDetail,galeri:vGaleri}[VIEW]||vDashboard)();
+    try{ return ({dashboard:vDashboard,matriks:vMatriks,profil:vProfil,acara:vAcara,acaraDetail:vAcaraDetail,galeri:vGaleri}[VIEW]||vDashboard)(); }
+    catch(e){ console.error(e); app().innerHTML=kadRalat(e,"render("+VIEW+")"); return; }
   }
   $("#nav").classList.remove("hide");
   $("#app").classList.toggle("full",VIEW==="matriks");
   navBar();
+  try{
   ({home:vHome,kehadiran:vKehadiran,acara:vAcara,acaraDetail:vAcaraDetail,dashboard:vDashboard,matriks:vMatriks,profil:vProfil,sejarah:vSejarah,diagnostik:vDiagnostik,admin:vAdmin,saya:vSaya,galeri:vGaleri}[VIEW]||vHome)();
+  }catch(e){ console.error(e); app().innerHTML=kadRalat(e,"render("+VIEW+")"); }
 }
 function navBarAwam(){
   const t=[["dashboard","📊","Dashboard"],["acara","🏆","Rekod"],["matriks","📋","Matriks"],["login","🔐","Log Masuk"]];
@@ -1222,8 +1267,9 @@ function vHome(){
     <div class="stat"><b>${hadir}</b><span class="small">Hadir Hari Ini</span></div>
     <div class="stat"><b>${jumRekod}</b><span class="small">Rekod Latihan</span></div>
   </div></div>
+  ${tetapanTemaUI()}
   <div class="grid3">
-    <div class="tile t1" onclick="go('kehadiran')"><div class="ic">✅</div><div class="tt">KEHADIRAN</div><div class="ts">Tanda kehadiran atlet</div></div>
+    <div class="tile t1" onclick="go('kehadiran')"><div class="ic"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m7 12 3 3 7-7"/></svg></div><div class="tt">KEHADIRAN</div><div class="ts">Tanda kehadiran atlet</div></div>
     <div class="tile t2" onclick="go('acara')"><div class="ic">🏆</div><div class="tt">REKOD LATIHAN</div><div class="ts">Ikut acara & atlet</div></div>
     <div class="tile t3" onclick="go('dashboard')"><div class="ic">📊</div><div class="tt">DASHBOARD</div><div class="ts">Ranking pencapaian</div></div>
     <div class="tile t3" onclick="go('galeri')"><div class="ic">🖼</div><div class="tt">GALERI</div><div class="ts">Fail, nota, gambar & video</div></div>
