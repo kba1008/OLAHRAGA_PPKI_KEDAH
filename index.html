@@ -408,6 +408,13 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
 .cmb-btn.graf{color:var(--graf-latihan);border-color:var(--graf-latihan)}
 .cmb-act{flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px}
 .cmb-btn.pri{min-height:44px;min-width:96px;padding:10px 16px;font-size:14px;font-weight:800}
+.profil-acara-head>div{min-width:0}.profil-acara-head .nm{overflow-wrap:anywhere}
+.profil-acara-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:12px}
+.profil-acara-footer>.btn{width:auto;margin:0;max-width:100%;white-space:normal}
+.profil-acara-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.profil-acara-actions .btn{width:auto;margin:0;min-height:44px;min-width:88px;padding:10px 16px;font-size:14px}
+.profil-acara-actions .profil-rekod{min-width:112px;font-weight:800}
+.profil-acara-actions .profil-graf{color:var(--graf-latihan);border-color:var(--graf-latihan)}
 .sheet:has(#grafPrestasi){max-width:1040px}
 .graf-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px}
 .graf-head>div{min-width:0}.graf-head .big{overflow-wrap:anywhere}
@@ -459,7 +466,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbznf39LDwdaXfQJMpXxzI6jH-zmJtU_tZPJrRo4XFdfJ-EYrY2WvZ26Z6EUDeVS0fPr/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -2558,6 +2565,15 @@ function cetakLaporanBmi(){
   bukaLaporan("Laporan Analisis BMI Atlet", ringkas+butiran);
 }
 
+function formRekodProfil(n,id){
+  if(!bolehRekod(n)) return toast("Anda tiada kebenaran merekod acara ini.");
+  if(!penyertaan(n).some(p=>String(p["ATLET ID"])===String(id))) return toast("Atlet tidak menyertai acara ini.");
+  if(isBerpasukan(n)){
+    formRekodRelay(n);
+    document.querySelectorAll(".relayChk").forEach(el=>{el.checked=String(el.value)===String(id);});
+  }else formRekod(n,id);
+}
+
 function vProfil(){
   const a=atletById(CTX.id);
   if(!a) return app().innerHTML=`<div class="card">Atlet tidak dijumpai.<button class="btn" onclick="goBack()">Kembali</button></div>`;
@@ -2576,7 +2592,7 @@ function vProfil(){
     <div class="row" style="margin-top:12px">
       <div class="stat"><b>${hadir}</b><span class="small">Kali Hadir</span></div>
       <div class="stat"><b>${acaraDia.length}</b><span class="small">Acara</span></div>
-      <div class="stat"><b>${acaraDia.reduce((s,x)=>s+rekodAcara(x.ACARA).filter(r=>String(r["ATLET ID"])===String(a.ID)).length,0)}</b><span class="small">Rekod</span></div>
+      <div class="stat"><b>${acaraDia.reduce((s,x)=>s+rekodAcara(x.ACARA).filter(r=>rekodMilik(r,a.ID)).length,0)}</b><span class="small">Rekod</span></div>
     </div>
     <div class="row" style="margin-top:12px;gap:8px">
       <button class="btn sm ghost" onclick="formGambarAtlet('${esc(a.ID)}')">📷 Kemas Gambar</button>
@@ -2600,11 +2616,11 @@ function vProfil(){
 
   <h3>Rekod Peribadi Mengikut Acara</h3>
   ${acaraDia.map(x=>{
-    const n=x.ACARA, rs=rekodAcara(n).filter(r=>String(r["ATLET ID"])===String(a.ID)).sort((p,q)=>String(q.TARIKH).localeCompare(String(p.TARIKH)));
+    const n=x.ACARA, rs=dataGraf(n,a.ID).semua.slice().reverse();
     const b=terbaik(n,a.ID);
     const pn=penyertaan(n).find(z=>String(z["ATLET ID"])===String(a.ID))||{};
     const rp=String(pn["REKOD PERIBADI"]||"").trim();
-    return `<div class="card"><div class="row" style="align-items:center">
+    return `<div class="card profil-acara"><div class="row profil-acara-head" style="align-items:center">
       <div><div class="nm">${esc(n)}</div><div class="small">${rs.length} rekod • Purata ${rs.length?fmtNilai(purata(rs.map(r=>Number(r.NILAI)||0)),x):"-"}</div></div>
       <div class="right"><span class="badge">TERBAIK ${b!==null?fmtNilai(b,x):"-"}</span></div></div>
       <div class="sub" style="display:flex;flex-wrap:wrap;gap:4px 10px">
@@ -2616,8 +2632,14 @@ function vProfil(){
         ${bolehRekod(n)?`<button class="btn sm ghost" style="padding:2px 8px" title="Edit rekod" onclick="event.stopPropagation();formEditRekod('${esc(n)}','${esc(r.ID)}')">✎</button>
         <button class="btn sm bad" style="padding:2px 8px" title="Padam rekod latihan ini" onclick="event.stopPropagation();padamRekod('${esc(n)}','${esc(r.ID)}')">🗑</button>`:""}
       </div>`).join("")||'<div class="sub">Tiada rekod</div>'}
-      ${bolehRekod(n)?`<div class="small" style="margin-top:4px;opacity:.75">Master Admin & jurulatih acara ini boleh ✎ edit atau 🗑 padam setiap rekod latihan di atas.</div>
-      <button class="btn sm bad" style="margin-top:8px" onclick="keluarAtletAcara('${esc(n)}','${esc(a.ID)}')">✕ Gugurkan dari ${esc(n)}</button>`:""}
+      ${bolehRekod(n)?`<div class="small" style="margin-top:4px;opacity:.75">Master Admin & jurulatih acara ini boleh ✎ edit atau 🗑 padam setiap rekod latihan di atas.</div>`:""}
+      <div class="profil-acara-footer">
+        ${bolehRekod(n)?`<button class="btn sm bad" onclick="keluarAtletAcara('${esc(n)}','${esc(a.ID)}')">✕ Gugurkan dari ${esc(n)}</button>`:""}
+        <div class="profil-acara-actions">
+          ${bolehRekod(n)?`<button class="btn profil-rekod" onclick="formRekodProfil('${esc(n)}','${esc(a.ID)}')">+ Rekod</button>`:""}
+          <button class="btn ghost profil-graf" title="Graf prestasi ${esc(n)}" onclick="paparGraf('${esc(n)}','${esc(a.ID)}')">📈 Graf</button>
+        </div>
+      </div>
     </div>`;
   }).join("")||`<div class="card small">Atlet ini belum dimasukkan ke mana-mana acara.</div>`}`;
 
