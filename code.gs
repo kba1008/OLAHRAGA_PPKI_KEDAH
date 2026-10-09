@@ -111,10 +111,17 @@ function sheetRekod(acara) { return dapatSheet(namaSheetRekod(acara), HEADER_REK
 var TZ_MY = "Asia/Kuala_Lumpur";
 function tz_() { return TZ_MY; }
 
+/* Nombor susunan: sel yang terformat sebagai tarikh dibaca sebagai Date — tukar balik kepada nombor */
+function nomborSusunan_(v) {
+  if (v instanceof Date) return Math.round((v.getTime() - Date.UTC(1899, 11, 30)) / 86400000);
+  var n = Number(v);
+  return isNaN(n) ? 0 : n;
+}
 function nilaiSelamat(header, v) {
   if (!(v instanceof Date)) return v;
   var tz = tz_();
   var hh = String(header || "").toUpperCase();
+  if (hh.trim() === "SUSUNAN") return nomborSusunan_(v);
   if (hh === "MASA") return Utilities.formatDate(v, tz, "HH:mm:ss");
   if (hh === "TARIKH") return Utilities.formatDate(v, tz, "yyyy-MM-dd");
   return Utilities.formatDate(v, tz, "yyyy-MM-dd HH:mm:ss");
@@ -745,15 +752,20 @@ function susunMedia(p) {
       lain.push(i);
     }
     lain.sort(function (x, y) {
-      var a = Number(v[x][kol - 1]) > 0 ? Number(v[x][kol - 1]) : 1e9, b = Number(v[y][kol - 1]) > 0 ? Number(v[y][kol - 1]) : 1e9;
+      var na = nomborSusunan_(v[x][kol - 1]), nb = nomborSusunan_(v[y][kol - 1]);
+      var a = na > 0 ? na : 1e9, b = nb > 0 ? nb : 1e9;
       return (a - b) || (masaMedia_(v[y][17]) - masaMedia_(v[x][17]));
     });
     lain.forEach(function (r) { n++; v[r][kol - 1] = n; hasil.push({ id: String(v[r][0]), acara: k.acara, susunan: n }); });
   });
 
-  /* 3) Tulis sekali gus (satu lajur setiap kali) */
+  /* 3) Tulis sekali gus (satu lajur setiap kali).
+        Lajur SUSUNAN dipaksa format nombor biasa — jika ia terformat tarikh/masa,
+        nombor 1,2,3 akan bertukar menjadi tarikh dan susunan "hilang" selepas loading. */
+  var rangSusun = s.getRange(2, kol, v.length - 1, 1);
+  try { rangSusun.setNumberFormat("0"); } catch (e) {}
   if (acaraBerubah) s.getRange(2, 3, v.length - 1, 1).setValues(v.slice(1).map(function (r) { return [r[2] == null ? "" : r[2]]; }));
-  s.getRange(2, kol, v.length - 1, 1).setValues(v.slice(1).map(function (r) { return [r[kol - 1] == null ? "" : r[kol - 1]]; }));
+  rangSusun.setValues(v.slice(1).map(function (r) { var x = r[kol - 1]; return [x == null || x === "" ? "" : nomborSusunan_(x)]; }));
   SpreadsheetApp.flush();
 
   if (props) {
@@ -763,8 +775,9 @@ function susunMedia(p) {
   /* Sahkan: baca semula lajur SUSUNAN dari Sheet dan pastikan nilai benar-benar disimpan */
   var semak = s.getRange(2, kol, v.length - 1, 1).getValues();
   hasil.forEach(function (x) {
-    var r = barisId[x.id];
-    if (Number(semak[r - 1][0]) !== Number(x.susunan)) throw new Error("Susunan gagal disimpan dalam Google Sheet. Sila cuba semula.");
+    var r = barisId[x.id], dapat = semak[r - 1][0];
+    if (nomborSusunan_(dapat) !== Number(x.susunan))
+      throw new Error("Susunan galeri gagal disahkan (fail " + x.id + ", baris " + (r + 1) + ", lajur " + kol + ": dijangka " + x.susunan + ", dibaca '" + dapat + "'). Sila cuba semula.");
   });
   pindahDrive.forEach(function (x) { try { DriveApp.getFileById(x[0]).moveTo(folderMediaAcara(x[1])); } catch (e) {} });
   return { ok: true, versiSusun: 2, disahkan: true, susunan: hasil };
