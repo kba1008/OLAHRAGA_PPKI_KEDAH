@@ -527,10 +527,27 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
 .sheet{position:relative;background:var(--popup-surface);border-radius:20px;padding:24px;max-height:calc(100dvh - 32px);box-shadow:var(--popup-shadow);animation:popupMasuk .18s ease-out;overflow-wrap:anywhere}
 .sheet>.big{padding-bottom:14px;margin-bottom:8px;border-bottom:1px solid var(--line);font-size:20px;letter-spacing:0}
 .sheet>.row{gap:10px}
+.media-history-head{position:sticky;top:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:14px;margin-bottom:8px;border-bottom:1px solid var(--line);background:var(--popup-surface)}
+.media-history-head .big{margin:0;min-width:0;font-size:20px;line-height:1.3;overflow-wrap:anywhere}
+.media-history-actions{display:flex;gap:8px;flex-shrink:0}
+.media-history-actions .btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;min-height:44px;margin:0;padding:0;border-radius:50%;background:var(--card);color:var(--txt);border:1px solid var(--line);box-shadow:none}
+.media-history-actions svg{width:21px;height:21px;pointer-events:none}
+@media(max-width:480px){.media-history-head{gap:8px}.media-history-head .big{font-size:18px}.media-history-actions{gap:6px}}
 .toast{z-index:10002;background:var(--popup-surface);border-left:3px solid var(--p2);box-shadow:var(--popup-shadow);line-height:1.5;overflow-wrap:anywhere;letter-spacing:0}
 @keyframes popupMasuk{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:480px){.at-dialog{padding:20px}.sheet{padding:18px;border-radius:18px}.sheet .row>*{min-width:0;flex-basis:100%}.at-dialog h2{font-size:19px}}
 @media(prefers-reduced-motion:reduce){.at-dialog,.sheet{animation:none}}
+/* ---------- Progres muat naik media ---------- */
+.media-upload{margin:16px 0;padding:18px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.media-upload[hidden]{display:none}
+.media-upload-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;color:var(--p2)}
+.media-upload-head strong{font-size:28px}
+.media-upload-motion{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;font-size:30px;border-radius:50%;background:var(--bg2)}
+.uploading .media-upload-motion{animation:uploadGerak 1s ease-in-out infinite}
+.media-upload progress{display:block;width:100%;height:12px;accent-color:var(--p2);margin-bottom:14px}
+.media-upload .nm,.media-upload .small{overflow-wrap:anywhere;white-space:normal;line-height:1.5}
+@keyframes uploadGerak{50%{transform:translateY(-6px);color:var(--warn)}}
+@media(prefers-reduced-motion:reduce){.uploading .media-upload-motion{animation:none}}
 /* ---------- Butang laporan ranking ---------- */
 .report-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
 .report-title{margin:0;font-size:17px;font-weight:800;line-height:1.4;letter-spacing:0;color:var(--txt)}
@@ -566,7 +583,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzbzeXiqdwV3JPaHQmTsAHAyas5-7BEN4IdyAPziOwnXr9Y9LKA-cpdbW-LQUe2OrQ3/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -4063,6 +4080,25 @@ function bandingSusunanMedia(a,b){
 const mediaAcara=n=>(DB.media||[]).filter(m=>String(m.ACARA||"").toUpperCase()===String(n||"").toUpperCase())
   .sort(bandingSusunanMedia);
 let MEDIA_PILIH=[]; /* [{file,nama,mime,jenis,saiz}] */
+let MEDIA_SIBUK=false;
+function progresMedia(peratus,nama,status){
+  const box=document.getElementById("mdUpload");if(!box)return;
+  box.hidden=false;
+  document.getElementById("mdUploadPct").textContent=Math.floor(peratus)+"%";
+  document.getElementById("mdUploadBar").value=peratus;
+  document.getElementById("mdUploadNama").textContent=nama;
+  document.getElementById("mdUploadStatus").textContent=status;
+}
+function hantarBahagianMedia(url,blob,range,onProg){
+  return new Promise((resolve,reject)=>{
+    const x=new XMLHttpRequest();x.open("PUT",url);x.timeout=180000;
+    x.setRequestHeader("Content-Range",range);
+    x.upload.onprogress=e=>{if(e.lengthComputable&&onProg)onProg(e.loaded);};
+    x.onload=()=>resolve({status:x.status,range:x.getResponseHeader("Range"),text:x.responseText});
+    x.onerror=()=>reject(new Error("Sambungan muat naik terputus."));
+    x.ontimeout=()=>reject(new Error("Muat naik mengambil terlalu lama."));x.send(blob);
+  });
+}
 /* TIADA HAD SAIZ: fail besar dimuat naik terus ke Google Drive (resumable upload).
    MAX_MEDIA_MB hanya had untuk cara lama (melalui Apps Script) jika muat naik
    terus gagal — cth. pelayar lama atau token Drive tidak tersedia. */
@@ -4272,22 +4308,22 @@ async function naikTerusDrive(f,acara,jenis,onProg){
   let pos=0,hasil=null,cuba=0;
   while(pos<f.size){
     const akhir=Math.min(pos+MEDIA_CHUNK,f.size);
-    let res;
     try{
-      res=await fetch(sesi,{method:"PUT",headers:{"Content-Range":`bytes ${pos}-${akhir-1}/${f.size}`},body:f.slice(pos,akhir)});
+      const res=await hantarBahagianMedia(sesi,f.slice(pos,akhir),`bytes ${pos}-${akhir-1}/${f.size}`,loaded=>{
+        if(onProg)onProg(Math.min(99,(pos+loaded)/f.size*100));
+      });
+      if(res.status===200||res.status===201){hasil=JSON.parse(res.text);pos=f.size;break;}
+      if(res.status===308){pos=res.range?Number(res.range.split("-")[1])+1:akhir;cuba=0;continue;}
+      if(res.status!==429&&res.status<500)throw Object.assign(new Error("Muat naik terhenti ("+res.status+")."),{kekal:true});
+      throw new Error("Google Drive sibuk ("+res.status+").");
     }catch(e){
-      if(++cuba>3) throw new Error("Sambungan terputus semasa muat naik. Sila cuba lagi.");
-      await new Promise(r=>setTimeout(r,1500)); continue;
+      if(e.kekal||++cuba>3)throw e;
+      await new Promise(r=>setTimeout(r,1000*Math.pow(2,cuba-1)));
+      const semak=await hantarBahagianMedia(sesi,null,`bytes */${f.size}`);
+      if(semak.status===200||semak.status===201){hasil=JSON.parse(semak.text);pos=f.size;break;}
+      if(semak.status!==308)throw new Error("Sesi muat naik tidak dapat disambung. Sila cuba semula.");
+      pos=semak.range?Number(semak.range.split("-")[1])+1:0;
     }
-    cuba=0;
-    if(res.status===200||res.status===201){ hasil=await res.json(); pos=f.size; break; }
-    if(res.status===308){
-      const rng=res.headers.get("Range");
-      pos=rng&&rng.indexOf("-")>0?Number(rng.split("-")[1])+1:akhir;
-      if(onProg) onProg(Math.min(99,Math.round(pos/f.size*100)));
-      continue;
-    }
-    throw new Error("Muat naik terhenti ("+res.status+").");
   }
   if(!hasil) throw new Error("Muat naik tidak lengkap.");
   if(onProg) onProg(100);
@@ -4317,6 +4353,11 @@ function formMedia(n){
   <input type="file" id="mdVid" class="hide" accept="video/*" capture="environment" onchange="mediaPilih(event,'VIDEO')"/>
   <input type="file" id="mdFail" class="hide" multiple onchange="mediaPilih(event,'')"/>
   <div id="mdPratonton" class="small" style="margin-top:8px">Belum ada fail dipilih. Anda boleh simpan catatan sahaja.</div>
+  <div id="mdUpload" class="media-upload" hidden role="status" aria-live="polite">
+    <div class="media-upload-head"><span class="media-upload-motion" aria-hidden="true">↑</span><strong id="mdUploadPct">0%</strong></div>
+    <progress id="mdUploadBar" max="100" value="0" aria-label="Progres muat naik"></progress>
+    <div id="mdUploadNama" class="nm"></div><div id="mdUploadStatus" class="small"></div>
+  </div>
   <button class="btn" id="mdSimpan" onclick="simpanMedia('${esc(n)}')">Simpan</button>
   <button class="btn ghost" onclick="tutup()">Batal</button>`);
 }
@@ -4346,48 +4387,70 @@ async function mediaPilih(ev,jenis){
 }
 
 async function simpanMedia(n){
+  if(MEDIA_SIBUK)return;
   const tajuk=((document.getElementById("mdTajuk")||{}).value||"").trim();
   const catatan=((document.getElementById("mdCatatan")||{}).value||"").trim();
-  if(!MEDIA_PILIH.length && !tajuk && !catatan) return toast("Sila isi catatan atau pilih sekurang-kurangnya satu fail.");
-  const atletId=(document.getElementById("mdAtlet")||{}).value||"";
+  if(!MEDIA_PILIH.length&&!tajuk&&!catatan)return toast("Sila isi catatan atau pilih sekurang-kurangnya satu fail.");
+  const atletId=document.getElementById("mdAtlet")?.value||"";
   const at=atletId?penyertaan(n).find(a=>String(a["ATLET ID"])===String(atletId)):null;
-  const btn=document.getElementById("mdSimpan");
   const asas={acara:n,kategori:at?at.KATEGORI:"",atletId,namaAtlet:at?at["NAMA ATLET"]:"",tajuk,catatan,...who()};
-  if(btn){ btn.disabled=true; }
+  const sen=MEDIA_PILIH.slice(),jumlah=sen.length,total=sen.reduce((a,f)=>a+Math.max(1,f.saiz),0)||1;
+  let selesai=0,berjaya=0;const gagal=[];
+  MEDIA_SIBUK=true;
+  const controls=[...document.querySelectorAll("#ov input,#ov textarea,#ov select,#ov button")];
+  controls.forEach(e=>e.disabled=true);
+  const box=document.getElementById("mdUpload");if(box)box.classList.add("uploading");
   try{
-    if(!MEDIA_PILIH.length){
-      if(btn) btn.textContent="Menyimpan…";
-      const rec=await api("muatNaikMedia",asas);
-      (DB.media=DB.media||[]).push(rec);
-    }else{
-      for(let i=0;i<MEDIA_PILIH.length;i++){
-        const f=MEDIA_PILIH[i];
-        const tajukBtn=`${i+1}/${MEDIA_PILIH.length}`;
-        const prog=v=>{ if(btn) btn.textContent=`Memuat naik ${tajukBtn} — ${v}%`; };
-        prog(0);
-        let rec=null;
-        try{
-          const driveId=await naikTerusDrive(f.file,n,f.jenis,prog);
-          if(btn) btn.textContent=`Menyimpan maklumat ${tajukBtn}…`;
-          rec=await api("daftarMediaDrive",{...asas,jenis:f.jenis,namaFail:f.nama,mime:f.mime,saiz:f.saiz,driveId});
-        }catch(e){
-          /* Sandaran: hantar melalui Apps Script (hanya untuk fail kecil) */
-          if(f.saiz>MAX_MEDIA_SANDARAN_MB*1048576) throw e;
-          logTambah("INFO","Muat naik terus gagal — guna cara sandaran",String(e&&e.message||e));
-          if(btn) btn.textContent=`Memuat naik ${tajukBtn} (cara sandaran)…`;
-          const dataUrl=await fileToDataUrl(f.file);
-          rec=await api("muatNaikMedia",{...asas,jenis:f.jenis,namaFail:f.nama,mime:f.mime,dataBase64:dataUrl});
-        }
-        (DB.media=DB.media||[]).push(rec);
-      }
+    if(!jumlah){
+      progresMedia(0,"Catatan latihan","Menyimpan catatan…");
+      const rec=await api("muatNaikMedia",asas);(DB.media=DB.media||[]).push(rec);berjaya=1;
     }
-    MEDIA_PILIH=[]; tutup(); render(); toast("Berjaya disimpan ke Google Drive & Google Sheet");
-  }catch(e){ toastRalat(e); if(btn){ btn.disabled=false; btn.textContent="Simpan"; } }
+    for(let i=0;i<jumlah;i++){
+      const f=sen[i],berat=Math.max(1,f.saiz);
+      const prog=v=>progresMedia(Math.min(99,(selesai+berat*v/100)/total*100),f.nama,`Fail ${i+1}/${jumlah} • ${berjaya} berjaya • Memuat naik ${Math.floor(v)}%`);
+      try{
+        prog(0);let rec;
+        if(!f.driveId){
+          try{f.driveId=await naikTerusDrive(f.file,n,f.jenis,prog);}
+          catch(e){
+            if(f.saiz>MAX_MEDIA_SANDARAN_MB*1048576)throw e;
+            progresMedia(Math.min(99,selesai/total*100),f.nama,`Fail ${i+1}/${jumlah} • Mencuba cara sandaran…`);
+            const dataUrl=await fileToDataUrl(f.file);
+            rec=await api("muatNaikMedia",{...asas,jenis:f.jenis,namaFail:f.nama,mime:f.mime,dataBase64:dataUrl});
+          }
+        }
+        if(!rec){
+          progresMedia(Math.min(99,(selesai+berat*.99)/total*100),f.nama,`Fail ${i+1}/${jumlah} • Menyimpan maklumat…`);
+          rec=await api("daftarMediaDrive",{...asas,jenis:f.jenis,namaFail:f.nama,mime:f.mime,saiz:f.saiz,driveId:f.driveId});
+        }
+        if(!(DB.media||[]).some(m=>String(m.ID)===String(rec.ID)))(DB.media=DB.media||[]).push(rec);
+        berjaya++;MEDIA_PILIH=MEDIA_PILIH.filter(x=>x!==f);
+      }catch(e){gagal.push(f.nama);logTambah("INFO","Muat naik gagal: "+f.nama,String(e.message||e));}
+      selesai+=berat;
+    }
+    simpanCacheDB(DB);lukisPilihan();
+    if(gagal.length){
+      progresMedia(Math.min(99,berjaya/Math.max(1,jumlah)*100),`${berjaya}/${jumlah} fail berjaya`,`${gagal.length} fail belum berjaya: ${gagal.join(", ")}. Tekan Cuba Semula untuk fail yang tinggal sahaja.`);
+    }else{
+      progresMedia(100,"✓ Berjaya dimuat naik!",jumlah?`Kesemua ${jumlah} fail telah disimpan ke Google Drive & Google Sheet.`:"Catatan telah berjaya disimpan.");
+      toast(jumlah?`${jumlah} fail berjaya dimuat naik!`:"Catatan berjaya disimpan!");
+    }
+  }catch(e){progresMedia(0,"Belum berjaya",e.message||"Sila cuba semula.");toastRalat(e);}
+  finally{
+    MEDIA_SIBUK=false;if(box)box.classList.remove("uploading");controls.forEach(e=>e.disabled=false);
+    const btn=document.getElementById("mdSimpan");if(btn){btn.textContent=MEDIA_PILIH.length?"Cuba Semula":"Selesai";btn.onclick=MEDIA_PILIH.length?()=>simpanMedia(n):()=>{tutup();render();historiMedia(n);};}
+  }
 }
 
 function historiMedia(n){
   const sen=mediaAcara(n);
-  overlay(`<div class="big">🖼️ Sejarah Media — ${esc(n)}</div>
+  overlay(`<div class="media-history-head">
+    <div class="big">🖼️ Sejarah Media — ${esc(n)}</div>
+    <div class="media-history-actions">
+      <button class="btn ghost" onclick="tutupDropdown();tutup();go('home')" title="Home" aria-label="Kembali ke Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg></button>
+      <button class="btn ghost" onclick="tutupDropdown();tutup()" title="Tutup galeri" aria-label="Tutup galeri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </div>
+  </div>
   <div class="small">${sen.length} rekod. Fail disimpan dalam Google Drive.</div>
   <div class="acara-acts" style="justify-content:flex-start">
     ${bolehRekod(n)?`<button class="btn sm" onclick="tutup();formMedia('${esc(n)}')" title="Tambah baharu" aria-label="Tambah baharu">📎 <span class="mk-label">Tambah Baharu</span></button>`:""}
@@ -4506,12 +4569,20 @@ function galSibuk(){ return !!(SRT||GAL_MENYIMPAN||GAL_TUNGGU); }
 function formInfoMedia(id){
   if(!isAdmin()) return toast("Hanya Master Admin & Sub Admin boleh mengedit tajuk dan catatan.");
   const m=(DB.media||[]).find(x=>String(x.ID)===String(id)); if(!m) return toast("Media tidak dijumpai");
+  const galeriAsal=document.getElementById("mdSenarai")?.closest(".ov");
+  if(galeriAsal){galeriAsal.id="ovMediaAsal";galeriAsal.hidden=true;galeriAsal.style.display="none";}
   tutup();
   overlay(`<div class="big">📝 Edit Tajuk &amp; Catatan</div>
     <label>Tajuk</label><input id="miTajuk" maxlength="120" value="${esc(m.TAJUK||"")}"/>
     <label>Catatan</label><textarea id="miCatatan" rows="5">${esc(m.CATATAN||"")}</textarea>
     <button class="btn" id="miSimpan" onclick="simpanInfoMedia('${esc(id)}')">Simpan</button>
     <button class="btn ghost" onclick="tutup()">Batal</button>`);
+  const borang=document.getElementById("ov");
+  if(borang&&galeriAsal) borang._selepasTutup=()=>{
+    galeriAsal.id="ov";galeriAsal.hidden=false;galeriAsal.style.display="";
+    const kad=galeriAsal.querySelector('[id="md-'+String(m.ID).replace(/"/g,'\\"')+'"]');
+    if(kad) kad.outerHTML=kadMedia(m,bolehUrusMedia(m));
+  };
 }
 async function simpanInfoMedia(id){
   const tajuk=($("#miTajuk")||{}).value||"", catatan=($("#miCatatan")||{}).value||"";
@@ -4770,7 +4841,7 @@ function overlay(html){
   document.body.appendChild(d);
   try{ history.pushState({ov:1},"", "#ov"); }catch(e){}
 }
-function tutup(){ if(GRAF_CART){GRAF_CART.destroy();GRAF_CART=null;} GRAF_CTX=null; try{ camTutup(); }catch(e){} const o=$("#ov"); if(o) o.remove(); }
+function tutup(){ if(MEDIA_SIBUK)return toast("Muat naik sedang berjalan. Sila tunggu sehingga selesai."); if(GRAF_CART){GRAF_CART.destroy();GRAF_CART=null;} GRAF_CTX=null; try{ camTutup(); }catch(e){} const o=$("#ov"); if(o){o.remove();if(typeof o._selepasTutup==="function") o._selepasTutup();} }
 
 /* ---------- Mula ---------- */
 if("serviceWorker" in navigator){
