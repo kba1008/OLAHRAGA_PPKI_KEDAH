@@ -469,6 +469,22 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
 @media(prefers-reduced-motion:reduce){.media-kad .mk-aksi .mk-edit3d{transition:none}}
 body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscroll-behavior:none}
 .gal-drop{grid-column:1/-1;border:2px dashed rgba(127,127,127,.4);border-radius:12px;padding:10px;text-align:center;opacity:.7}
+/* ---------- Jadual Perlawanan + Flipbook ---------- */
+.tile.t4{background:linear-gradient(155deg,#22c55e,#0ea5e9)}
+.jd-item{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.04);margin-bottom:10px;cursor:pointer}
+.jd-ic{font-size:30px;width:48px;text-align:center}
+.jd-nm{font-weight:800}
+.fb-wrap{position:fixed;inset:0;z-index:9999;background:radial-gradient(900px 600px at 50% 20%,#1b2350,#050817);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}
+.fb-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;padding:12px 14px}
+.fb-top .t{flex:1;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fb-book{position:relative;perspective:2400px;max-width:94vw;max-height:78vh}
+.fb-pg{position:absolute;inset:0;transform-origin:left center;transition:transform .8s cubic-bezier(.35,.7,.25,1);backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#fff;border-radius:4px 10px 10px 4px;box-shadow:0 20px 50px -20px #000;overflow:hidden}
+.fb-pg canvas{width:100%;height:100%;display:block}
+.fb-pg::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,.22),transparent 8%,transparent 92%,rgba(0,0,0,.06))}
+.fb-pg.flip{transform:rotateY(-178deg)}
+.fb-bar{display:flex;gap:10px;align-items:center;margin-top:14px}
+.fb-bar button{border:0;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--grad);color:var(--txt);cursor:pointer}
+.fb-bar button:disabled{opacity:.35}
 </style>
 </head>
 <body>
@@ -483,7 +499,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbx26GUX7Y-4P0MY33u-eNiq4dkH8hTTFLP_GmDNelc4ZJGEd51pFwahctnAdMCHybgr/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -1014,7 +1030,7 @@ function goBack(){
 window.addEventListener("popstate",()=>{ goBack(); try{ history.pushState({view:VIEW},"", "#"+VIEW); }catch(e){} });
 
 /* ============================ SKRIN ============================ */
-const PAPARAN_AWAM={dashboard:1,profil:1,matriks:1,acara:1,acaraDetail:1,galeri:1};
+const PAPARAN_AWAM={dashboard:1,profil:1,matriks:1,acara:1,acaraDetail:1,galeri:1,jadual:1};
 function render(){
   $("#nav").classList.add("hide");
   if(!API) return skrinApi();
@@ -1025,12 +1041,12 @@ function render(){
     $("#nav").classList.remove("hide");
     $("#app").classList.toggle("full",VIEW==="matriks");
     navBarAwam();
-    return ({dashboard:vDashboard,matriks:vMatriks,profil:vProfil,acara:vAcara,acaraDetail:vAcaraDetail,galeri:vGaleri}[VIEW]||vDashboard)();
+    return ({dashboard:vDashboard,matriks:vMatriks,profil:vProfil,acara:vAcara,acaraDetail:vAcaraDetail,galeri:vGaleri,jadual:vJadual}[VIEW]||vDashboard)();
   }
   $("#nav").classList.remove("hide");
   $("#app").classList.toggle("full",VIEW==="matriks");
   navBar();
-  ({home:vHome,kehadiran:vKehadiran,acara:vAcara,acaraDetail:vAcaraDetail,dashboard:vDashboard,matriks:vMatriks,profil:vProfil,sejarah:vSejarah,diagnostik:vDiagnostik,admin:vAdmin,saya:vSaya,galeri:vGaleri}[VIEW]||vHome)();
+  ({home:vHome,kehadiran:vKehadiran,acara:vAcara,acaraDetail:vAcaraDetail,dashboard:vDashboard,matriks:vMatriks,profil:vProfil,sejarah:vSejarah,diagnostik:vDiagnostik,admin:vAdmin,saya:vSaya,galeri:vGaleri,jadual:vJadual}[VIEW]||vHome)();
 }
 function navBarAwam(){
   const t=[["dashboard","📊","Dashboard"],["acara","🏆","Rekod"],["matriks","📋","Matriks"],["login","🔐","Log Masuk"]];
@@ -1130,6 +1146,7 @@ function vHome(){
     <div class="tile t3" onclick="go('dashboard')"><div class="ic">📊</div><div class="tt">DASHBOARD</div><div class="ts">Ranking pencapaian</div></div>
     <div class="tile t3" onclick="go('galeri')"><div class="ic">🖼</div><div class="tt">GALERI</div><div class="ts">Fail, nota, gambar & video</div></div>
     <div class="tile t1" onclick="go('matriks')"><div class="ic">📋</div><div class="tt">MATRIKS ACARA</div><div class="ts">Cek list peserta × acara</div></div>
+    <div class="tile t4" onclick="go('jadual')"><div class="ic">📅</div><div class="tt">JADUAL PERLAWANAN</div><div class="ts">Lihat jadual & selak seperti buku</div></div>
   </div>
   <div class="card" style="margin-top:14px"><div class="small">Tarikh: <b>${t}</b> • Kehadiran ditanda automatik apabila jurulatih mengisi rekod peserta.</div>
   <button class="btn ghost sm" style="margin-top:10px" onclick="muat()">↻ Segar semula data</button></div>`;
@@ -4668,6 +4685,122 @@ if("serviceWorker" in navigator){
 }
 try{ history.replaceState({view:"home"},"", "#home"); }catch(e){}
 render();
+
+/* ================= JADUAL PERLAWANAN =================
+   Muat naik: Master Admin sahaja. Semua jenis fail.
+   PDF & Word dipaparkan seperti buku (selak halaman). */
+const jdIkon=j=>{const m=String(j.MIME||"").toLowerCase(),n=String(j["NAMA FAIL"]||"").toLowerCase();
+  if(/pdf/.test(m)||/\.pdf$/.test(n)) return "📕";
+  if(/word|document/.test(m)||/\.(docx?|odt|rtf)$/.test(n)) return "📘";
+  if(/sheet|excel/.test(m)||/\.(xlsx?|csv)$/.test(n)) return "📗";
+  if(/presentation|powerpoint/.test(m)||/\.pptx?$/.test(n)) return "📙";
+  if(/^image/.test(m)) return "🖼"; if(/^video/.test(m)) return "🎬"; return "📄";};
+function vJadual(){
+  const L=(DB.jadual||[]).slice().sort((a,b)=>String(b["TARIKH & MASA"]||"").localeCompare(String(a["TARIKH & MASA"]||"")));
+  app().innerHTML=`${topbar("📅 Jadual Perlawanan")}
+  ${isMaster()?`<div class="card"><button class="btn" onclick="formJadual()">⬆ Muat Naik Jadual</button><div class="small" style="margin-top:6px">Semua jenis fail diterima. PDF & Word boleh diselak seperti buku.</div></div>`:""}
+  <div class="card">${L.length?L.map(j=>`<div class="jd-item" onclick="bukaJadual('${esc(j.ID)}')">
+     <div class="jd-ic">${jdIkon(j)}</div>
+     <div style="flex:1;min-width:0"><div class="jd-nm">${esc(j.TAJUK||j["NAMA FAIL"])}</div>
+     <div class="small">${esc(j["NAMA FAIL"]||"")} • ${esc(String(j["TARIKH & MASA"]||"").slice(0,16))}</div>
+     ${j.CATATAN?`<div class="small">${esc(j.CATATAN)}</div>`:""}</div>
+     ${j["PDF ID"]?`<span class="chip">📖 Buku</span>`:""}
+     ${isMaster()?`<button class="btn sm ghost" onclick="event.stopPropagation();padamJadualUI('${esc(j.ID)}')">🗑</button>`:""}
+   </div>`).join(""):`<div class="small">Belum ada jadual perlawanan dimuat naik.</div>`}</div>`;
+}
+function formJadual(){
+  if(!isMaster()) return toast("Hanya Master Admin boleh memuat naik jadual.");
+  overlay(`<div class="big">⬆ Muat Naik Jadual Perlawanan</div>
+  <label>Tajuk</label><input id="jdTajuk" maxlength="120" placeholder="Cth: Jadual MSSD 2026"/>
+  <label>Catatan (pilihan)</label><textarea id="jdCat" rows="3"></textarea>
+  <label>Fail (semua jenis)</label><input type="file" id="jdFail"/>
+  <div id="jdProg" class="small" style="margin-top:8px"></div>
+  <button class="btn" id="jdBtn" onclick="simpanJadual()">Muat Naik</button>
+  <button class="btn ghost" onclick="tutup()">Batal</button>`);
+}
+async function simpanJadual(){
+  const f=$("#jdFail").files[0]; if(!f) return toast("Sila pilih fail.");
+  const btn=$("#jdBtn"), pr=$("#jdProg"); btn.disabled=true;
+  try{
+    const t=await api("tokenNaikJadual",{...who()});
+    const mime=f.type||"application/octet-stream";
+    const nama=String(f.name).replace(/[\\/:*?"<>|]/g,"_").slice(0,110);
+    const mula=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true",{method:"POST",
+      headers:{Authorization:"Bearer "+t.token,"Content-Type":"application/json; charset=UTF-8","X-Upload-Content-Type":mime,"X-Upload-Content-Length":String(f.size)},
+      body:JSON.stringify({name:nama,parents:[t.folderId],mimeType:mime})});
+    const sesi=mula.ok&&(mula.headers.get("Location")||mula.headers.get("location"));
+    if(!sesi) throw new Error("Google Drive menolak muat naik ("+mula.status+").");
+    let pos=0,hasil=null;
+    while(pos<f.size){
+      const akhir=Math.min(pos+MEDIA_CHUNK,f.size);
+      const res=await fetch(sesi,{method:"PUT",headers:{"Content-Range":`bytes ${pos}-${akhir-1}/${f.size}`},body:f.slice(pos,akhir)});
+      if(res.status===200||res.status===201){hasil=await res.json();break;}
+      if(res.status===308){const r=res.headers.get("Range");pos=r?Number(r.split("-")[1])+1:akhir;pr.textContent="Memuat naik… "+Math.round(pos/f.size*100)+"%";continue;}
+      throw new Error("Muat naik terhenti ("+res.status+").");
+    }
+    if(!hasil&&f.size===0) throw new Error("Fail kosong.");
+    pr.textContent="Memproses fail (Word ditukar ke buku)…";
+    const o=await apiPost("daftarJadual",{driveId:hasil.id,namaFail:nama,mime,saiz:f.size,tajuk:$("#jdTajuk").value.trim(),catatan:$("#jdCat").value.trim(),...who()});
+    (DB.jadual=DB.jadual||[]).push(o); tutup(); toast("Jadual dimuat naik ✅"); jadualSegerak(600); render();
+  }catch(e){ btn.disabled=false; pr.textContent=""; toastRalat(e); }
+}
+async function padamJadualUI(id){
+  if(!confirm("Padam jadual ini?")) return;
+  try{ await api("padamJadual",{id,...who()}); DB.jadual=(DB.jadual||[]).filter(j=>String(j.ID)!==String(id)); render(); toast("Dipadam"); }
+  catch(e){ toastRalat(e); }
+}
+function bukaJadual(id){
+  const j=(DB.jadual||[]).find(x=>String(x.ID)===String(id)); if(!j) return;
+  if(j["PDF ID"]) return bukaBuku(j);
+  window.open(j["PAUTAN"]||j["URL PAPAR"],"_blank");
+}
+let PDFJS_P=null;
+function muatPdfJs(){
+  if(PDFJS_P) return PDFJS_P;
+  PDFJS_P=new Promise((res,rej)=>{const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload=()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";res(window.pdfjsLib)};
+    s.onerror=()=>{PDFJS_P=null;rej(new Error("Gagal memuat pembaca PDF. Semak internet."))};document.head.appendChild(s);});
+  return PDFJS_P;
+}
+function tutupBuku(){ const w=$("#fbWrap"); if(w) w.remove(); document.removeEventListener("keydown",fbKey); }
+let FB={i:0,n:0,pgs:[]};
+function fbKey(e){ if(e.key==="ArrowRight") fbNext(); else if(e.key==="ArrowLeft") fbPrev(); else if(e.key==="Escape") tutupBuku(); }
+async function bukaBuku(j){
+  tutupBuku();
+  const w=document.createElement("div"); w.className="fb-wrap"; w.id="fbWrap";
+  w.innerHTML=`<div class="fb-top"><button class="back" onclick="tutupBuku()">✕</button><div class="t">${esc(j.TAJUK||j["NAMA FAIL"])}</div>
+    <a class="btn sm ghost" style="width:auto;margin:0" href="${esc(j.PAUTAN)}" target="_blank">⬇ Asal</a></div>
+    <div id="fbMsg" class="small">Membuka buku…</div><div class="fb-book" id="fbBook"></div>
+    <div class="fb-bar"><button id="fbP" onclick="fbPrev()">‹ Sebelum</button><span id="fbC" class="small"></span><button id="fbN" onclick="fbNext()">Seterusnya ›</button></div>`;
+  document.body.appendChild(w); document.addEventListener("keydown",fbKey);
+  try{
+    const [lib,d]=await Promise.all([muatPdfJs(),apiPost("ambilPdfJadual",{id:j.ID})]);
+    const bin=atob(d.b64), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
+    const pdf=await lib.getDocument({data:u}).promise;
+    if(!$("#fbWrap")) return;
+    const p1=await pdf.getPage(1), v1=p1.getViewport({scale:1});
+    const maxW=Math.min(window.innerWidth*.94,700), maxH=window.innerHeight*.74;
+    const sk=Math.min(maxW/v1.width,maxH/v1.height);
+    const book=$("#fbBook"); book.style.width=(v1.width*sk)+"px"; book.style.height=(v1.height*sk)+"px";
+    FB={i:0,n:pdf.numPages,pgs:[]};
+    for(let k=1;k<=pdf.numPages;k++){
+      const pg=document.createElement("div"); pg.className="fb-pg"; pg.style.zIndex=pdf.numPages-k+1;
+      const c=document.createElement("canvas"); pg.appendChild(c); book.appendChild(pg); FB.pgs.push(pg);
+      const page=k===1?p1:await pdf.getPage(k), vp=page.getViewport({scale:sk*2});
+      c.width=vp.width; c.height=vp.height;
+      await page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+      $("#fbMsg").textContent=k<pdf.numPages?"Memuat halaman "+k+"/"+pdf.numPages+"…":"Leret / klik untuk selak halaman";
+      fbUI();
+    }
+    let x0=null; book.addEventListener("touchstart",e=>x0=e.touches[0].clientX,{passive:true});
+    book.addEventListener("touchend",e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;if(dx<-40)fbNext();else if(dx>40)fbPrev();x0=null;});
+    book.addEventListener("click",e=>{const r=book.getBoundingClientRect();(e.clientX-r.left>r.width/2)?fbNext():fbPrev();});
+  }catch(e){ const m=$("#fbMsg"); if(m) m.textContent="❌ "+(e.message||e); }
+}
+function fbUI(){ const c=$("#fbC"); if(!c) return; c.textContent=(FB.i+1)+" / "+FB.n; $("#fbP").disabled=FB.i<=0; $("#fbN").disabled=FB.i>=FB.pgs.length-1; }
+function fbNext(){ if(FB.i>=FB.pgs.length-1) return; const pg=FB.pgs[FB.i]; pg.style.zIndex=FB.n+10; pg.classList.add("flip"); const k=FB.i; setTimeout(()=>{pg.style.zIndex=k;},800); FB.i++; fbUI(); }
+function fbPrev(){ if(FB.i<=0) return; FB.i--; const pg=FB.pgs[FB.i]; pg.style.zIndex=FB.n+10; pg.classList.remove("flip"); const k=FB.i; setTimeout(()=>{pg.style.zIndex=FB.n-k;},800); fbUI(); }
 </script>
 </body>
 </html>

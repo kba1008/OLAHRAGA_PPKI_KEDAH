@@ -248,6 +248,7 @@ function semuaData(p) {
     katGugur: baca(SHEET_KAT_GUGUR),
     tetapan: bacaTetapan(),
     bmi: baca(SHEET_BMI).map(function (b) { b["TARIKH"] = tarikhStr(b["TARIKH"]); return b; }),
+    jadual: bacaJadual_(),
     masaPelayan: nowStr()
   };
 }
@@ -1663,6 +1664,10 @@ var TINDAKAN = {
   padamFailAtlet: padamFailAtlet,
   muatNaikMedia: muatNaikMedia,
   tokenNaikMedia: tokenNaikMedia,
+  tokenNaikJadual: tokenNaikJadual,
+  daftarJadual: daftarJadual,
+  padamJadual: padamJadual,
+  ambilPdfJadual: ambilPdfJadual,
   daftarMediaDrive: daftarMediaDrive,
   gantiFailMediaDrive: gantiFailMediaDrive,
   senaraiMedia: senaraiMedia,
@@ -1877,7 +1882,7 @@ function logRalat(payload, err) {
 }
 
 /* Aksi ringan tidak perlu Script Lock — bolehkan parallelism supaya kehadiran laju */
-var TANPA_LOCK = { ping: 1, data: 1, login: 1, tokenNaikMedia: 1 };
+var TANPA_LOCK = { ping: 1, data: 1, login: 1, tokenNaikMedia: 1, tokenNaikJadual: 1, ambilPdfJadual: 1 };
 
 
 /* ============ CACHE PANTAS (Script Cache) ============
@@ -1991,4 +1996,93 @@ function baikiPerkongsianSemua() {
   try { jalan(folderMedia()); } catch (e) {}
   Logger.log("Berjaya: " + ok + ", Gagal: " + gagal);
   return { berjaya: ok, gagal: gagal };
+}
+
+/* ================= JADUAL PERLAWANAN =================
+   Muat naik: MASTER ADMIN sahaja. Semua jenis fail diterima.
+   PDF / Word / PowerPoint ditukar kepada PDF supaya boleh dibaca
+   seperti buku (flipbook) dalam app. Semua orang boleh melihat. */
+var SHEET_JADUAL = "JADUAL_PERLAWANAN";
+var NAMA_FOLDER_JADUAL = "JADUAL PERLAWANAN";
+HEADERS[SHEET_JADUAL] = ["ID", "TAJUK", "CATATAN", "NAMA FAIL", "MIME", "SAIZ", "PAUTAN", "URL PAPAR", "DRIVE ID", "PDF ID", "DIMUAT NAIK OLEH", "EMEL", "TARIKH & MASA"];
+
+function folderJadual_() {
+  var it = folderMedia().getFoldersByName(NAMA_FOLDER_JADUAL);
+  if (it.hasNext()) return it.next();
+  var f = folderMedia().createFolder(NAMA_FOLDER_JADUAL); kongsiAwam(f); return f;
+}
+function bacaJadual_() {
+  try { return baca(SHEET_JADUAL); } catch (e) { return []; }
+}
+function wajibMaster_(emel) {
+  if (!isMasterAdmin(emel)) throw new Error("Hanya MASTER ADMIN boleh memuat naik / memadam jadual perlawanan.");
+}
+function tokenNaikJadual(p) {
+  wajibMaster_(p && p.olehEmel);
+  return { token: ScriptApp.getOAuthToken(), folderId: folderJadual_().getId() };
+}
+/* Tukar Word / PowerPoint / ODT / RTF kepada PDF. Pulangkan ID PDF ("" jika tidak boleh). */
+function tukarKePdfJadual_(fileId, mime, nama) {
+  var m = String(mime || "").toLowerCase(), n = String(nama || "").toLowerCase();
+  if (m === "application/pdf" || /\.pdf$/.test(n)) return fileId;
+  var sasaran = "";
+  if (/msword|wordprocessingml|opendocument\.text|rtf/.test(m) || /\.(docx?|odt|rtf)$/.test(n)) sasaran = "application/vnd.google-apps.document";
+  else if (/powerpoint|presentationml|opendocument\.presentation/.test(m) || /\.(pptx?|odp)$/.test(n)) sasaran = "application/vnd.google-apps.presentation";
+  else if (m === "application/vnd.google-apps.document" || m === "application/vnd.google-apps.presentation") {
+    var b0 = DriveApp.getFileById(fileId).getAs("application/pdf").setName(String(nama).replace(/\.[^.]+$/, "") + ".pdf");
+    var p0 = folderJadual_().createFile(b0); kongsiAwam(p0); return p0.getId();
+  }
+  if (!sasaran) return "";
+  var r = UrlFetchApp.fetch("https://www.googleapis.com/drive/v3/files/" + fileId + "/copy?supportsAllDrives=true", {
+    method: "post", contentType: "application/json",
+    headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+    payload: JSON.stringify({ mimeType: sasaran, name: "SEMENTARA__" + nama }),
+    muteHttpExceptions: true
+  });
+  var g = {}; try { g = JSON.parse(r.getContentText()); } catch (e) {}
+  if (!g.id) return "";
+  try {
+    var blob = DriveApp.getFileById(g.id).getAs("application/pdf").setName(String(nama).replace(/\.[^.]+$/, "") + ".pdf");
+    var pdf = folderJadual_().createFile(blob); kongsiAwam(pdf);
+    return pdf.getId();
+  } finally {
+    try { DriveApp.getFileById(g.id).setTrashed(true); } catch (e) {}
+  }
+}
+/* p: { driveId, namaFail, mime, saiz, tajuk, catatan, olehNama, olehEmel } */
+function daftarJadual(p) {
+  wajibMaster_(p && p.olehEmel);
+  if (!p.driveId) throw new Error("Fail tidak dijumpai di Google Drive.");
+  var fail = DriveApp.getFileById(String(p.driveId));
+  kongsiAwam(fail);
+  var mime = p.mime || fail.getMimeType() || "application/octet-stream";
+  var nama = String(p.namaFail || fail.getName()).replace(/[\\/:*?"<>|]/g, "_").slice(0, 110);
+  var saiz = Number(p.saiz || 0); if (!saiz) { try { saiz = fail.getSize(); } catch (e) {} }
+  var pdfId = ""; try { pdfId = tukarKePdfJadual_(fail.getId(), mime, nama); } catch (e) { Logger.log("Tukar PDF gagal: " + e); }
+  var s = dapatSheet(SHEET_JADUAL, HEADERS[SHEET_JADUAL], "#f97316");
+  var id = "J" + new Date().getTime();
+  var baris = [id, p.tajuk || nama, hadSel(p.catatan || ""), nama, mime, saiz, pautanDrive(fail.getId()),
+    "https://drive.google.com/file/d/" + fail.getId() + "/preview", fail.getId(), pdfId,
+    p.olehNama || "", String(p.olehEmel || "").toLowerCase(), nowStr()];
+  s.appendRow(baris);
+  var o = {}; for (var i = 0; i < baris.length; i++) o[HEADERS[SHEET_JADUAL][i]] = baris[i];
+  return o;
+}
+function padamJadual(p) {
+  wajibMaster_(p && p.olehEmel);
+  var s = ss().getSheetByName(SHEET_JADUAL); if (!s) throw new Error("Tiada jadual.");
+  var v = s.getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][0]) === String(p.id)) {
+      [v[i][8], v[i][9]].forEach(function (fid) { if (fid) { try { DriveApp.getFileById(String(fid)).setTrashed(true); } catch (e) {} } });
+      s.deleteRow(i + 1); return { id: p.id };
+    }
+  }
+  throw new Error("Jadual tidak dijumpai.");
+}
+/* Ambil PDF (base64) untuk paparan buku. Terbuka kepada semua. */
+function ambilPdfJadual(p) {
+  var j = bacaJadual_().filter(function (x) { return String(x["ID"]) === String(p.id); })[0];
+  if (!j || !j["PDF ID"]) throw new Error("Fail ini tiada versi PDF untuk dipaparkan sebagai buku.");
+  return { b64: Utilities.base64Encode(DriveApp.getFileById(String(j["PDF ID"])).getBlob().getBytes()) };
 }
