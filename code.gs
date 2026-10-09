@@ -1,6 +1,6 @@
 /*************************************************************
  * AtletTraning — Code.gs  (versi kemaskini)
- * Pangkalan data TUNGGAL: Google Sheet ini..
+ * Pangkalan data TUNGGAL: Google Sheet ini.
  * Cara pasang:
  *  1. Buka Google Sheet baharu > Extensions > Apps Script
  *  2. Tampal fail ini, Save.
