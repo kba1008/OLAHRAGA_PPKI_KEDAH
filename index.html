@@ -416,7 +416,7 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbznf39LDwdaXfQJMpXxzI6jH-zmJtU_tZPJrRo4XFdfJ-EYrY2WvZ26Z6EUDeVS0fPr/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -1618,7 +1618,7 @@ function vAcaraDetail(){
       return `<button class="${AD_KAT===k?"on":""}" onclick="AD_KAT='${esc(k)}';render()">${esc(k)} (${c})</button>`;
     }).join("")}</div>`;
   const dragOn=boleh && AD_SORT==="susun";
-  const sortHtml=`<label>Susun ikut</label><select onchange="AD_SORT=this.value;render()">
+  const sortHtml=`<label for="adSusun">Susun ikut</label><select id="adSusun" onchange="AD_SORT=this.value;render();toggleTetapanAcara()">
     <option value="susun" ${AD_SORT==="susun"?"selected":""}>Susunan Jurulatih (seret ⠿)</option>
     <option value="nama" ${AD_SORT==="nama"?"selected":""}>Nama (A-Z)</option>
     <option value="terbaik" ${AD_SORT==="terbaik"?"selected":""}>Rekod Terbaik</option>
@@ -1636,6 +1636,10 @@ function vAcaraDetail(){
     ${tagGugur(n)}
     ${dipertandingkan(n)?"":`<div class="small" style="margin-top:8px">⚠️ Acara ini telah digugurkan daripada pertandingan. Rekod latihan <b>tidak wajib</b> diisi dan acara ini ditandakan "${LABEL_GUGUR}" dalam semua laporan.</div>`}
     <div id="tetapanAcara" class="acara-settings-panel">
+    ${sortHtml}
+    ${boleh?`<div class="small" style="margin-top:8px">${dragOn
+      ? "Seret ikon ⠿ untuk menyusun peserta. Susunan hanya boleh diubah <b>dalam kategori yang sama</b> dan disimpan automatik."
+      : "Pilih <b>Susunan Jurulatih</b> untuk menyeret & menyusun peserta dalam kategori."}</div>`:""}
       ${bolehTukarStatus(n)?`<div><button class="btn sm ghost" onclick="tukarStatusAcara('${esc(n)}')">${dipertandingkan(n)?"🚫 Tanda Digugurkan":"✅ Tanda Dipertandingkan"}</button></div>`:""}
       <div class="small" style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span>Jurulatih dilantik (${jl.length}/10)</span>
@@ -1652,10 +1656,6 @@ function vAcaraDetail(){
     <h3 style="margin:0 0 6px">Analisis Atlet</h3>
     <div class="small">Tapis mengikut kategori & susunan untuk memudahkan jurulatih menganalisis.</div>
     ${tabsHtml}
-    ${sortHtml}
-    ${boleh?`<div class="small" style="margin-top:8px">${dragOn
-      ? "Seret ikon ⠿ untuk menyusun peserta. Susunan hanya boleh diubah <b>dalam kategori yang sama</b> dan disimpan automatik."
-      : "Pilih <b>Susunan Jurulatih</b> untuk menyeret & menyusun peserta dalam kategori."}</div>`:""}
   </div>
   <div class="card" style="padding:10px 12px">
     <label style="margin:0">🔍 Cari Atlet</label>
