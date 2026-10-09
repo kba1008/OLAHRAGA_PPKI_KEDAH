@@ -17,6 +17,12 @@
   --r:20px;
   --edit-face:linear-gradient(180deg,var(--p2),var(--p1));
   --edit-edge:var(--bg); --edit-highlight:var(--txt);
+  --media-edit-ink:var(--warn); --media-edit-surface:color-mix(in srgb,var(--bg) 82%,transparent);
+  --report-acara:#1d4ed8; --report-atlet:#0f766e; --report-pingat:#92400e;
+  --report-harapan:#be123c; --report-prestasi:#6d28d9; --report-bmi:#0369a1;
+  --report-ink:#ffffff; --report-focus:#7dd3fc;
+  --report-border:rgba(255,255,255,.22);
+  --report-shadow:0 4px 10px rgba(0,0,0,.18);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -186,7 +192,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .acara-settings-btn{width:auto;margin:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
 .acara-settings-panel{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .acara-settings-panel.on{display:block}
-.dd-menu{position:fixed;z-index:9999;min-width:210px;background:var(--bg2,#0d1330);border:1px solid var(--line,rgba(255,255,255,.14));border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.5);padding:6px;overflow:hidden}
+.dd-menu{position:fixed;z-index:10002;min-width:210px;background:var(--bg2,#0d1330);border:1px solid var(--line,rgba(255,255,255,.14));border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.5);padding:6px;overflow:hidden}
 .dd-tajuk{font-size:11px;font-weight:800;opacity:.6;padding:6px 10px 8px;text-transform:uppercase;letter-spacing:.4px}
 .dd-item{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:inherit}
 .dd-item:hover{background:rgba(255,255,255,.1)}
@@ -463,10 +469,11 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
 .media-kad.gal-flip{transition:transform .18s ease}
 .gal-drop.aktif{opacity:1;border-color:currentColor}
 @media(prefers-reduced-motion:reduce){.media-kad.gal-flip{transition:none}}
-.media-kad .mk-aksi .mk-edit3d{background:var(--edit-face);color:var(--txt);border:1px solid var(--p2);box-shadow:0 4px 0 var(--edit-edge),inset 0 1px 0 var(--edit-highlight);transform:translateY(-2px);transition:transform .12s,box-shadow .12s}
-.media-kad .mk-aksi .mk-edit3d:active{transform:translateY(2px);box-shadow:0 0 0 var(--edit-edge),inset 0 1px 0 var(--edit-highlight)}
-.media-kad .mk-aksi .mk-edit3d:focus-visible{outline:2px solid var(--p2);outline-offset:4px}
-@media(prefers-reduced-motion:reduce){.media-kad .mk-aksi .mk-edit3d{transition:none}}
+.media-kad .mk-preview{position:relative}
+.media-kad .mk-edit-icon{position:absolute;right:6px;bottom:6px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;min-height:32px;margin:0;padding:0;border:0;border-radius:50%;background:var(--media-edit-surface);color:var(--media-edit-ink);box-shadow:none;cursor:pointer}
+.media-kad .mk-edit-icon svg{width:18px;height:18px;display:block;pointer-events:none}
+.media-kad .mk-edit-icon:hover{background:var(--bg2)}
+.media-kad .mk-edit-icon:focus-visible{outline:2px solid var(--media-edit-ink);outline-offset:2px}
 body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscroll-behavior:none}
 .gal-drop{grid-column:1/-1;border:2px dashed rgba(127,127,127,.4);border-radius:12px;padding:10px;text-align:center;opacity:.7}
 /* ---------- Jadual Perlawanan + Flipbook ---------- */
@@ -524,6 +531,27 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
 @keyframes popupMasuk{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:480px){.at-dialog{padding:20px}.sheet{padding:18px;border-radius:18px}.sheet .row>*{min-width:0;flex-basis:100%}.at-dialog h2{font-size:19px}}
 @media(prefers-reduced-motion:reduce){.at-dialog,.sheet{animation:none}}
+/* ---------- Butang laporan ranking ---------- */
+.report-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.report-title{margin:0;font-size:17px;font-weight:800;line-height:1.4;letter-spacing:0;color:var(--txt)}
+.report-orientation{display:flex;align-items:center;gap:10px}
+.report-orientation label{margin:0;font-size:12px;letter-spacing:0;white-space:nowrap}
+.report-orientation select{width:210px;padding:10px 12px;font-size:13px;border-radius:8px}
+.report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.btn.report-action{width:100%;min-width:0;min-height:96px;margin:0;padding:16px;display:flex;align-items:center;justify-content:flex-start;gap:13px;text-align:left;border-radius:8px;border:1px solid var(--report-border);background:var(--report-tone);color:var(--report-ink);box-shadow:var(--report-shadow);font-family:inherit;font-size:14px;font-weight:700;line-height:1.45;letter-spacing:0;transition:filter .15s,transform .15s}
+.report-action:hover{filter:brightness(1.12);transform:translateY(-2px)}
+.report-action:focus-visible{outline:3px solid var(--report-focus);outline-offset:3px}
+.report-action .report-icon{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center}
+.report-icon svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.report-action .report-label{min-width:0;overflow-wrap:break-word}
+.report-acara{--report-tone:var(--report-acara)}
+.report-atlet{--report-tone:var(--report-atlet)}
+.report-pingat{--report-tone:var(--report-pingat)}
+.report-harapan{--report-tone:var(--report-harapan)}
+.report-prestasi{--report-tone:var(--report-prestasi)}
+.report-bmi{--report-tone:var(--report-bmi)}
+@media(max-width:620px){.report-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.btn.report-action{min-height:110px;padding:14px 12px;flex-direction:column;align-items:flex-start;gap:8px}.report-orientation{width:100%;justify-content:space-between}.report-orientation select{width:190px;max-width:62%}}
+@media(prefers-reduced-motion:reduce){.btn.report-action{transition:none}.report-action:hover{transform:none}}
 </style>
 </head>
 <body>
@@ -538,7 +566,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzbzeXiqdwV3JPaHQmTsAHAyas5-7BEN4IdyAPziOwnXr9Y9LKA-cpdbW-LQUe2OrQ3/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -2995,22 +3023,24 @@ function vDashboard(){
     ${panelHarapanRingkas()}
     ${panelBmiRingkas()}
   </div>
-  <div class="card">
-    <div class="small" style="margin-bottom:8px"><b>🖨 Cetak Laporan Ranking</b> — pilih format laporan:</div>
-    <div class="row" style="margin-bottom:8px">
-      <span class="small"><b>Orientasi cetakan:</b></span>
-      <select onchange="setOriCetak(this.value)" style="max-width:220px">
-        <option value="portrait" ${oriCetak()==="portrait"?"selected":""}>📄 Menegak (Portrait)</option>
-        <option value="landscape" ${oriCetak()==="landscape"?"selected":""}>📃 Melintang (Landscape)</option>
-      </select>
+  <div class="card report-panel">
+    <div class="report-head">
+      <h2 class="report-title">Cetak Laporan Ranking</h2>
+      <div class="report-orientation">
+        <label for="reportOrientation">Orientasi cetakan</label>
+        <select id="reportOrientation" onchange="setOriCetak(this.value)">
+          <option value="portrait" ${oriCetak()==="portrait"?"selected":""}>Menegak (Portrait)</option>
+          <option value="landscape" ${oriCetak()==="landscape"?"selected":""}>Melintang (Landscape)</option>
+        </select>
+      </div>
     </div>
-    <div class="row">
-      <button class="btn sm" onclick="cetakLaporan('acara')">📄 Laporan Ikut Acara</button>
-      <button class="btn sm ghost" onclick="cetakLaporan('atlet')">👥 Laporan Ikut Nama Atlet</button>
-      <button class="btn sm" onclick="cetakLaporanPingat()">🥇 Laporan Anggaran Pingat</button>
-      <button class="btn sm" onclick="cetakLaporanHarapan()">🏅 Laporan Harapan Emas / Podium</button>
-      <button class="btn sm" onclick="cetakLaporanPrestasi()">📊 Laporan Prestasi Setiap Atlet</button>
-      <button class="btn sm" onclick="cetakLaporanBmi()">⚖️ Laporan BMI Atlet</button>
+    <div class="report-grid">
+      <button class="btn report-action report-acara" onclick="cetakLaporan('acara')"><span class="report-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 12h8M8 16h8"/></svg></span><span class="report-label">Laporan Ikut Acara</span></button>
+      <button class="btn report-action report-atlet" onclick="cetakLaporan('atlet')"><span class="report-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M2 21v-3a7 7 0 0 1 14 0v3M17 4a4 4 0 0 1 0 8M22 21v-3a7 7 0 0 0-4-6"/></svg></span><span class="report-label">Laporan Ikut Nama Atlet</span></button>
+      <button class="btn report-action report-pingat" onclick="cetakLaporanPingat()"><span class="report-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="15" r="6"/><path d="m8 10-4-8h5l3 7 3-7h5l-4 8"/><path d="m12 12 1 2 2 .3-1.5 1.4.4 2-1.9-1-1.9 1 .4-2L9 14.3l2-.3z"/></svg></span><span class="report-label">Laporan Anggaran Pingat</span></button>
+      <button class="btn report-action report-harapan" onclick="cetakLaporanHarapan()"><span class="report-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 3h8v6a4 4 0 0 1-8 0zM8 5H4v2a4 4 0 0 0 4 4M16 5h4v2a4 4 0 0 1-4 4M12 13v5M8 21v-3h8v3z"/></svg></span><span class="report-label">Laporan Harapan Emas / Podium</span></button>
+      <button class="btn report-action report-prestasi" onclick="cetakLaporanPrestasi()"><span class="report-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 16v-5M12 16V7M17 16v-8"/></svg></span><span class="report-label">Laporan Prestasi Setiap Atlet</span></button>
+      <button class="btn report-action report-bmi" onclick="cetakLaporanBmi()"><span class="report-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v18M7 21h10M4 7h16M6 7l-4 8h8zM18 7l-4 8h8z"/></svg></span><span class="report-label">Laporan BMI Atlet</span></button>
     </div>
   </div>`;
 }
@@ -4086,20 +4116,17 @@ function kadMedia(m,bolehPadam){
   const bolehBuka=driveId||jns==="CATATAN";
   return `<div class="media-kad" id="md-${esc(m.ID)}" ${bolehBuka?`style="cursor:pointer" onclick="bukaPemapar('${esc(m.ID)}',this)"`:""}>
     ${seret?`<button class="mk-seret" onpointerdown="mulaSeretMedia(event,this)" title="Seret untuk susun / pindah acara" aria-label="Seret untuk susun">⠿</button>`:""}
-    ${atas}
+    <div class="mk-preview">
+      ${atas}
+      ${bolehEdit?`<button class="btn sm mk-edit-icon" onclick="event.stopPropagation();menuEditMedia('${esc(m.ID)}',this)" title="Pilihan edit" aria-label="Buka pilihan edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6Z"/><path d="m14 5 5 5"/></svg></button>`:""}
+    </div>
     <div class="mk-b">
       <div class="nm" style="font-size:13px">${esc(tajuk)}</div>
       ${m.CATATAN&&jns!=="CATATAN"?`<div class="sub mk-nota">${esc(m.CATATAN)}</div>`:""}
-      <div class="mk-meta">
-        <span class="chip">${ikonFail(jns,m["NAMA FAIL"])} ${esc(jns)}</span>
-        ${m["NAMA ATLET"]?`<span class="chip">🏃 ${esc(m["NAMA ATLET"])}</span>`:""}
-      </div>
+      ${m["NAMA ATLET"]?`<div class="mk-meta"><span class="chip">🏃 ${esc(m["NAMA ATLET"])}</span></div>`:""}
       <div class="mk-info">
         <div class="mk-info-row" title="Dimuat naik oleh ${esc(m["DIMUAT NAIK OLEH"]||"Tidak dinyatakan")}"><span class="mk-info-ic">👤</span><span class="mk-info-txt">${esc(m["DIMUAT NAIK OLEH"]||"Tidak dinyatakan")}</span></div>
         <div class="mk-info-row"><span class="mk-info-ic">🗓</span><span class="mk-info-txt">${esc(fmtTarikhMasa(m["TARIKH & MASA"]||m.TARIKH||""))}</span></div>
-      </div>
-      <div class="mk-aksi">
-        ${bolehEdit?`<button class="btn sm mk-edit3d" onclick="event.stopPropagation();menuEditMedia('${esc(m.ID)}',this)" title="Pilihan edit" aria-label="Buka pilihan edit">✎ <span class="mk-label">Edit</span></button>`:""}
       </div>
     </div>
   </div>`;
