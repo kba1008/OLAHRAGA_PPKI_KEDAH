@@ -498,6 +498,32 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
 .fb-bar{display:flex;gap:8px;align-items:center;margin:10px 0 4px}
 .fb-bar button{border:0;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--grad);color:var(--txt);cursor:pointer}
 .fb-bar button:disabled{opacity:.35}
+/* ---------- Templat popup seragam ---------- */
+:root{--popup-surface:var(--bg2);--popup-backdrop:color-mix(in srgb,var(--bg) 78%,transparent);--popup-icon:color-mix(in srgb,var(--p2) 13%,transparent);--popup-danger:color-mix(in srgb,var(--bad) 13%,transparent);--popup-shadow:0 24px 70px color-mix(in srgb,var(--bg) 85%,transparent)}
+.at-dialog{width:min(440px,calc(100% - 32px));max-height:calc(100dvh - 32px);margin:auto;padding:24px;border:1px solid var(--line);border-radius:20px;background:var(--popup-surface);color:var(--txt);box-shadow:var(--popup-shadow);overflow:auto;font-family:inherit;animation:popupMasuk .18s ease-out}
+.at-dialog::backdrop{background:var(--popup-backdrop);backdrop-filter:blur(8px)}
+.at-dialog .popup-head{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+.at-dialog .popup-icon{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:14px;background:var(--popup-icon);color:var(--p2)}
+.at-dialog.danger .popup-icon{background:var(--popup-danger);color:var(--bad)}
+.at-dialog .popup-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.at-dialog .popup-brand{font-size:11px;color:var(--mut);font-weight:700;margin-bottom:4px;letter-spacing:0}
+.at-dialog h2{font-size:20px;line-height:1.3;margin:0;overflow-wrap:anywhere;letter-spacing:0}
+.at-dialog .popup-message{margin:0;color:var(--mut);font-size:14px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.at-dialog .popup-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:24px}
+.at-dialog .popup-actions.solo{grid-template-columns:1fr}
+.at-dialog .popup-actions .btn{margin:0;min-width:0;min-height:46px;border-radius:12px;line-height:1.3;font-size:14px;white-space:normal;color:var(--txt);background:var(--p2);color:var(--bg);box-shadow:none}
+.at-dialog .popup-actions .ghost{background:var(--card);color:var(--txt);border:1px solid var(--line)}
+.at-dialog.danger .popup-actions .primary{background:var(--bad);color:var(--bg)}
+.at-dialog .btn:focus-visible,.sheet .btn:focus-visible{outline:2px solid var(--p2);outline-offset:3px}
+.at-dialog input{margin-top:8px}
+.ov{background:var(--popup-backdrop);align-items:center;padding:16px;z-index:10000}
+.sheet{position:relative;background:var(--popup-surface);border-radius:20px;padding:24px;max-height:calc(100dvh - 32px);box-shadow:var(--popup-shadow);animation:popupMasuk .18s ease-out;overflow-wrap:anywhere}
+.sheet>.big{padding-bottom:14px;margin-bottom:8px;border-bottom:1px solid var(--line);font-size:20px;letter-spacing:0}
+.sheet>.row{gap:10px}
+.toast{z-index:10002;background:var(--popup-surface);border-left:3px solid var(--p2);box-shadow:var(--popup-shadow);line-height:1.5;overflow-wrap:anywhere;letter-spacing:0}
+@keyframes popupMasuk{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:480px){.at-dialog{padding:20px}.sheet{padding:18px;border-radius:18px}.sheet .row>*{min-width:0;flex-basis:100%}.at-dialog h2{font-size:19px}}
+@media(prefers-reduced-motion:reduce){.at-dialog,.sheet{animation:none}}
 </style>
 </head>
 <body>
@@ -512,7 +538,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxHgrypz9phUbVOnEAltJTYWLncjDMGRWUbkYU-_YbVq3sXbNBU65AWyBTYMWHEr-tx/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -558,6 +584,44 @@ const bolehUrusAtlet=()=>isAdmin()||isJurulatihDilantik();
 const bolehPadamAtlet=()=>isAdmin();
 /* Tambah acara: Master Admin ATAU jurulatih yang telah dilantik */
 const bolehTambahAcara=()=>isAdmin()||isJurulatihDilantik();
+
+/* Dialog aplikasi: tidak menggunakan alert/confirm/prompt pelayar. */
+let POPUP_QUEUE=Promise.resolve();
+function popupApp(m,opts={}){
+  const buka=()=>new Promise(resolve=>{
+    const d=document.createElement("dialog");
+    const danger=opts.danger===undefined?/^(Padam|Buang|Keluarkan|Gugurkan|Tarik balik)/i.test(String(m)):opts.danger;
+    const promptMode=opts.mode==="prompt", alertMode=opts.mode==="alert";
+    d.className="at-dialog"+(danger?" danger":"");
+    d.setAttribute("aria-labelledby","popupTitle");d.setAttribute("aria-describedby","popupMessage");
+    const icon=danger?'<path d="M3 6h18M9 6V4h6v2M5 6l1 15h12l1-15M10 10v7M14 10v7"/>':promptMode?'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3M12 14v3"/>':'<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/>';
+    d.innerHTML=`<div class="popup-head"><span class="popup-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${icon}</svg></span><div><div class="popup-brand">AtletTraning</div><h2 id="popupTitle">${esc(opts.title||(danger?"Sahkan tindakan":promptMode?"Pengesahan akses":alertMode?"Makluman":"Pengesahan"))}</h2></div></div><p class="popup-message" id="popupMessage"></p>${promptMode?'<label for="popupInput">PIN Teknision</label><input id="popupInput" type="password" inputmode="numeric" autocomplete="off" aria-label="PIN Teknision">':''}<div class="popup-actions ${alertMode?'solo':''}">${alertMode?'':`<button type="button" class="btn ghost" data-action="cancel">${esc(opts.cancelText||"Batal")}</button>`}<button type="button" class="btn primary" data-action="ok">${esc(opts.okText||(danger?"Ya, teruskan":promptMode?"Sahkan":alertMode?"Faham":"Teruskan"))}</button></div>`;
+    // Mesej sistem mungkin mengandungi URL; nama hos bukan sebahagian templat popup.
+    d.querySelector(".popup-message").textContent=String(m||"").replace(/https?:\/\/[^\s<>]+/gi,"pautan aplikasi").split(location.host).join("aplikasi");
+    const prev=document.activeElement, oldOverflow=document.body.style.overflow;
+    document.body.style.overflow="hidden";
+    (document.fullscreenElement||document.body).appendChild(d);
+    let done=false;
+    const selesai=ok=>{
+      if(done)return;done=true;
+      const value=promptMode?(ok?d.querySelector("input").value:null):ok;
+      d.close();d.remove();document.body.style.overflow=oldOverflow;
+      if(prev&&prev.isConnected)prev.focus({preventScroll:true});
+      resolve(value);
+    };
+    d._batal=()=>selesai(false);
+    d.querySelector('[data-action="ok"]').onclick=()=>selesai(true);
+    const cancel=d.querySelector('[data-action="cancel"]');if(cancel)cancel.onclick=()=>selesai(false);
+    d.addEventListener("cancel",e=>{e.preventDefault();selesai(false);});
+    d.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.tagName==="INPUT"){e.preventDefault();selesai(true);}});
+    d.showModal();
+    (promptMode?d.querySelector("input"):cancel||d.querySelector('[data-action="ok"]')).focus();
+  });
+  const result=POPUP_QUEUE.then(buka);POPUP_QUEUE=result.catch(()=>{});return result;
+}
+function sahkan(m,opts={}){return popupApp(m,opts);}
+function maklum(m,opts={}){return popupApp(m,{...opts,mode:"alert"});}
+function mintaPin(m){return popupApp(m,{mode:"prompt"});}
 
 function toast(m,ms=2400){const d=document.createElement("div");d.className="toast";d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),ms)}
 function loading(t="Memuatkan data dari Google Sheet..."){app().innerHTML=`<div class="card" style="text-align:center"><div class="sp"></div><div class="small">${esc(t)}</div></div>`}
@@ -784,7 +848,7 @@ async function tukarStatusKategori(n,k){
   const msg=gugur
     ? `Kembalikan kategori "${k}" dalam acara "${n}" ke pertandingan?`
     : `Gugurkan kategori "${k}" daripada acara "${n}"?\n\nAtlet & rekod dikekalkan, tetapi kategori ini ditanda "${LABEL_KAT_GUGUR}" dan dikecualikan daripada perbandingan sasaran/analisis harapan pingat.`;
-  if(!confirm(msg)) return;
+  if(!await sahkan(msg)) return;
   try{
     await api("tetapkanKategoriGugur",{acara:n,kategori:k,status,...who()});
     DB.katGugur=(DB.katGugur||[]).filter(r=>kunciKat(r.ACARA,r.KATEGORI)!==kunciKat(n,k));
@@ -1004,7 +1068,7 @@ function jadualSegerak(ms){ clearTimeout(T_SEGERAK); T_SEGERAK=setTimeout(segera
 /* Jangan render semula bila pengguna sedang menaip (borang akan hilang isinya) */
 function bolehRenderSemula(){
   if(galSibuk()) return false;
-  if($("#ov")) return false;                 /* overlay/borang terbuka */
+  if($("#ov") || $(".at-dialog[open]")) return false;                 /* overlay/borang terbuka */
   if(modeAuth==="daftar" && !U) return false; /* borang pendaftaran sedang diisi */
   const a=document.activeElement;
   if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return false;
@@ -1015,9 +1079,9 @@ window.addEventListener("focus",()=>{ if(DB && bolehRenderSemula()) jadualSegera
 window.addEventListener("online",()=>{ if(DB) jadualSegerak(150); });
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && DB && bolehRenderSemula()) jadualSegerak(150); });
 function tetapApi(){ if(!TEKNISION) return modTeknision(); localStorage.removeItem(LS_API); API=API_URL_LALAI; render(); }
-function modTeknision(){
+async function modTeknision(){
   if(TEKNISION) return go("diagnostik");
-  const p=prompt("PIN Teknision:");
+  const p=await mintaPin("Masukkan PIN untuk mengakses Mod Teknision.");
   if(p===null) return;
   if(p!==PIN_TEKNISION) return toast("PIN salah");
   TEKNISION=true; localStorage.setItem(LS_TEK,"1"); toast("Mod Teknision aktif"); go("diagnostik");
@@ -1035,6 +1099,7 @@ function go(v,c={}){
   try{ history.pushState({view:v},"", "#"+v); }catch(e){}
 }
 function goBack(){
+  const dialog=$(".at-dialog[open]"); if(dialog){dialog._batal();return;}
   const o=$("#ov"); if(o){ tutup(); return; }
   const p=HIST.pop();
   if(p){ VIEW=p.view; CTX=p.ctx; window.scrollTo(0,0); render(); }
@@ -1457,7 +1522,7 @@ async function simpanAtlet(id){
 async function padamAtlet(id){
   if(!bolehPadamAtlet()) return toast("Hanya Master Admin boleh memadam atlet dari keseluruhan sistem.");
   const a=atletById(id); if(!a) return toast("Atlet tidak dijumpai");
-  if(!confirm(`Padam atlet "${a["NAMA PENUH"]}"?\n\nSemua rekod kehadiran, penyertaan dan fail atlet ini akan turut dipadam. Tindakan ini tidak boleh dibatalkan.`)) return;
+  if(!await sahkan(`Padam atlet "${a["NAMA PENUH"]}"?\n\nSemua rekod kehadiran, penyertaan dan fail atlet ini akan turut dipadam. Tindakan ini tidak boleh dibatalkan.`)) return;
   try{
     await api("padamAtlet",{id,...who()});
     DB.atlet=(DB.atlet||[]).filter(x=>String(x.ID)!==String(id));
@@ -1560,7 +1625,7 @@ async function simpanSusunanAcara(){
 }
 async function padamAcara(n){
   if(!isAdmin()) return toast("Hanya Master Admin boleh memadam acara.");
-  if(!confirm(`Padam acara "${n}"?\n\nSemua penyertaan, rekod latihan dan rekod kejohanan acara ini akan turut dipadam.`)) return;
+  if(!await sahkan(`Padam acara "${n}"?\n\nSemua penyertaan, rekod latihan dan rekod kejohanan acara ini akan turut dipadam.`)) return;
   try{ await api("padamAcara",{acara:n,...who()});
     DB.acara=(DB.acara||[]).filter(a=>String(a.ACARA)!==String(n));
     DB.jurulatih=(DB.jurulatih||[]).filter(j=>String(j.ACARA)!==String(n));
@@ -1639,7 +1704,7 @@ async function tukarStatusAcara(n){
   const msg=tanding
     ? `Tandakan acara "${n}" sebagai TIDAK DIPERTANDINGKAN?\n\nAcara ini akan dipaparkan sebagai digugurkan dalam semua laporan dan rekod latihannya tidak lagi wajib diisi.`
     : `Tandakan semula acara "${n}" sebagai DIPERTANDINGKAN?`;
-  if(!confirm(msg)) return;
+  if(!await sahkan(msg)) return;
   try{
     await api("tetapkanDipertandingkan",{acara:n,nilai,...who()});
     const a=acaraRow(n); if(a) a.DIPERTANDINGKAN=nilai;
@@ -1882,7 +1947,7 @@ async function simpanKejohanan(n,id){
   }catch(e){ toastRalat(e); if(btn){btn.disabled=false;btn.textContent="Simpan";} }
 }
 async function padamKejohananDariForm(n,id){
-  if(!confirm("Padam rekod kejohanan ini?")) return;
+  if(!await sahkan("Padam rekod kejohanan ini?")) return;
   try{
     await api("padamRekodKejohanan",{acara:n,id,...who()});
     DB.kejohanan=(DB.kejohanan||[]).filter(k=>String(k.ID)!==String(id));
@@ -1890,7 +1955,7 @@ async function padamKejohananDariForm(n,id){
   }catch(e){ toastRalat(e); }
 }
 async function padamKejohanan(n,id){
-  if(!confirm("Padam rekod kejohanan ini?")) return;
+  if(!await sahkan("Padam rekod kejohanan ini?")) return;
   try{
     await api("padamRekodKejohanan",{acara:n,id,...who()});
     DB.kejohanan=(DB.kejohanan||[]).filter(k=>String(k.ID)!==String(id));
@@ -1984,8 +2049,8 @@ function itemAcaraDetail(n,p,info,boleh,t,dragOn){
 async function keluarAtletAcara(n,id){
   if(!bolehRekod(n)) return toast("Hanya jurulatih acara ini atau Master Admin boleh mengeluarkan atlet.");
   const a=atletById(id)||{}, nama=a["NAMA PENUH"]||id;
-  if(!confirm(`Keluarkan "${nama}" dari acara ${n}?`)) return;
-  const buangRekod=confirm("Padam sekali semua rekod latihan atlet ini bagi acara "+n+"?\n\nOK = padam rekod, Batal = simpan rekod.");
+  if(!await sahkan(`Keluarkan "${nama}" dari acara ${n}?`)) return;
+  const buangRekod=await sahkan("Padam sekali semua rekod latihan atlet ini bagi acara "+n+"?",{okText:"Padam rekod",cancelText:"Simpan rekod"});
   try{
     await api("padamPenyertaan",{acara:n,atletId:id,padamRekod:buangRekod?1:0,...who()});
     DB.penyertaan=(DB.penyertaan||[]).filter(x=>!(x.ACARA===n && String(x["ATLET ID"])===String(id)));
@@ -2030,7 +2095,7 @@ async function simpanRekodPeribadi(n,id){
   catch(e){ toastRalat(e); if(btn){btn.disabled=false;btn.textContent="Simpan";} }
 }
 async function padamRekodPeribadi(n,id){
-  if(!confirm("Buang rekod peribadi atlet ini bagi acara "+n+"?")) return;
+  if(!await sahkan("Buang rekod peribadi atlet ini bagi acara "+n+"?")) return;
   try{ await simpanRP(n,id,""); toast("Rekod peribadi dibuang"); }catch(e){ toastRalat(e); }
 }
 async function simpanRP(n,id,nilai){
@@ -2329,7 +2394,7 @@ async function simpanEditRekod(n,id){
 async function padamRekod(n,id){
   if(!bolehRekod(n)) return toast("Tiada kebenaran memadam rekod acara ini.");
   const x=rekodById(n,id); if(!x) return toast("Rekod tidak dijumpai");
-  if(!confirm(`Padam rekod ${x.KEPUTUSAN} bagi ${x["NAMA ATLET"]}?`)) return;
+  if(!await sahkan(`Padam rekod ${x.KEPUTUSAN} bagi ${x["NAMA ATLET"]}?`)) return;
   try{
     await api("padamRekod",{acara:n,id,...who()});
     if(DB.rekod&&DB.rekod[n]) DB.rekod[n]=DB.rekod[n].filter(y=>String(y.ID)!==String(id));
@@ -2530,7 +2595,7 @@ async function simpanBmi(id,rekodId){
   }catch(e){ toastRalat(e); if(btn){btn.disabled=false;btn.textContent="Simpan";} }
 }
 async function padamBmi(rid){
-  if(!confirm("Padam rekod BMI ini?")) return;
+  if(!await sahkan("Padam rekod BMI ini?")) return;
   try{ await api("padamBmi",{id:rid,...who()});
     DB.bmi=(DB.bmi||[]).filter(x=>String(x.ID)!==String(rid)); render(); toast("Rekod BMI dipadam");
   }catch(e){ toastRalat(e); }
@@ -2732,7 +2797,7 @@ async function onPilihFail(ev,id){
   finally{ bumpPending(-1); }
 }
 async function padamFail(id){
-  if(!confirm("Padam fail ini?")) return;
+  if(!await sahkan("Padam fail ini?")) return;
   const el=document.getElementById("ff-"+id); if(el) el.style.opacity=.4;
   try{
     await api("padamFailAtlet",{id});
@@ -3644,7 +3709,7 @@ function vAdmin(){
 async function tukarModRekod(mod){
   if(!isMaster()) return toast("Hanya Master Admin boleh mengubah tetapan ini.");
   if(modRekod()===mod) return;
-  if(!confirm(mod==="SEMUA"?"Benarkan SEMUA pengguna berdaftar merekod semua acara?":"Hadkan merekod kepada jurulatih acara sahaja?")) return;
+  if(!await sahkan(mod==="SEMUA"?"Benarkan SEMUA pengguna berdaftar merekod semua acara?":"Hadkan merekod kepada jurulatih acara sahaja?")) return;
   try{
     await api("simpanTetapan",{kunci:"MOD_REKOD",nilai:mod,...who()});
     DB.tetapan=Object.assign({},DB.tetapan||{},{MOD_REKOD:mod});
@@ -3655,7 +3720,7 @@ async function tukarModRekod(mod){
 /* ---------- Pengurusan Sub Admin ---------- */
 async function tukarSubAdmin(emel,jadi){
   if(!isMaster()) return toast("Hanya Master Admin boleh melantik / menarik Sub Admin.");
-  if(!confirm(jadi?`Lantik ${emel} sebagai Sub Admin?`:`Tarik balik jawatan Sub Admin bagi ${emel}?`)) return;
+  if(!await sahkan(jadi?`Lantik ${emel} sebagai Sub Admin?`:`Tarik balik jawatan Sub Admin bagi ${emel}?`)) return;
   try{
     await api(jadi?"lantikSubAdmin":"buangSubAdmin",{emel,...who()});
     const g=(DB.guru||[]).find(x=>String(x.emel).toLowerCase()===String(emel).toLowerCase());
@@ -3665,7 +3730,7 @@ async function tukarSubAdmin(emel,jadi){
 }
 async function padamGuru(emel,nama){
   if(!isAdmin()) return toast("Tiada kebenaran.");
-  if(!confirm(`Padam pengguna "${nama||emel}"?\n\nAkaun dan lantikan jurulatih beliau akan dibuang.`)) return;
+  if(!await sahkan(`Padam pengguna "${nama||emel}"?\n\nAkaun dan lantikan jurulatih beliau akan dibuang.`)) return;
   try{
     await api("padamGuru",{emel,...who()});
     DB.guru=(DB.guru||[]).filter(x=>String(x.emel).toLowerCase()!==String(emel).toLowerCase());
@@ -3861,7 +3926,7 @@ function mxEditPeserta(id){
 async function mxPadamPeserta(id){
   if(!isAdmin()) return toast("Hanya Master Admin / Sub Admin boleh memadam peserta.");
   const a=atletById(id); if(!a) return toast("Peserta tidak dijumpai");
-  if(!confirm(`Padam peserta "${a["NAMA PENUH"]}"?\n\nSemua penyertaan acara, kehadiran, rekod dan fail peserta ini akan turut dipadam.`)) return;
+  if(!await sahkan(`Padam peserta "${a["NAMA PENUH"]}"?\n\nSemua penyertaan acara, kehadiran, rekod dan fail peserta ini akan turut dipadam.`)) return;
   try{
     await api("padamAtlet",{id,...who()});
     DB.atlet=(DB.atlet||[]).filter(x=>String(x.ID)!==String(id));
@@ -4347,7 +4412,7 @@ async function simpanTambahCatatan(id){
 async function padamMediaUI(id){
   const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
   if(m&&!bolehUrusMedia(m)) return toast("Hanya jurulatih acara, Master Admin atau Sub Admin boleh memadam media.");
-  if(!confirm("Padam media ini dari Google Drive & Google Sheet?")) return;
+  if(!await sahkan("Padam media ini dari Google Drive & Google Sheet?")) return;
   const el=document.getElementById("md-"+id); if(el) el.style.opacity=.4;
   try{
     await api("padamMedia",{id,...who()});
@@ -4763,7 +4828,7 @@ async function simpanJadual(){
   }catch(e){ btn.disabled=false; pr.textContent=""; toastRalat(e); }
 }
 async function padamJadualUI(id){
-  if(!confirm("Padam jadual ini?")) return;
+  if(!await sahkan("Padam jadual ini?\n\nFail jadual akan dibuang. Pastikan anda mahu meneruskan.",{title:"Padam jadual?",okText:"Ya, padam"})) return;
   try{ await api("padamJadual",{id,...who()}); DB.jadual=(DB.jadual||[]).filter(j=>String(j.ID)!==String(id)); render(); toast("Dipadam"); }
   catch(e){ toastRalat(e); }
 }
