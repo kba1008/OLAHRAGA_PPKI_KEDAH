@@ -186,10 +186,10 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .acara-settings-btn{width:auto;margin:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
 .acara-settings-panel{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .acara-settings-panel.on{display:block}
-.dd-menu{position:fixed;z-index:9999;min-width:210px;background:var(--card,#fff);border:1px solid rgba(0,0,0,.12);border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.18);padding:6px;overflow:hidden}
+.dd-menu{position:fixed;z-index:9999;min-width:210px;background:var(--bg2,#0d1330);border:1px solid var(--line,rgba(255,255,255,.14));border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.5);padding:6px;overflow:hidden}
 .dd-tajuk{font-size:11px;font-weight:800;opacity:.6;padding:6px 10px 8px;text-transform:uppercase;letter-spacing:.4px}
 .dd-item{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:inherit}
-.dd-item:hover{background:rgba(0,0,0,.06)}
+.dd-item:hover{background:rgba(255,255,255,.1)}
 .dd-item.bad{color:#c62828}
 .ikonPrev{width:96px;height:96px;border-radius:22px;overflow:hidden;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:26px;margin:8px auto}
 .ikonPrev img{width:100%;height:100%;object-fit:cover;display:block}
@@ -483,7 +483,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbx26GUX7Y-4P0MY33u-eNiq4dkH8hTTFLP_GmDNelc4ZJGEd51pFwahctnAdMCHybgr/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -4113,7 +4113,6 @@ function menuEditMedia(id,btn){
   menu.onclick=e=>e.stopPropagation();
   menu.innerHTML=`<div class="dd-tajuk">Urus Fail</div>
     ${isAdmin()?`<button class="dd-item" onclick="tutupDropdown();formInfoMedia('${esc(id)}')">📝 Edit tajuk &amp; catatan</button>`:""}
-    <button class="dd-item" onclick="tutupDropdown();formNamaMedia('${esc(id)}')">✎ Edit nama</button>
     ${String(m["JENIS MEDIA"]).toUpperCase()==="CATATAN"?`<button class="dd-item" onclick="tutupDropdown();formTambahCatatan('${esc(id)}')">➕ Tambah catatan baharu</button>`:""}
     ${driveId&&String(m["JENIS MEDIA"]).toUpperCase()!=="CATATAN"?`<button class="dd-item" onclick="tutupDropdown();formGantiMedia('${esc(id)}')">🔄 Ganti fail</button>`:""}
     <button class="dd-item bad" onclick="tutupDropdown();padamMediaUI('${esc(id)}')">🗑 Padam fail</button>`;
@@ -4276,34 +4275,6 @@ function historiMedia(n){
   ${sen.length?sen.map(m=>kadMedia(m,bolehRekod(n))).join(""):`<div class="small">Belum ada media untuk acara ini.</div>`}
   </div>
   <button class="btn ghost" onclick="tutup()">Tutup</button>`);
-}
-
-function formNamaMedia(id){
-  const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
-  if(!m) return toast("Media tidak dijumpai");
-  const boleh=bolehUrusMedia(m);
-  if(!boleh) return toast("Hanya jurulatih acara, Master Admin atau Sub Admin boleh mengubah nama.");
-  const asal=m.TAJUK||(String(m["JENIS MEDIA"]||"Fail").toLowerCase()+" latihan");
-  tutup();
-  overlay(`<div class="big">✎ Edit Nama Fail / Media</div>
-    <div class="small">Nama baharu akan digunakan pada kad galeri dan fail di Google Drive.</div>
-    <label>Nama fail / media</label>
-    <input id="mdNamaEdit" maxlength="120" value="${esc(asal)}" placeholder="Contoh: Latihan pecut sesi pagi"/>
-    <button class="btn" id="mdNamaSimpan" onclick="simpanNamaMedia('${esc(id)}')">Simpan Nama</button>
-    <button class="btn ghost" onclick="tutup()">Batal</button>`);
-  setTimeout(()=>{const x=document.getElementById("mdNamaEdit");if(x){x.focus();x.select();}},50);
-}
-
-async function simpanNamaMedia(id){
-  const nama=((document.getElementById("mdNamaEdit")||{}).value||"").trim();
-  if(!nama) return toast("Nama media diperlukan.");
-  const btn=document.getElementById("mdNamaSimpan"); if(btn){btn.disabled=true;btn.textContent="Menyimpan…";}
-  try{
-    const r=await api("kemaskiniNamaMedia",{id,nama,...who()});
-    const m=(DB.media||[]).find(x=>String(x.ID)===String(id));
-    if(m){ m.TAJUK=nama; if(r&&r.namaFail) m["NAMA FAIL"]=r.namaFail; }
-    simpanCacheDB(DB); tutup(); render(); toast("Nama fail / media dikemas kini");
-  }catch(e){toastRalat(e);if(btn){btn.disabled=false;btn.textContent="Simpan Nama";}}
 }
 
 function formTambahCatatan(id){
