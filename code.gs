@@ -1190,7 +1190,7 @@ function buangJurulatih(p) {
 function normEmel(x) { return String(x || "").toLowerCase().trim(); }
 
 /* ---------------- Tetapan Sistem (Master Admin) ---------------- */
-var TEMA_SAH = ["BIRU", "UNGU", "HIJAU", "MERAH", "EMAS"];
+var TEMA_SAH = ["BIRU", "UNGU", "HIJAU", "MERAH", "EMAS", "ASAL", "PUTIH"];
 var TETAPAN_LALAI = { MOD_REKOD: "JURULATIH", TEMA_APP: "BIRU" }; /* JURULATIH = hanya jurulatih acara, SEMUA = semua pengguna berdaftar */
 
 /* Tema bersama: token hanya dikeluarkan selepas login master berjaya.

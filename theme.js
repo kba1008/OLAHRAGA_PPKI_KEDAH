@@ -1,9 +1,9 @@
-/* Lima pilihan sahaja; nilai lain tidak boleh menjadi CSS atau tema baharu. */
+/* Tujuh pilihan sahaja; nilai lain tidak boleh menjadi CSS atau tema baharu. */
 const AT_TEMA=Object.freeze({pilihan:Object.freeze([
   {id:"BIRU",nama:"Biru Safir"},{id:"UNGU",nama:"Ungu Amethyst"},
   {id:"HIJAU",nama:"Hijau Emerald"},{id:"MERAH",nama:"Merah Ruby"},
-  {id:"EMAS",nama:"Emas Champagne"}
-]),normal:n=>["BIRU","UNGU","HIJAU","MERAH","EMAS"].includes(String(n||"").toUpperCase())?String(n).toUpperCase():"BIRU"});
+  {id:"EMAS",nama:"Emas Champagne"},{id:"ASAL",nama:"Tema Asal"},{id:"PUTIH",nama:"Putih"}
+]),normal:n=>["BIRU","UNGU","HIJAU","MERAH","EMAS","ASAL","PUTIH"].includes(String(n||"").toUpperCase())?String(n).toUpperCase():"BIRU"});
 let TEMA_MENYIMPAN=false,TEMA_VERSI=0,TEMA_BACA=false;
 function temaSemasa(){return AT_TEMA.normal(document.documentElement.dataset.tema);}
 function gunaTema(n){

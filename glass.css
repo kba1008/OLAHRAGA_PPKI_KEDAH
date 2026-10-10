@@ -4,15 +4,18 @@
 [data-tema="HIJAU"]{--p1:oklch(.55 .13 165);--p2:oklch(.81 .12 160);--p3:oklch(.75 .10 210);--bg:oklch(.16 .025 165);--bg2:oklch(.24 .038 165)}
 [data-tema="MERAH"]{--p1:oklch(.56 .2 20);--p2:oklch(.81 .1 20);--p3:oklch(.72 .12 45);--bg:oklch(.16 .025 20);--bg2:oklch(.24 .038 20)}
 [data-tema="EMAS"]{--p1:oklch(.55 .105 85);--p2:oklch(.85 .12 90);--p3:oklch(.76 .09 55);--bg:oklch(.16 .018 85);--bg2:oklch(.24 .025 85)}
-:root{--txt:oklch(.97 .008 255);--mut:oklch(.78 .022 255);--glass-light:oklch(1 0 0 / .2);--glass-edge:oklch(1 0 0 / .24);--glass-shadow:oklch(.05 0 0 / .6);--glass-low:oklch(1 0 0 / .045);--line:var(--glass-edge);--card:color-mix(in oklch,var(--bg2) 82%,transparent);--grad:linear-gradient(135deg,var(--p1),color-mix(in oklch,var(--p1) 62%,var(--p2)));--glass-face:linear-gradient(145deg,var(--glass-light),var(--glass-low) 42%,color-mix(in oklch,var(--p1) 12%,transparent));--glass-surface:linear-gradient(145deg,color-mix(in oklch,var(--bg2) 90%,var(--txt)),var(--bg2) 58%);--sh:0 20px 38px -18px var(--glass-shadow),0 5px 0 -2px color-mix(in oklch,var(--bg) 85%,var(--p1)),inset 0 1px 0 var(--glass-light),inset 0 -1px 0 var(--glass-low);--control-shadow:0 4px 0 color-mix(in oklch,var(--bg) 78%,var(--p1)),0 10px 18px -10px var(--glass-shadow),inset 0 1px 0 var(--glass-edge);--focus-ring:0 0 0 3px color-mix(in oklch,var(--p2) 25%,transparent);--r:18px;--popup-surface:var(--bg2);--popup-shadow:var(--sh);--report-focus:var(--p2)}
+[data-tema="ASAL"]{--p1:oklch(.51 .27 290);--p2:oklch(.77 .15 227);--p3:oklch(.67 .26 355);--bg:oklch(.155 .039 273);--bg2:oklch(.197 .058 272)}
+:root{--button-ink:oklch(.99 0 0);--heading:var(--p2);--link:var(--p2);--ok:oklch(.8 .14 160);--warn:oklch(.85 .14 85);--bad:oklch(.8 .12 20);--txt:oklch(.97 .008 255);--mut:oklch(.78 .022 255);--glass-light:oklch(1 0 0 / .2);--glass-edge:oklch(1 0 0 / .24);--glass-shadow:oklch(.05 0 0 / .6);--glass-low:oklch(1 0 0 / .045);--line:var(--glass-edge);--card:color-mix(in oklch,var(--bg2) 82%,transparent);--grad:linear-gradient(135deg,color-mix(in oklch,var(--p1) 78%,var(--bg)),color-mix(in oklch,var(--p1) 65%,var(--bg)));--glass-face:linear-gradient(145deg,var(--glass-light),var(--glass-low) 42%,color-mix(in oklch,var(--p1) 12%,transparent));--glass-surface:linear-gradient(145deg,color-mix(in oklch,var(--bg2) 90%,var(--txt)),var(--bg2) 58%);--sh:0 20px 38px -18px var(--glass-shadow),0 5px 0 -2px color-mix(in oklch,var(--bg) 85%,var(--p1)),inset 0 1px 0 var(--glass-light),inset 0 -1px 0 var(--glass-low);--control-shadow:0 4px 0 color-mix(in oklch,var(--bg) 78%,var(--p1)),0 10px 18px -10px var(--glass-shadow),inset 0 1px 0 var(--glass-edge);--focus-ring:0 0 0 3px color-mix(in oklch,var(--p2) 25%,transparent);--r:18px;--popup-surface:var(--bg2);--popup-shadow:var(--sh);--report-focus:var(--p2);--report-ink:var(--button-ink)}
+[data-tema="ASAL"]{--grad:linear-gradient(135deg,color-mix(in oklch,var(--p1) 75%,var(--bg)),color-mix(in oklch,var(--p2) 48%,var(--bg)) 55%,color-mix(in oklch,var(--p3) 60%,var(--bg)))}
+[data-tema="PUTIH"]{--p1:oklch(.43 .16 255);--p2:oklch(.4 .14 255);--p3:oklch(.44 .12 185);--bg:oklch(.98 .003 250);--bg2:oklch(.955 .006 250);--txt:oklch(.24 .025 255);--mut:oklch(.43 .025 255);--ok:oklch(.38 .09 160);--warn:oklch(.4 .085 75);--bad:oklch(.43 .17 25);--glass-light:oklch(1 0 0 / .65);--glass-edge:oklch(.68 .022 250 / .65);--glass-low:oklch(1 0 0 / .15);--glass-shadow:oklch(.3 .025 250 / .16);--grad:linear-gradient(135deg,var(--p1),var(--p2));--glass-surface:linear-gradient(145deg,oklch(1 0 0),var(--bg2));--media-edit-ink:var(--warn);--media-edit-surface:var(--bg2)}
 body{background:linear-gradient(150deg,color-mix(in oklch,var(--bg) 88%,var(--p1)),var(--bg) 52%,color-mix(in oklch,var(--bg) 92%,var(--p2)));background-attachment:fixed;color:var(--txt);color-scheme:dark}
 .card,.item,.kat3d,.tile,.media-kad,.jd-item,.fileit,.stat,.kpi,.media-upload,.rk3d,.sheet,.at-dialog,.dd-menu{background:var(--glass-face),var(--card);border-color:var(--glass-edge);box-shadow:var(--sh);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%)}
 .tile,.kat3d{transform:perspective(1000px) rotateX(2deg);transform-origin:center;transition:transform .2s ease,box-shadow .2s ease}
-.tile.t1,.tile.t2,.tile.t3,.tile.t4{background:var(--glass-face),var(--grad)}
+.tile.t1,.tile.t2,.tile.t3,.tile.t4{background:var(--grad);color:var(--button-ink)}
 .tile:before,.kat3d:before{background:linear-gradient(120deg,var(--glass-light),transparent 45%)}
 .card,.item,.jd-item{transition:box-shadow .2s ease,border-color .2s ease}
-.btn,.back,.tabs button,.rank,.logo,.mx-logo,.mx-btn,.cmb-btn,.fb-bar button,.fab-acara button,.pmp-btn,.rnd{color:var(--txt);border:1px solid var(--glass-edge);box-shadow:var(--control-shadow);background:var(--glass-face),var(--grad);transition:transform .15s ease,filter .15s ease}
-.btn.ghost,.back,.tabs button:not(.on),.cmb-btn,.mx-btn.alt,.fab-acara button{background:var(--glass-face),var(--card);box-shadow:var(--control-shadow)}
+.btn,.back,.tabs button,.rank,.logo,.mx-logo,.mx-btn,.cmb-btn,.fb-bar button,.fab-acara button,.pmp-btn,.rnd{color:var(--button-ink);border:1px solid var(--glass-edge);box-shadow:var(--control-shadow);background:var(--grad);transition:transform .15s ease,filter .15s ease}
+.btn.ghost,.back,.tabs button:not(.on),.cmb-btn,.mx-btn.alt,.fab-acara button{background:var(--glass-face),var(--card);box-shadow:var(--control-shadow);color:var(--txt)}
 .btn.ok,.cmb-btn.pri{background:var(--glass-face),color-mix(in oklch,var(--ok) 48%,var(--bg2));color:var(--txt)}
 .btn.bad,.fab-acara button:last-child{background:var(--glass-face),color-mix(in oklch,var(--bad) 55%,var(--bg2));color:var(--txt)}
 .btn.report-action{background:var(--glass-face),color-mix(in oklch,var(--report-tone) 45%,var(--bg2));box-shadow:var(--control-shadow)}
@@ -23,7 +26,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--p2);box-shadow:var(--
 .nav{background:var(--glass-face),color-mix(in oklch,var(--bg2) 90%,transparent);box-shadow:0 -8px 30px -12px var(--glass-shadow);border-color:var(--glass-edge)}
 .nav button{border-radius:10px;min-height:48px}.nav button.on{color:var(--p2);background:var(--glass-face);box-shadow:inset 0 1px 0 var(--glass-light)}
 .chip,.badge,.pill{box-shadow:inset 0 1px 0 var(--glass-light),0 2px 4px var(--glass-shadow)}
-.kat3d-nama,.stat b{background:none;color:var(--p2);-webkit-text-fill-color:var(--p2)}
+.kat3d-nama,.stat b{background:none;color:var(--heading);-webkit-text-fill-color:var(--heading)}
 .kat3d-bil,.rank{border-color:var(--line)}
 .media-kad .mk-ikon,.ikonPrev{background:var(--glass-face),var(--grad)}
 .sync,.toast,.fb-wrap{background:var(--glass-surface);border-color:var(--line);color:var(--txt);text-shadow:none}
@@ -34,3 +37,30 @@ input:focus,select:focus,textarea:focus{border-color:var(--p2);box-shadow:var(--
 @media print{.tema-panel{display:none}.card,.item,.sheet{box-shadow:none;backdrop-filter:none;background:none}}
 /* Popup mesti kekal legap dan jelas di atas lapisan gelap. */
 .sheet,.at-dialog{background:var(--glass-face),var(--bg2);color:var(--txt);backdrop-filter:none;-webkit-backdrop-filter:none}
+
+/* Hierarki tulisan: tajuk, teks sokongan dan tindakan berkontras. */
+h1,h2,h3,.big{color:var(--txt)}
+label,.small,.mut,input::placeholder,textarea::placeholder{color:var(--mut);opacity:1}
+a,.rk3d a{color:var(--link)}
+.badge,.logo,.mx-logo,.rank,.pmp-btn,.rnd{background:var(--grad);color:var(--button-ink)}
+.tile .small,.tile b,.tile h3,.tile .big,.tile .tile-h,.tile .tile-p,.tile .ico{color:var(--button-ink)}
+.btn.ok,.cmb-btn.pri{background:var(--action-ok);color:var(--button-ink)}
+.btn.bad,.fab-acara button:last-child{background:var(--action-bad);color:var(--button-ink)}
+.btn.report-action{background:var(--report-tone);color:var(--button-ink)}
+.chip,.pill{background:var(--glass-low);color:var(--mut)}
+[data-tema="PUTIH"] body{color-scheme:light;background:var(--bg)}
+[data-tema="PUTIH"] .card,[data-tema="PUTIH"] .item,[data-tema="PUTIH"] .sheet,[data-tema="PUTIH"] .at-dialog,[data-tema="PUTIH"] .dd-menu{background:var(--glass-surface)}
+[data-tema="PUTIH"] .teamBox{background:var(--bg2)}
+
+:root{--brand:var(--heading);--action-ok:oklch(.4 .09 160);--action-bad:oklch(.43 .16 25)}
+.pill{color:var(--ok)}
+.tagGugur,.dd-item.bad,.mx-del{color:var(--bad)}
+.mx-editp{color:var(--link)}
+.media-kad .mk-ikon,.ikonPrev{background:var(--grad);color:var(--button-ink)}
+.acara-acts .rnd .bil{background:var(--action-ok);color:var(--button-ink)}
+@media screen{
+ .wrap [style*="color:#9fb0d9"],.wrap [style*="color:#5b6b8f"],.wrap [style*="color:#0b1533"]{color:var(--mut)!important}
+ .wrap [style*="color:var(--p3)"],.wrap [style*="color:var(--p1)"]{color:var(--heading)!important}
+ table.mx td.nm .no,table.mx td.cx.off{color:var(--mut)}
+ table.mx td.cx.on{color:var(--ok);background:color-mix(in oklch,var(--bg2) 90%,var(--ok))!important}
+}
