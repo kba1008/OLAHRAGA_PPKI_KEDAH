@@ -44,7 +44,7 @@ async function segerakTema(){
   finally{TEMA_BACA=false;}
 }
 function mulaSegerakTema(){
-  segerakTema();setInterval(segerakTema,12000);
+  setInterval(segerakTema,60000);
   window.addEventListener('focus',segerakTema);window.addEventListener('online',segerakTema);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')segerakTema();});
 }

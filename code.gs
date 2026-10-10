@@ -1930,7 +1930,7 @@ var TANPA_LOCK = { temaApp: 1, ping: 1, data: 1, login: 1, tokenNaikMedia: 1, to
    Balasan "data" disimpan dalam cache supaya pemuatan jauh lebih laju.
    Cache dibatalkan secara automatik setiap kali ada penulisan data. */
 var CACHE_KEY = "AT_DATA_V1";
-var CACHE_TTL = 15; /* saat — pendek supaya perubahan Sheet cepat sampai ke telefon */
+var CACHE_TTL = 60; /* saat — penulisan aplikasi tetap membatalkan cache serta-merta */
 
 function cacheBaca_() {
   try {
