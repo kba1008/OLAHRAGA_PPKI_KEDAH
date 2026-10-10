@@ -590,7 +590,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzXAysoxtMQUpTvQ6FV-BU9oJnvepkRkZaazpfKaTzxDLLXIPtKBLgnt4Fw6ER2e9bl/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -967,6 +967,8 @@ function nilaiRingkas(rk,info){
   return x.toFixed(2)+"m";
 }
 const teksKejohanan=(rk,info)=>`${namaPeringkat(rk)} : ${nilaiRingkas(rk,info)}${rk.TAHUN?" / "+rk.TAHUN:""}`;
+/* Versi ringkas untuk paparan yang sudah memaparkan nama peringkat sebagai lencana (elak perkataan berulang). */
+const nilaiTahunKejohanan=(rk,info)=>`${nilaiRingkas(rk,info)}${rk.TAHUN?" / "+rk.TAHUN:""}`;
 const hadirHariIni=(id,tarikh)=>((DB&&DB.kehadiran)||[]).some(k=>String(k.TARIKH).slice(0,10)===tarikh&&String(k["ATLET ID"])===String(id)&&String(k.STATUS).toUpperCase()==="HADIR");
 const failAtletList=id=>((DB&&DB.failAtlet)||[]).filter(f=>String(f["ATLET ID"])===String(id));
 /* Acara berpasukan (relay) — satu rekod dikongsi oleh beberapa atlet */
@@ -1984,8 +1986,8 @@ function kadKejohanan(n,info,boleh,kats){
 function headerKategoriRekod(n,info,k,bil,boleh){
   const baris=PERINGKAT_KEJOHANAN.map(p=>{
     const rk=kejohananPeringkat(n,k,p);
-    if(rk) return `<span class="rk3d"><span class="rk-p">${p}</span>
-        <b>${esc(teksKejohanan(rk,info))}</b>
+    if(rk) return `<span class="rk3d"><span class="rk-p">${p}</span> :
+        <b>${esc(nilaiTahunKejohanan(rk,info))}</b>
         ${boleh?`<a href="javascript:void(0)" title="Kemas kini / padam rekod" onclick="formKejohanan('${esc(n)}','${esc(k)}','${esc(rk.ID)}')">✎</a>`:""}
       </span>`;
     return boleh
