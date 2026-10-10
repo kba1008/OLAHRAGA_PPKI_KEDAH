@@ -605,7 +605,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxssouVnmreCa62f4zNdTBmUs-JcTUxKxia1PmohKJCITTaiY7FdNFimuU-xazMTckT/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -3133,7 +3133,7 @@ function vDashboard(){
   }).join("");
 
   app().innerHTML=`${topbar("Dashboard Ranking","home")}
-  ${modPerlawanan()?panelKejohananDashboard():""}
+  ${modPerlawanan()?panelKejohananDashboard():kotakCetakKejohanan()}
   <div class="duo">
     ${panelHarapanRingkas()}
     ${panelBmiRingkas()}
@@ -5413,6 +5413,23 @@ async function tukarModPerlawanan(aktif){
     DB.tetapan=Object.assign({},DB.tetapan||{},{MOD_PERLAWANAN:aktif?"AKTIF":"TIDAK"},aktif?{NAMA_KEJOHANAN:normKej(nama)}:{});
     toast(aktif?"Mod Perlawanan diaktifkan":"Mod Perlawanan ditutup"); render();
   }catch(e){ toastRalat(e); }
+}
+
+/* ---------- Kotak merah: cetak laporan kejohanan lepas (Mod Latihan) ---------- */
+function kotakCetakKejohanan(){
+  const senarai=senaraiKejohananPL();
+  if(!senarai.length) return "";
+  if(PL_KEJ) PL_KEJ=normKej(PL_KEJ);
+  if(!PL_KEJ||senarai.indexOf(PL_KEJ)<0) PL_KEJ=senarai[0];
+  return `<div class="card" style="border:2px solid var(--bad);background:color-mix(in srgb,var(--bad) 6%,transparent)">
+    <div class="nm" style="color:var(--bad)">🖨 Cetak Laporan Korporat Kejohanan</div>
+    <div class="small" style="margin-top:4px">Semua data kejohanan lepas disimpan selamat dalam app ini. Pilih kejohanan untuk mencetak laporannya.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">
+      <select onchange="PL_KEJ=this.value" style="flex:1;min-width:200px">${senarai.map(k=>`<option ${k===PL_KEJ?"selected":""}>${esc(k)}</option>`).join("")}</select>
+      <button class="btn sm" onclick="cetakLaporanKejohanan()">🖨 Cetak Laporan Korporat Kejohanan</button>
+    </div>
+    <div class="small" style="margin-top:6px;opacity:.8">📂 ${senarai.length} kejohanan tersimpan — data latihan dan semua event kekal dalam graf acara setiap peserta.</div>
+  </div>`;
 }
 
 /* ---------- Panel Dashboard: Laporan Kejohanan ---------- */
