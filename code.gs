@@ -167,6 +167,7 @@ function setupPangkalanData() {
   dapatSheet(SHEET_TETAPAN, HEADERS[SHEET_TETAPAN], "#0f766e");
   dapatSheet(SHEET_BMI, HEADERS[SHEET_BMI], "#0f766e");
   dapatSheet(SHEET_MEDIA, HEADERS[SHEET_MEDIA], "#7c3aed");
+  dapatSheet(SHEET_JADUAL, HEADERS[SHEET_JADUAL], "#f97316");
   try { pastikanKolumTinggi(); } catch (e) {}
   var sa = dapatSheet(SHEET_ACARA, HEADERS[SHEET_ACARA], "#6d28f9");
   if (sa.getLastRow() < 2) sa.getRange(2, 1, ACARA_LALAI.length, 6).setValues(ACARA_LALAI);
@@ -1689,6 +1690,7 @@ var TINDAKAN = {
   muatNaikMedia: muatNaikMedia,
   tokenNaikMedia: tokenNaikMedia,
   tokenNaikJadual: tokenNaikJadual,
+  jadual: bacaJadual_,
   daftarJadual: daftarJadual,
   padamJadual: padamJadual,
   ambilPdfJadual: ambilPdfJadual,
@@ -1906,7 +1908,7 @@ function logRalat(payload, err) {
 }
 
 /* Aksi ringan tidak perlu Script Lock — bolehkan parallelism supaya kehadiran laju */
-var TANPA_LOCK = { temaApp: 1, ping: 1, data: 1, login: 1, tokenNaikMedia: 1, tokenNaikJadual: 1, ambilPdfJadual: 1 };
+var TANPA_LOCK = { temaApp: 1, ping: 1, data: 1, login: 1, tokenNaikMedia: 1, tokenNaikJadual: 1, jadual: 1, ambilPdfJadual: 1 };
 
 
 /* ============ CACHE PANTAS (Script Cache) ============
@@ -2036,7 +2038,7 @@ function folderJadual_() {
   var f = folderMedia().createFolder(NAMA_FOLDER_JADUAL); kongsiAwam(f); return f;
 }
 function bacaJadual_() {
-  try { return baca(SHEET_JADUAL); } catch (e) { return []; }
+  return baca(SHEET_JADUAL);
 }
 function wajibMaster_(emel) {
   if (!isAdmin(emel)) throw new Error("Hanya Master Admin / Sub Admin boleh memuat naik jadual perlawanan.");
@@ -2078,18 +2080,23 @@ function daftarJadual(p) {
   wajibMaster_(p && p.olehEmel);
   if (!p.driveId) throw new Error("Fail tidak dijumpai di Google Drive.");
   var fail = DriveApp.getFileById(String(p.driveId));
-  kongsiAwam(fail);
+  var s = dapatSheet(SHEET_JADUAL, HEADERS[SHEET_JADUAL], "#f97316");
+  var lama = bacaJadual_().filter(function(j){return String(j["DRIVE ID"])===String(p.driveId);})[0];
+  if(lama)return lama; // Ulangan selepas tamat masa tidak menggandakan rekod.
+  var dikongsi = kongsiAwam(fail);
   var mime = p.mime || fail.getMimeType() || "application/octet-stream";
   var nama = String(p.namaFail || fail.getName()).replace(/[\\/:*?"<>|]/g, "_").slice(0, 110);
   var saiz = Number(p.saiz || 0); if (!saiz) { try { saiz = fail.getSize(); } catch (e) {} }
-  var pdfId = ""; try { pdfId = tukarKePdfJadual_(fail.getId(), mime, nama); } catch (e) { Logger.log("Tukar PDF gagal: " + e); }
-  var s = dapatSheet(SHEET_JADUAL, HEADERS[SHEET_JADUAL], "#f97316");
+  // Rekod disimpan dahulu; penukaran Word/PPT hanya apabila buku dibuka.
+  var pdfId = /pdf/i.test(mime) || /\.pdf$/i.test(nama) ? fail.getId() : "";
   var id = "J" + new Date().getTime();
   var baris = [id, p.tajuk || nama, hadSel(p.catatan || ""), nama, mime, saiz, pautanDrive(fail.getId()),
     "https://drive.google.com/file/d/" + fail.getId() + "/preview", fail.getId(), pdfId,
     p.olehNama || "", String(p.olehEmel || "").toLowerCase(), nowStr()];
   s.appendRow(baris);
+  SpreadsheetApp.flush();cacheBatal_();
   var o = {}; for (var i = 0; i < baris.length; i++) o[HEADERS[SHEET_JADUAL][i]] = baris[i];
+  o.amaranPerkongsian = dikongsi ? "" : "Akaun Google menyekat perkongsian awam. Fail disimpan tetapi akses mungkin memerlukan log masuk Google.";
   return o;
 }
 function padamJadual(p) {
@@ -2107,6 +2114,20 @@ function padamJadual(p) {
 /* Ambil PDF (base64) untuk paparan buku. Terbuka kepada semua. */
 function ambilPdfJadual(p) {
   var j = bacaJadual_().filter(function (x) { return String(x["ID"]) === String(p.id); })[0];
-  if (!j || !j["PDF ID"]) throw new Error("Fail ini tiada versi PDF untuk dipaparkan sebagai buku.");
+  if (!j) throw new Error("Jadual tidak dijumpai.");
+  if (!j["PDF ID"]) {
+    var lock=LockService.getScriptLock();lock.waitLock(15000);
+    try {
+      j=bacaJadual_().filter(function(x){return String(x.ID)===String(p.id);})[0];
+      if(!j)throw new Error("Jadual telah dipadam.");
+      if(!j["PDF ID"]) {
+        var pdfId=tukarKePdfJadual_(j["DRIVE ID"],j.MIME,j["NAMA FAIL"]);
+        if(!pdfId)throw new Error("Penukaran PDF tidak tersedia. Buka atau muat turun fail asal.");
+        var sh=ss().getSheetByName(SHEET_JADUAL),v=sh.getDataRange().getValues();
+        for(var i=1;i<v.length;i++)if(String(v[i][0])===String(p.id)){sh.getRange(i+1,10).setValue(pdfId);break;}
+        SpreadsheetApp.flush();cacheBatal_();j["PDF ID"]=pdfId;
+      }
+    } finally {lock.releaseLock();}
+  }
   return { b64: Utilities.base64Encode(DriveApp.getFileById(String(j["PDF ID"])).getBlob().getBytes()) };
 }

@@ -589,7 +589,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzsd7apzlg5JUNMehD3WPiqHkGuikK70RO0UxEqzT5iTZ_dL_RL31m0T44JHVvxSXY/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -768,7 +768,7 @@ function apiGetFetch(action,payload){
     })
     .catch(e=>{ if(e&&e.kod) throw e; throw RalatDB("DB-003",String(e&&e.message||e),"fetch GET",action); });
 }
-const AKSI_BACA={data:1,ping:1,login:1,daftar:1};
+const AKSI_BACA={data:1,jadual:1,ping:1,login:1,daftar:1,temaApp:1,tokenNaikJadual:1,tokenNaikMedia:1,ambilPdfJadual:1};
 function api(action,payload){
   // Data besar (base64) → POST supaya lebih laju & tanpa had URL
   const saizPayload = (()=>{ try{ return JSON.stringify(payload||{}).length; }catch(e){ return 0; } })();
@@ -1085,11 +1085,23 @@ async function muat(){
   /* Paparan serta-merta daripada cache peranti, kemudian segerak di belakang tabir */
   if(!DB){ const c=bacaCacheDB(); if(c){ DB=c.d; render(); segerakSenyap(); return; } }
   loading();
-  try{ DB=await api("data",{paksa:1}); simpanCacheDB(DB); render(); }
+  try{ DB=await api("data",{}); simpanCacheDB(DB); render(); }
   catch(e){ app().innerHTML=kadRalat(e,"muat()"); }
 }
 
 let SEGERAK=false, T_SEGERAK=null;
+let JD_SIBUK=false, JD_VERSI=0;
+const JD_DISAHKAN=new Map(), JD_DIPADAM=new Set();
+const jdKunci=()=>"at_jadual_pending:"+API;
+function jdPending(){try{return JSON.parse(localStorage.getItem(jdKunci())||"null");}catch(e){return null;}}
+function jdGabung(rows){
+  if(!Array.isArray(rows)) throw new Error("Senarai jadual tidak sah. Kemas kini deployment code.gs.");
+  const peta=new Map(rows.filter(j=>!JD_DIPADAM.has(String(j.ID))).map(j=>[String(j.ID),j]));
+  JD_DISAHKAN.forEach((j,id)=>{if(peta.has(id))JD_DISAHKAN.delete(id);else peta.set(id,j);});
+  return [...peta.values()];
+}
+function jdSimpanLokal(o){JD_VERSI++;JD_DISAHKAN.set(String(o.ID),o);DB.jadual=jdGabung(DB.jadual||[]);simpanCacheDB(DB);}
+window.addEventListener("beforeunload",e=>{if(JD_SIBUK||MEDIA_SIBUK){e.preventDefault();e.returnValue="";}});
 function lencanaSegerak(on){
   let b=$("#syncb");
   if(on){
@@ -1099,13 +1111,19 @@ function lencanaSegerak(on){
   } else if(b) b.remove();
 }
 async function segerakSenyap(){
-  if(SEGERAK||!API||galSibuk()) return;
-  const versiGaleri=GAL_VERSI;
+  if(SEGERAK||!API||galSibuk()||JD_SIBUK) return;
+  const versiGaleri=GAL_VERSI, versiJadual=JD_VERSI;
   SEGERAK=true; lencanaSegerak(true);
   try{
-    const d=await apiJsonp("data",{paksa:1},45000);
+    if(VIEW==="jadual"){
+      const rows=await apiJsonp("jadual",{},20000);
+      if(JD_SIBUK||versiJadual!==JD_VERSI)return;
+      DB.jadual=jdGabung(rows);simpanCacheDB(DB);if(bolehRenderSemula())render();return;
+    }
+    const d=await apiJsonp("data",{},45000);
     /* Bacaan lama: susunan galeri berubah semasa bacaan ini berjalan — buang */
-    if(galSibuk()||versiGaleri!==GAL_VERSI) return;
+    if(galSibuk()||versiGaleri!==GAL_VERSI||JD_SIBUK||versiJadual!==JD_VERSI) return;
+    d.jadual=jdGabung(d.jadual);
     let sama=false; try{ sama=JSON.stringify(d)===JSON.stringify(DB); }catch(_){}
     if(sama) return;                    /* tiada perubahan — elak paparan berkelip */
     DB=d; simpanCacheDB(d);
@@ -1119,7 +1137,7 @@ function jadualSegerak(ms){ clearTimeout(T_SEGERAK); T_SEGERAK=setTimeout(segera
 /* Segerak berkala & bila app kembali aktif */
 /* Jangan render semula bila pengguna sedang menaip (borang akan hilang isinya) */
 function bolehRenderSemula(){
-  if(galSibuk()) return false;
+  if(galSibuk()||JD_SIBUK||MEDIA_SIBUK) return false;
   if($("#ov") || $(".at-dialog[open]")) return false;                 /* overlay/borang terbuka */
   if(modeAuth==="daftar" && !U) return false; /* borang pendaftaran sedang diisi */
   const a=document.activeElement;
@@ -4865,7 +4883,7 @@ function overlay(html){
   document.body.appendChild(d);
   try{ history.pushState({ov:1},"", "#ov"); }catch(e){}
 }
-function tutup(){ if(MEDIA_SIBUK)return toast("Muat naik sedang berjalan. Sila tunggu sehingga selesai."); if(GRAF_CART){GRAF_CART.destroy();GRAF_CART=null;} GRAF_CTX=null; try{ camTutup(); }catch(e){} const o=$("#ov"); if(o){o.remove();if(typeof o._selepasTutup==="function") o._selepasTutup();} }
+function tutup(){ if(MEDIA_SIBUK||JD_SIBUK)return toast("Muat naik sedang berjalan. Sila tunggu sehingga selesai."); if(GRAF_CART){GRAF_CART.destroy();GRAF_CART=null;} GRAF_CTX=null; try{ camTutup(); }catch(e){} const o=$("#ov"); if(o){o.remove();if(typeof o._selepasTutup==="function") o._selepasTutup();} }
 
 /* ---------- Mula ---------- */
 /* Manifest dikekalkan. Tiada pendaftaran cache aplikasi baharu.
@@ -4884,10 +4902,12 @@ const jdIkon=j=>{const m=String(j.MIME||"").toLowerCase(),n=String(j["NAMA FAIL"
   if(/presentation|powerpoint/.test(m)||/\.pptx?$/.test(n)) return "📙";
   if(/^image/.test(m)) return "🖼"; if(/^video/.test(m)) return "🎬"; return "📄";};
 const jdMuatTurun=j=>j["DRIVE ID"]?"https://drive.google.com/uc?export=download&id="+encodeURIComponent(j["DRIVE ID"]):(j.PAUTAN||"#");
+const jdBolehBuku=j=>!!j["PDF ID"]||/pdf|msword|wordprocessingml|opendocument\.text|rtf|powerpoint|presentationml|opendocument\.presentation|google-apps\.(document|presentation)/i.test(j.MIME||"")||/\.(pdf|docx?|odt|rtf|pptx?|odp)$/i.test(j["NAMA FAIL"]||"");
 function vJadual(){
   const L=(DB.jadual||[]).slice().sort((a,b)=>String(b["TARIKH & MASA"]||"").localeCompare(String(a["TARIKH & MASA"]||"")));
   app().innerHTML=`${topbar("📅 Jadual Perlawanan")}
   ${isAdmin()?`<div class="card"><button class="btn" onclick="formJadual()">⬆ Muat Naik Jadual</button><div class="small" style="margin-top:6px">Semua jenis fail diterima. PDF & Word boleh diselak seperti buku.</div></div>`:""}
+  ${isAdmin()&&jdPending()?`<div class="card"><div class="small">Fail sudah dihantar ke Drive tetapi pendaftaran belum disahkan.</div><button class="btn" onclick="sambungDaftarJadual()">↻ Sahkan semula simpanan</button></div>`:""}
   <div class="jd-list">${L.length?L.map(j=>`<article class="jd-item">
      <div class="jd-ic" aria-hidden="true">${jdIkon(j)}</div>
      <div class="jd-info"><div class="jd-nm">${esc(j.TAJUK||j["NAMA FAIL"])}</div>
@@ -4895,7 +4915,7 @@ function vJadual(){
      <div class="small jd-date">${esc(String(j["TARIKH & MASA"]||"").slice(0,16))}</div>
      ${j.CATATAN?`<div class="small jd-note">${esc(j.CATATAN)}</div>`:""}</div>
      <div class="jd-actions ${isAdmin()?"":"jd-readonly"}">
-     <button class="btn sm ghost jd-open" onclick="bukaJadual('${esc(j.ID)}')">${j["PDF ID"]?"📖 Buku":"📄 Buka fail"}</button>
+     <button class="btn sm ghost jd-open" onclick="bukaJadual('${esc(j.ID)}')">${jdBolehBuku(j)?"📖 Buku":"📄 Buka fail"}</button>
      <a class="btn sm ghost" title="Muat turun" aria-label="Muat turun ${esc(j.TAJUK||j["NAMA FAIL"])}" href="${esc(jdMuatTurun(j))}" target="_blank" rel="noopener">⬇</a>
      ${isAdmin()?`<button class="btn sm ghost" title="Padam" aria-label="Padam ${esc(j.TAJUK||j["NAMA FAIL"])}" onclick="padamJadualUI('${esc(j.ID)}')">🗑</button>`:""}
      </div>
@@ -4911,40 +4931,60 @@ function formJadual(){
   <button class="btn" id="jdBtn" onclick="simpanJadual()">Muat Naik</button>
   <button class="btn ghost" onclick="tutup()">Batal</button>`);
 }
+async function jdDaftar(payload){
+  const o=await api("daftarJadual",{...payload,...who()});
+  if(!o||!o.ID||String(o["DRIVE ID"])!==String(payload.driveId))throw new Error("Simpanan belum disahkan. Sila cuba semula.");
+  jdSimpanLokal(o);localStorage.removeItem(jdKunci());if(o.amaranPerkongsian)toast(o.amaranPerkongsian);return o;
+}
+async function sambungDaftarJadual(){
+  const p=jdPending();if(!p||JD_SIBUK||!isAdmin())return;
+  JD_SIBUK=true;JD_VERSI++;
+  try{await jdDaftar(p);toast("Jadual disimpan ✅");}
+  catch(e){toastRalat(e);}
+  finally{JD_SIBUK=false;JD_VERSI++;render();jadualSegerak(1500);}
+}
 async function simpanJadual(){
-  const f=$("#jdFail").files[0]; if(!f) return toast("Sila pilih fail.");
-  const btn=$("#jdBtn"), pr=$("#jdProg"); btn.disabled=true;
+  if(JD_SIBUK||!isAdmin())return;
+  if(jdPending())return toast("Sahkan semula simpanan fail terdahulu dahulu.");
+  const input=$("#jdFail"),f=input&&input.files[0];if(!f||!f.size)return toast("Sila pilih fail yang tidak kosong.");
+  const btn=$("#jdBtn"),pr=$("#jdProg");btn.disabled=true;
+  const tajuk=$("#jdTajuk").value.trim(),catatan=$("#jdCat").value.trim();
+  JD_SIBUK=true;JD_VERSI++;
   try{
+    pr.textContent="Menyediakan muat naik…";
     const t=await api("tokenNaikJadual",{...who()});
     const mime=f.type||"application/octet-stream";
     const nama=String(f.name).replace(/[\\/:*?"<>|]/g,"_").slice(0,110);
     const mula=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true",{method:"POST",
       headers:{Authorization:"Bearer "+t.token,"Content-Type":"application/json; charset=UTF-8","X-Upload-Content-Type":mime,"X-Upload-Content-Length":String(f.size)},
       body:JSON.stringify({name:nama,parents:[t.folderId],mimeType:mime})});
-    const sesi=mula.ok&&(mula.headers.get("Location")||mula.headers.get("location"));
-    if(!sesi) throw new Error("Google Drive menolak muat naik ("+mula.status+").");
+    const sesi=mula.ok&&mula.headers.get("Location");
+    if(!sesi)throw new Error("Google Drive menolak muat naik ("+mula.status+").");
     let pos=0,hasil=null;
     while(pos<f.size){
       const akhir=Math.min(pos+MEDIA_CHUNK,f.size);
-      const res=await fetch(sesi,{method:"PUT",headers:{"Content-Range":`bytes ${pos}-${akhir-1}/${f.size}`},body:f.slice(pos,akhir)});
-      if(res.status===200||res.status===201){hasil=await res.json();break;}
-      if(res.status===308){const r=res.headers.get("Range");pos=r?Number(r.split("-")[1])+1:akhir;pr.textContent="Memuat naik… "+Math.round(pos/f.size*100)+"%";continue;}
+      const res=await hantarBahagianMedia(sesi,f.slice(pos,akhir),`bytes ${pos}-${akhir-1}/${f.size}`,loaded=>{pr.textContent="Memuat naik… "+Math.round((pos+loaded)/f.size*100)+"%";});
+      if(res.status===200||res.status===201){hasil=JSON.parse(res.text);break;}
+      if(res.status===308){const next=res.range?Number(res.range.split("-")[1])+1:akhir;if(next<=pos||next>f.size)throw new Error("Kemajuan muat naik tidak sah.");pos=next;continue;}
       throw new Error("Muat naik terhenti ("+res.status+").");
     }
-    if(!hasil&&f.size===0) throw new Error("Fail kosong.");
-    pr.textContent="Memproses fail (Word ditukar ke buku)…";
-    const o=await apiPost("daftarJadual",{driveId:hasil.id,namaFail:nama,mime,saiz:f.size,tajuk:$("#jdTajuk").value.trim(),catatan:$("#jdCat").value.trim(),...who()});
-    (DB.jadual=DB.jadual||[]).push(o); tutup(); toast("Jadual dimuat naik ✅"); jadualSegerak(600); render();
-  }catch(e){ btn.disabled=false; pr.textContent=""; toastRalat(e); }
+    if(!hasil||!hasil.id)throw new Error("Muat naik belum lengkap.");
+    const payload={driveId:hasil.id,namaFail:nama,mime,saiz:f.size,tajuk,catatan};
+    // Simpan resit Drive sahaja; tiada token atau kandungan fail disimpan.
+    localStorage.setItem(jdKunci(),JSON.stringify(payload));
+    pr.textContent="Mengesahkan simpanan jadual…";
+    await jdDaftar(payload);JD_SIBUK=false;tutup();toast("Jadual disimpan ✅");render();
+  }catch(e){btn.disabled=false;pr.textContent=jdPending()?"Fail berada di Drive. Tutup borang dan pilih Sahkan semula simpanan.":"Muat naik belum disahkan.";toastRalat(e);}
+  finally{JD_SIBUK=false;JD_VERSI++;jadualSegerak(1500);}
 }
 async function padamJadualUI(id){
   if(!await sahkan("Padam jadual ini?\n\nFail jadual akan dibuang. Pastikan anda mahu meneruskan.",{title:"Padam jadual?",okText:"Ya, padam"})) return;
-  try{ await api("padamJadual",{id,...who()}); DB.jadual=(DB.jadual||[]).filter(j=>String(j.ID)!==String(id)); render(); toast("Dipadam"); }
+  try{ await api("padamJadual",{id,...who()}); JD_VERSI++;JD_DIPADAM.add(String(id));JD_DISAHKAN.delete(String(id));DB.jadual=(DB.jadual||[]).filter(j=>String(j.ID)!==String(id));simpanCacheDB(DB);render(); toast("Dipadam"); }
   catch(e){ toastRalat(e); }
 }
 function bukaJadual(id){
   const j=(DB.jadual||[]).find(x=>String(x.ID)===String(id)); if(!j) return;
-  if(j["PDF ID"]) return bukaBuku(j);
+  if(jdBolehBuku(j)) return bukaBuku(j);
   window.open(j["PAUTAN"]||j["URL PAPAR"],"_blank");
 }
 let PDFJS_P=null;
@@ -4956,11 +4996,12 @@ function muatPdfJs(){
     s.onerror=()=>{PDFJS_P=null;rej(new Error("Gagal memuat pembaca PDF. Semak internet."))};document.head.appendChild(s);});
   return PDFJS_P;
 }
-function tutupBuku(){ try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){} const w=$("#fbWrap"); if(w) w.remove(); document.removeEventListener("keydown",fbKey); }
-let FB={i:0,n:0,pgs:[]};
+function tutupBuku(){ FB_VERSI++;if(FB.pdf)FB.pdf.destroy();try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){} const w=$("#fbWrap"); if(w) w.remove(); document.removeEventListener("keydown",fbKey); }
+let FB={i:0,n:0,pgs:[]}, FB_VERSI=0;
 function fbKey(e){ if(e.key==="ArrowRight") fbNext(); else if(e.key==="ArrowLeft") fbPrev(); else if(e.key==="Escape") tutupBuku(); }
 async function bukaBuku(j){
   tutupBuku();
+  const versi=FB_VERSI;
   const w=document.createElement("div"); w.className="fb-wrap"; w.id="fbWrap";
   w.innerHTML=`<div class="fb-top"><button class="back" onclick="tutupBuku()">✕</button><div class="t">${esc(j.TAJUK||j["NAMA FAIL"])}</div>
     <a class="btn sm ghost" style="width:auto;margin:0" href="${esc(jdMuatTurun(j))}" target="_blank">⬇ Muat Turun</a></div>
@@ -4971,23 +5012,20 @@ async function bukaBuku(j){
   try{
     const [lib,d]=await Promise.all([muatPdfJs(),apiPost("ambilPdfJadual",{id:j.ID})]);
     const bin=atob(d.b64), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
+    if(versi!==FB_VERSI)return;
     const pdf=await lib.getDocument({data:u}).promise;
-    if(!$("#fbWrap")) return;
+    if(versi!==FB_VERSI){pdf.destroy();return;}
     const p1=await pdf.getPage(1), v1=p1.getViewport({scale:1});
     const maxW=window.innerWidth*.96, maxH=window.innerHeight-130;
     const sk=Math.min(maxW/v1.width,maxH/v1.height);
     const book=$("#fbBook");
-    FB={i:0,n:pdf.numPages,pgs:[],w:v1.width*sk,h:v1.height*sk,z:1}; fbSaiz();
-    const HD=Math.min(4,Math.max(3,(window.devicePixelRatio||1)*2));
+    FB={i:0,n:pdf.numPages,pgs:[],w:v1.width*sk,h:v1.height*sk,z:1,pdf,sk,versi};fbSaiz();
     for(let k=1;k<=pdf.numPages;k++){
-      const pg=document.createElement("div"); pg.className="fb-pg"; pg.style.zIndex=pdf.numPages-k+1;
-      const c=document.createElement("canvas"); pg.appendChild(c); book.appendChild(pg); FB.pgs.push(pg);
-      const page=k===1?p1:await pdf.getPage(k), vp=page.getViewport({scale:sk*HD});
-      c.width=vp.width; c.height=vp.height;
-      await page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
-      $("#fbMsg").textContent=k<pdf.numPages?"Memuat halaman "+k+"/"+pdf.numPages+"…":"Leret / klik untuk selak halaman";
-      fbUI();
+      const pg=document.createElement("div");pg.className="fb-pg";pg.style.zIndex=pdf.numPages-k+1;
+      pg.appendChild(document.createElement("canvas"));book.appendChild(pg);FB.pgs.push(pg);
     }
+    await fbHalaman(0);fbUI();fbHalaman(1);
+    $("#fbMsg").textContent="";
     let x0=null; book.addEventListener("touchstart",e=>x0=e.touches[0].clientX,{passive:true});
     let d0=0,z0=1; book.addEventListener("touchmove",e=>{if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(!d0){d0=d;z0=FB.z;}else{FB.z=Math.min(4,Math.max(1,z0*d/d0));fbSaiz();}x0=null;}},{passive:true});
     book.addEventListener("touchend",e=>{if(e.touches.length<2)d0=0;if(x0==null||FB.z>1)return;const dx=e.changedTouches[0].clientX-x0;if(dx<-40)fbNext();else if(dx>40)fbPrev();x0=null;});
@@ -4995,9 +5033,21 @@ async function bukaBuku(j){
     book.addEventListener("click",e=>{if(FB.z>1)return;const r=book.getBoundingClientRect();(e.clientX-r.left>r.width/2)?fbNext():fbPrev();});
   }catch(e){ const m=$("#fbMsg"); if(m) m.textContent="❌ "+(e.message||e); }
 }
+async function fbHalaman(i){
+  const state=FB,pg=state.pgs[i];if(!pg||pg.dataset.ready)return;
+  pg.dataset.ready="loading";
+  try{
+    const page=await state.pdf.getPage(i+1);if(state.versi!==FB_VERSI)return;
+    const vp=page.getViewport({scale:state.sk*Math.min(2,window.devicePixelRatio||1)}),c=pg.querySelector("canvas");
+    c.width=vp.width;c.height=vp.height;await page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+    if(state.versi!==FB_VERSI)return;pg.dataset.ready="yes";
+    // Kekalkan tiga halaman terdekat sahaja dalam memori.
+    state.pgs.forEach((p,k)=>{if(Math.abs(k-state.i)>1&&p.dataset.ready==="yes"){const canvas=p.querySelector("canvas");canvas.width=0;canvas.height=0;delete p.dataset.ready;}});
+  }catch(e){delete pg.dataset.ready;if(state.versi===FB_VERSI&&$("#fbMsg"))$("#fbMsg").textContent="Halaman gagal dimuat. Cuba selak semula.";}
+}
 function fbSaiz(){ const b=$("#fbBook"); if(!b) return; b.style.width=(FB.w*FB.z)+"px"; b.style.height=(FB.h*FB.z)+"px"; const z=$("#fbZ"); if(z) z.textContent=Math.round(FB.z*100)+"%"; }
 function fbZoom(d){ FB.z=Math.min(4,Math.max(1,Math.round((FB.z+d*.5)*2)/2)); fbSaiz(); }
-function fbUI(){ const c=$("#fbC"); if(!c) return; c.textContent=(FB.i+1)+" / "+FB.n; $("#fbP").disabled=FB.i<=0; $("#fbN").disabled=FB.i>=FB.pgs.length-1; }
+function fbUI(){ const c=$("#fbC"); if(!c) return; c.textContent=(FB.i+1)+" / "+FB.n; $("#fbP").disabled=FB.i<=0; $("#fbN").disabled=FB.i>=FB.pgs.length-1;fbHalaman(FB.i);fbHalaman(FB.i+1);fbHalaman(FB.i-1); }
 function fbNext(){ if(FB.i>=FB.pgs.length-1) return; const pg=FB.pgs[FB.i]; pg.style.zIndex=FB.n+10; pg.classList.add("flip"); const k=FB.i; setTimeout(()=>{pg.style.zIndex=k;},800); FB.i++; fbUI(); }
 function fbPrev(){ if(FB.i<=0) return; FB.i--; const pg=FB.pgs[FB.i]; pg.style.zIndex=FB.n+10; pg.classList.remove("flip"); const k=FB.i; setTimeout(()=>{pg.style.zIndex=FB.n-k;},800); fbUI(); }
 </script>
