@@ -590,7 +590,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzXAysoxtMQUpTvQ6FV-BU9oJnvepkRkZaazpfKaTzxDLLXIPtKBLgnt4Fw6ER2e9bl/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -1201,14 +1201,14 @@ function render(){
   $("#app").classList.toggle("full",VIEW==="matriks");
   navBar();
   pasangApung();
-  ({home:vHome,kehadiran:vKehadiran,acara:vAcara,acaraDetail:vAcaraDetail,dashboard:vDashboard,matriks:vMatriks,profil:vProfil,sejarah:vSejarah,diagnostik:vDiagnostik,admin:vAdmin,saya:vSaya,galeri:vGaleri,jadual:vJadual}[VIEW]||vHome)();
+  ({home:vHome,kehadiran:vKehadiran,acara:vAcara,acaraDetail:vAcaraDetail,dashboard:vDashboard,matriks:vMatriks,profil:vProfil,sejarah:vSejarah,perlawanan:vPerlawanan,diagnostik:vDiagnostik,admin:vAdmin,saya:vSaya,galeri:vGaleri,jadual:vJadual}[VIEW]||vHome)();
 }
 function navBarAwam(){
   const t=[["dashboard","📊","Dashboard"],["acara","🏆","Rekod"],["matriks","📋","Matriks"],["login","🔐","Log Masuk"]];
   $("#nav").innerHTML=t.map(([k,i,l])=>`<button class="${VIEW===k?"on":""}" onclick="go('${k}')"><span class="ni">${i}</span>${l}</button>`).join("");
 }
 function navBar(){
-  const t=[["home","🏠","Utama"],["kehadiran","✅","Kehadiran"],["acara","🏆","Rekod"],["matriks","📋","Matriks"],["saya","👤","Saya"]];
+  const t=[["home","🏠","Utama"],["kehadiran","✅","Kehadiran"],modPerlawanan()?["perlawanan","🏟","Perlawanan"]:["acara","🏆","Rekod"],["matriks","📋","Matriks"],["saya","👤","Saya"]];
   $("#nav").innerHTML=t.map(([k,i,l])=>`<button class="${VIEW===k?"on":""}" onclick="go('${k}')"><span class="ni">${i}</span>${l}</button>`).join("");
 }
 function head(title,sub){
@@ -1222,7 +1222,7 @@ function topbar(title,back){
    Dipasang pada tahap <body> (unsur #fabApung) dengan kedudukan tetap, jadi
    ia sentiasa berada di permukaan halaman walaupun skrol ke bawah, dan tiada
    kad atau senarai panjang boleh menutupinya. */
-const APUNG_SKRIN={kehadiran:"Tutup kehadiran",acara:"Tutup acara",acaraDetail:"Tutup acara",sejarah:"Tutup sejarah",profil:"Tutup profil",galeri:"Tutup galeri",jadual:"Tutup jadual",matriks:"Tutup matriks",dashboard:"Tutup dashboard",saya:"Tutup profil saya",admin:"Tutup panel admin",diagnostik:"Tutup diagnostik"};
+const APUNG_SKRIN={perlawanan:"Tutup mod perlawanan",kehadiran:"Tutup kehadiran",acara:"Tutup acara",acaraDetail:"Tutup acara",sejarah:"Tutup sejarah",profil:"Tutup profil",galeri:"Tutup galeri",jadual:"Tutup jadual",matriks:"Tutup matriks",dashboard:"Tutup dashboard",saya:"Tutup profil saya",admin:"Tutup panel admin",diagnostik:"Tutup diagnostik"};
 function pasangApung(){
   const host=$("#fabApung"); if(!host) return;
   const tut = APUNG_SKRIN[VIEW];
@@ -1303,6 +1303,7 @@ function vHome(){
   const hadir=(DB.kehadiran||[]).filter(k=>String(k.TARIKH).slice(0,10)===t&&String(k.STATUS).toUpperCase()==="HADIR").length;
   const jumRekod=Object.values(DB.rekod||{}).reduce((a,b)=>a+b.length,0);
   app().innerHTML=`${head("Hai, "+U.nama,(isAdmin()?"MASTER ADMIN":U.jawatan)+" • "+U.sekolah)}
+  <div class="card" style="border-left:4px solid ${modPerlawanan()?"var(--ok)":"var(--brand,#7aa2ff)"}"><div class="nm">${modPerlawanan()?"🏟 MOD PERLAWANAN — "+esc(namaKejSemasa()):"🏃 MOD LATIHAN"}</div><div class="small">${modPerlawanan()?"Data yang dimasukkan kini ialah data kejohanan sebenar dan hanya digunakan dalam Laporan Kejohanan.":"Rekod latihan seperti biasa. Data kejohanan lepas kekal dalam Laporan Kejohanan di Dashboard."}</div></div>
   <div class="card"><div class="row" style="gap:10px">
     <div class="stat"><b>${(DB.atlet||[]).length}</b><span class="small">Atlet</span></div>
     <div class="stat"><b>${hadir}</b><span class="small">Hadir Hari Ini</span></div>
@@ -1310,7 +1311,7 @@ function vHome(){
   </div></div>
   <div class="grid3">
     <div class="tile t1" onclick="go('kehadiran')"><div class="ic">✅</div><div class="tt">KEHADIRAN</div><div class="ts">Tanda kehadiran atlet</div></div>
-    <div class="tile t2" onclick="go('acara')"><div class="ic">🏆</div><div class="tt">REKOD LATIHAN</div><div class="ts">Ikut acara & atlet</div></div>
+    ${modPerlawanan()?`<div class="tile t2" onclick="go('perlawanan')"><div class="ic">🏟</div><div class="tt">REKOD PERLAWANAN</div><div class="ts">🟢 ${esc(namaKejSemasa())}</div></div>`:`<div class="tile t2" onclick="go('acara')"><div class="ic">🏆</div><div class="tt">REKOD LATIHAN</div><div class="ts">Ikut acara & atlet</div></div>`}
     <div class="tile t3" onclick="go('dashboard')"><div class="ic">📊</div><div class="tt">DASHBOARD</div><div class="ts">Ranking pencapaian</div></div>
     <div class="tile t3" onclick="go('galeri')"><div class="ic">🖼</div><div class="tt">GALERI</div><div class="ts">Fail, nota, gambar & video</div></div>
     <div class="tile t1" onclick="go('matriks')"><div class="ic">📋</div><div class="tt">MATRIKS ACARA</div><div class="ts">Cek list peserta × acara</div></div>
@@ -3090,6 +3091,7 @@ function vDashboard(){
   }).join("");
 
   app().innerHTML=`${topbar("Dashboard Ranking","home")}
+  ${panelKejohananDashboard()}
   <div class="duo">
     ${panelHarapanRingkas()}
     ${panelBmiRingkas()}
@@ -3796,6 +3798,7 @@ function vAdmin(){
       ${isMaster()?(sub?`<button class="btn sm ghost" onclick="tukarSubAdmin('${esc(g.emel)}',false)">↧ Tarik Sub Admin</button>`:`<button class="btn sm" onclick="tukarSubAdmin('${esc(g.emel)}',true)">★ Lantik Sub Admin</button>`):""}
       ${(isMaster()||!sub)?`<button class="btn sm bad" onclick="padamGuru('${esc(g.emel)}','${esc(g.nama)}')">🗑 Padam</button>`:""}
     </div></div></div>`}).join("")||'<div class="card small">Tiada guru berdaftar.</div>'}
+  ${kadModPerlawananAdmin()}
   ${isMaster()?`<h3>Tetapan Merekod Latihan</h3>
   <div class="card">
     <div class="nm">Siapa boleh merekod latihan?</div>
@@ -5070,5 +5073,305 @@ function fbUI(){ const c=$("#fbC"); if(!c) return; c.textContent=(FB.i+1)+" / "+
 function fbNext(){ if(FB.i>=FB.pgs.length-1) return; const pg=FB.pgs[FB.i]; pg.style.zIndex=FB.n+10; pg.classList.add("flip"); const k=FB.i; setTimeout(()=>{pg.style.zIndex=k;},800); FB.i++; fbUI(); }
 function fbPrev(){ if(FB.i<=0) return; FB.i--; const pg=FB.pgs[FB.i]; pg.style.zIndex=FB.n+10; pg.classList.remove("flip"); const k=FB.i; setTimeout(()=>{pg.style.zIndex=FB.n-k;},800); fbUI(); }
 </script>
+<script>
+/* ============================================================
+   MOD PERLAWANAN — HARI KEJOHANAN SEBENAR
+   • Master Admin sahaja mengaktifkan / menutup mod.
+   • Jurulatih acara / admin memasukkan seberapa banyak data perlawanan
+     (saringan, suku akhir, separuh akhir, akhir) bagi setiap atlet.
+   • App memilih SATU data perlawanan terbaik dan membandingkannya
+     dengan data latihan terbaik atlet tersebut.
+   ============================================================ */
+const KOD_STATUS={
+  DNS:"Tidak memulakan perlumbaan",
+  DNQ:"Tidak berjaya layak",
+  DNF:"Tidak menamatkan perlumbaan",
+  RET:"Menarik diri secara sukarela atau diarahkan berhenti semasa perlumbaan",
+  DSQ:"Keputusan dibatalkan, melanggar peraturan",
+  NC:"Menamatkan perlumbaan dengan jarak yang tidak mencukupi"
+};
+const PUSINGAN_LIST=["SARINGAN","SUKU AKHIR","SEPARUH AKHIR","AKHIR"];
+const PINGAT_IKON={EMAS:"🥇",PERAK:"🥈",GANGSA:"🥉"};
+const PINGAT_SKOR={EMAS:3,PERAK:2,GANGSA:1};
+let PL_ACARA=null, PL_KEJ=null;
+
+const tetapanDB=()=>((typeof DB!=="undefined"&&DB&&DB.tetapan)||{});
+const modPerlawanan=()=>String(tetapanDB().MOD_PERLAWANAN||"TIDAK").toUpperCase()==="AKTIF";
+const namaKejSemasa=()=>String(tetapanDB().NAMA_KEJOHANAN||"").trim()||"KEJOHANAN";
+const dataPerlawanan=()=>((DB&&DB.perlawanan)||[]);
+function senaraiKejohananPL(){
+  const s=[...new Set(dataPerlawanan().map(x=>String(x.KEJOHANAN||"").trim()).filter(Boolean))];
+  const kini=namaKejSemasa();
+  if(modPerlawanan()&&s.indexOf(kini)<0) s.unshift(kini);
+  return s.sort((a,b)=>a===kini?-1:b===kini?1:0);
+}
+function panduanKodHtml(){
+  return `<div class="card small"><div class="nm" style="margin-bottom:6px">📘 Panduan Kod Status</div>
+    ${Object.keys(KOD_STATUS).map(k=>`<div><b>${k}</b> : ${esc(KOD_STATUS[k])}</div>`).join("")}</div>`;
+}
+
+/* Data latihan terbaik (abaikan rekod bertanda [EVENT: ...]) */
+function terbaikLatihanAtlet(acara,atletId){
+  const info=acaraInfo(acara), asc=info.JENIS==="MASA"; let best=null;
+  rekodAcara(acara).forEach(r=>{
+    const ids=String(r["ATLET ID"]||"").split(",").map(x=>x.trim());
+    if(ids.indexOf(String(atletId))<0) return;
+    if(/^\s*\[EVENT:/i.test(String(r.CATATAN||""))) return;
+    const v=Number(r.NILAI); if(!(v>0)) return;
+    if(!best||(asc?v<best.nilai:v>best.nilai)) best={nilai:v,tarikh:r.TARIKH||""};
+  });
+  return best;
+}
+
+/* Analisis satu kejohanan → satu baris bagi setiap acara × atlet */
+function analisisKejohananPL(kej){
+  const grp={};
+  dataPerlawanan().filter(x=>String(x.KEJOHANAN||"").trim()===kej).forEach(x=>{
+    const k=x.ACARA+"||"+x["ATLET ID"];
+    (grp[k]=grp[k]||{acara:x.ACARA,id:String(x["ATLET ID"]),nama:x["NAMA ATLET"],kategori:x.KATEGORI,sekolah:x.SEKOLAH,data:[]}).data.push(x);
+  });
+  const baris=Object.values(grp).map(g=>{
+    const info=acaraInfo(g.acara), asc=info.JENIS==="MASA";
+    const sah=g.data.filter(x=>String(x.STATUS||"SAH").toUpperCase()==="SAH"&&Number(x.NILAI)>0);
+    let terbaik=null;
+    sah.forEach(x=>{ const v=Number(x.NILAI); if(!terbaik||(asc?v<Number(terbaik.NILAI):v>Number(terbaik.NILAI))) terbaik=x; });
+    const susun=g.data.slice().sort((a,b)=>String(b["TARIKH & MASA"]).localeCompare(String(a["TARIKH & MASA"])));
+    const kod=terbaik?"SAH":String((susun[0]||{}).STATUS||"SAH").toUpperCase();
+    let pingat=""; g.data.forEach(x=>{ const p=String(x.PINGAT||"").toUpperCase(); if((PINGAT_SKOR[p]||0)>(PINGAT_SKOR[pingat]||0)) pingat=p; });
+    const ked=g.data.map(x=>Number(x.KEDUDUKAN)).filter(n=>n>0);
+    const alasan=g.data.map(x=>String(x.ALASAN||"").trim()).filter(Boolean);
+    const lat=terbaikLatihanAtlet(g.acara,g.id);
+    let beza=null,pct=null,prestasi;
+    if(!terbaik) prestasi=kod;
+    else if(!lat) prestasi="TIADA LATIHAN";
+    else{
+      beza=asc?lat.nilai-Number(terbaik.NILAI):Number(terbaik.NILAI)-lat.nilai;
+      pct=beza/lat.nilai*100;
+      prestasi=Math.abs(pct)<0.5?"SETARA":(pct>0?"LEBIH BAIK":"MENURUN");
+    }
+    return {...g,info,terbaik,kod,pingat,kedudukan:ked.length?Math.min.apply(null,ked):"",alasan,latihan:lat,beza,pct,prestasi,bil:g.data.length};
+  });
+  baris.sort((a,b)=>String(a.acara).localeCompare(String(b.acara))||String(a.kategori).localeCompare(String(b.kategori))||(PINGAT_SKOR[b.pingat]||0)-(PINGAT_SKOR[a.pingat]||0));
+  const S={emas:0,perak:0,gangsa:0,lebih:0,setara:0,turun:0,kod:0,atlet:new Set(baris.map(b=>b.id)).size,acara:new Set(baris.map(b=>b.acara)).size,data:baris.reduce((a,b)=>a+b.bil,0)};
+  baris.forEach(b=>{
+    if(b.pingat==="EMAS")S.emas++; else if(b.pingat==="PERAK")S.perak++; else if(b.pingat==="GANGSA")S.gangsa++;
+    if(b.prestasi==="LEBIH BAIK")S.lebih++; else if(b.prestasi==="SETARA")S.setara++; else if(b.prestasi==="MENURUN")S.turun++; else if(KOD_STATUS[b.prestasi])S.kod++;
+  });
+  return {baris,S};
+}
+const WARNA_PRESTASI={"LEBIH BAIK":"#067647","SETARA":"#1d4ed8","MENURUN":"#b42318","TIADA LATIHAN":"#667085"};
+const IKON_PRESTASI={"LEBIH BAIK":"▲","SETARA":"●","MENURUN":"▼","TIADA LATIHAN":"–"};
+function teksPrestasi(b){
+  if(KOD_STATUS[b.prestasi]) return `<b style="color:#b54708" title="${esc(KOD_STATUS[b.prestasi])}">${b.prestasi}</b>`;
+  return `<b style="color:${WARNA_PRESTASI[b.prestasi]||"#667085"}">${IKON_PRESTASI[b.prestasi]||""} ${b.prestasi}${b.pct!=null?` (${b.pct>0?"+":""}${b.pct.toFixed(2)}%)`:""}</b>`;
+}
+
+/* ---------- Skrin Mod Perlawanan ---------- */
+function vPerlawanan(){
+  const aktif=modPerlawanan();
+  const boleh=acaraList().filter(a=>bolehRekod(a.ACARA));
+  if(!PL_ACARA||!boleh.some(a=>a.ACARA===PL_ACARA)) PL_ACARA=boleh.length?boleh[0].ACARA:null;
+  const kej=namaKejSemasa();
+  let isi="";
+  if(!aktif){
+    isi=`<div class="card"><div class="nm">🏃 Mod Latihan sedang aktif</div><div class="small" style="margin-top:6px">Rekod latihan dibuat seperti biasa melalui menu Rekod. Data kejohanan lepas boleh dilihat dalam Laporan Kejohanan di Dashboard. Hanya <b>Master Admin</b> boleh mengaktifkan Mod Perlawanan pada hari kejohanan sebenar (Saya → Panel Admin).</div>
+      ${isMaster()?`<button class="btn sm" style="margin-top:10px" onclick="go('admin')">⚙ Buka Panel Admin</button>`:""}</div>`;
+  } else if(!PL_ACARA){
+    isi=`<div class="card small">Anda bukan jurulatih bagi mana-mana acara. Hanya jurulatih acara, Master Admin atau Sub Admin boleh memasukkan data perlawanan.</div>`;
+  } else {
+    const info=acaraInfo(PL_ACARA);
+    const data=dataPerlawanan().filter(x=>x.ACARA===PL_ACARA&&String(x.KEJOHANAN||"").trim()===kej);
+    const an={}; analisisKejohananPL(kej).baris.filter(b=>b.acara===PL_ACARA).forEach(b=>an[b.id]=b);
+    const peserta=penyertaan(PL_ACARA).slice().sort((a,b)=>String(a.KATEGORI).localeCompare(String(b.KATEGORI))||String(a["NAMA ATLET"]).localeCompare(String(b["NAMA ATLET"])));
+    isi=`<div class="tabs" style="margin:8px 0;flex-wrap:wrap">${boleh.map(a=>`<button class="${a.ACARA===PL_ACARA?"on":""}" onclick="PL_ACARA='${esc(a.ACARA)}';render()">${esc(a.ACARA)}</button>`).join("")}</div>
+    ${peserta.length?peserta.map(p=>{
+      const id=String(p["ATLET ID"]), a=atletById(id)||{JANTINA:""}, b=an[id];
+      const mine=data.filter(x=>String(x["ATLET ID"])===id).sort((x,y)=>String(x["TARIKH & MASA"]).localeCompare(String(y["TARIKH & MASA"])));
+      return `<div class="item" style="align-items:flex-start">
+        <img class="av" src="${avatar(a)}" ${avErr(a)}/>
+        <div style="flex:1;min-width:0"><div class="nm">${esc(p["NAMA ATLET"])}</div><div class="sub">${esc(p.KATEGORI||"")} • ${esc(p.SEKOLAH||"")}</div>
+          <div class="sub" style="margin-top:4px">⭐ Terbaik latihan: <b>${b&&b.latihan?fmtNilai(b.latihan.nilai,info):(()=>{const l=terbaikLatihanAtlet(PL_ACARA,id);return l?fmtNilai(l.nilai,info):"-";})()}</b>
+          ${b?` • 🏁 Terbaik perlawanan: <b>${b.terbaik?fmtNilai(b.terbaik.NILAI,info):b.kod}</b> • ${teksPrestasi(b)}${b.pingat?` • ${PINGAT_IKON[b.pingat]} ${b.pingat}`:""}`:""}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${mine.map(x=>{
+            const st=String(x.STATUS||"SAH").toUpperCase();
+            const best=b&&b.terbaik&&b.terbaik.ID===x.ID;
+            return `<span class="chip" style="cursor:pointer;${best?"outline:2px solid var(--ok)":""}" onclick="formPerlawanan('${esc(id)}','${esc(x.ID)}')" title="Tekan untuk edit / padam">${esc(x.PUSINGAN||"")}: <b>${st==="SAH"?fmtNilai(x.NILAI,info):st}</b>${x.PINGAT?" "+PINGAT_IKON[String(x.PINGAT).toUpperCase()]:""}${best?" ★":""}</span>`;
+          }).join("")||'<span class="small" style="opacity:.7">Belum ada data perlawanan</span>'}</div>
+        </div>
+        <button class="btn sm" onclick="formPerlawanan('${esc(id)}')">+ Data</button>
+      </div>`;
+    }).join(""):`<div class="card small">Tiada atlet didaftarkan dalam acara ini.</div>`}`;
+  }
+  app().innerHTML=`${topbar("Mod Perlawanan","home")}
+  <div class="card" style="border-left:4px solid ${aktif?"var(--ok)":"var(--bad)"}">
+    <div class="nm">${aktif?"🟢 MOD PERLAWANAN AKTIF":"🔴 MOD PERLAWANAN TIDAK AKTIF"}</div>
+    <div class="small">Kejohanan: <b>${esc(kej)}</b> • Masukkan seberapa banyak data (termasuk saringan). App memilih satu data terbaik untuk dianalisis dengan data terbaik latihan. ★ = data terbaik.</div>
+  </div>
+  ${isi}
+  ${panduanKodHtml()}`;
+}
+
+function formPerlawanan(atletId,idData){
+  if(!modPerlawanan()) return toast("Mod Perlawanan belum diaktifkan oleh Master Admin.");
+  const n=PL_ACARA, info=acaraInfo(n);
+  const p=penyertaan(n).find(x=>String(x["ATLET ID"])===String(atletId))||{};
+  const x=idData?dataPerlawanan().find(r=>String(r.ID)===String(idData)):null;
+  const st=x?String(x.STATUS||"SAH").toUpperCase():"SAH";
+  const nilaiAwal=x&&st==="SAH"&&Number(x.NILAI)>0?(info.JENIS==="MASA"?fmtNilai(x.NILAI,info).replace(/ (saat|min)$/,""):Number(x.NILAI)):"";
+  overlay(`<div class="big">${x?"Edit":"Tambah"} Data Perlawanan</div>
+  <div class="small" style="margin-bottom:8px">${esc(n)} • ${esc(p["NAMA ATLET"]||"")} • ${esc(p.KATEGORI||"")} • ${esc(namaKejSemasa())}</div>
+  <label for="plPus">Pusingan</label><select id="plPus">${PUSINGAN_LIST.map(s=>`<option ${(x?String(x.PUSINGAN).toUpperCase():"SARINGAN")===s?"selected":""}>${s}</option>`).join("")}</select>
+  <label for="plSt">Status</label><select id="plSt" onchange="plTukarStatus()">
+    <option value="SAH" ${st==="SAH"?"selected":""}>SAH — ada keputusan</option>
+    ${Object.keys(KOD_STATUS).map(k=>`<option value="${k}" ${st===k?"selected":""}>${k} — ${esc(KOD_STATUS[k])}</option>`).join("")}
+  </select>
+  <div class="small" id="plMaksud" style="margin:4px 0;opacity:.85"></div>
+  <div id="plNilaiWrap"><label for="plNilai">Keputusan (${info.JENIS==="MASA"?"masa, cth: 12.45 atau 1:05.30":"jarak ("+esc(info.UNIT||"meter")+")"})</label><input id="plNilai" inputmode="decimal" value="${esc(nilaiAwal)}"/></div>
+  <div class="row" style="gap:8px"><div style="flex:1"><label for="plKed">Kedudukan</label><input id="plKed" type="number" min="1" value="${esc(x&&x.KEDUDUKAN||"")}"/></div>
+    <div style="flex:1" id="plPingatWrap"><label for="plPingat">Pingat</label><select id="plPingat"><option value="">Tiada</option>${["EMAS","PERAK","GANGSA"].map(k=>`<option value="${k}" ${x&&String(x.PINGAT).toUpperCase()===k?"selected":""}>${PINGAT_IKON[k]} ${k}</option>`).join("")}</select></div></div>
+  <label for="plTarikh">Tarikh</label><input id="plTarikh" type="date" value="${esc(x?String(x.TARIKH).slice(0,10):today())}"/>
+  <label for="plAlasan">Alasan / Catatan (pilihan)</label><textarea id="plAlasan" rows="2" placeholder="Cth: cedera hamstring, cuaca hujan">${esc(x&&x.ALASAN||"")}</textarea>
+  <button class="btn" id="btnPL" onclick="simpanPL('${esc(atletId)}','${esc(idData||"")}')">Simpan</button>
+  ${x?`<button class="btn bad" onclick="padamPL('${esc(idData)}')">🗑 Padam</button>`:""}
+  <button class="btn ghost" onclick="tutup()">Batal</button>`);
+  plTukarStatus();
+}
+function plTukarStatus(){
+  const s=$("#plSt"); if(!s) return; const v=s.value;
+  $("#plMaksud").textContent=KOD_STATUS[v]?v+": "+KOD_STATUS[v]:"";
+  $("#plNilaiWrap").style.display=v==="SAH"?"":"none";
+  $("#plPingatWrap").style.display=v==="SAH"?"":"none";
+}
+async function simpanPL(atletId,idData){
+  const btn=$("#btnPL"); const lepas=()=>{ if(btn){btn.disabled=false;btn.textContent="Simpan";} };
+  if(btn){btn.disabled=true;btn.textContent="Menyimpan…";}
+  const n=PL_ACARA, info=acaraInfo(n);
+  const p=penyertaan(n).find(x=>String(x["ATLET ID"])===String(atletId))||{};
+  const status=$("#plSt").value;
+  let nilai="";
+  if(status==="SAH"){
+    const m=$("#plNilai").value;
+    nilai=info.JENIS==="MASA"?huraiMasa(m):parseFloat(String(m).replace(",","."));
+    if(!(nilai>0)){ lepas(); return toast("Masukkan keputusan yang sah atau pilih kod status."); }
+  }
+  const payload={id:idData||"",kejohanan:namaKejSemasa(),acara:n,atletId,nama:p["NAMA ATLET"]||"",kategori:p.KATEGORI||"",sekolah:p.SEKOLAH||"",
+    pusingan:$("#plPus").value,status,nilai,kedudukan:$("#plKed").value,pingat:status==="SAH"?$("#plPingat").value:"",
+    alasan:$("#plAlasan").value.trim(),tarikh:$("#plTarikh").value||today(),...who()};
+  try{
+    const r=await api("simpanPerlawanan",payload);
+    DB.perlawanan=DB.perlawanan||[];
+    if(idData){ const i=DB.perlawanan.findIndex(x=>String(x.ID)===String(idData)); if(i>=0) DB.perlawanan[i]=r.rekod; }
+    else DB.perlawanan.push(r.rekod);
+    tutup(); toast("Data perlawanan disimpan"); render();
+  }catch(e){ lepas(); toastRalat(e); }
+}
+async function padamPL(id){
+  if(!await sahkan("Padam data perlawanan ini?")) return;
+  const x=dataPerlawanan().find(r=>String(r.ID)===String(id)); if(!x) return;
+  try{ await api("padamPerlawanan",{id,acara:x.ACARA,...who()});
+    DB.perlawanan=dataPerlawanan().filter(r=>String(r.ID)!==String(id)); tutup(); toast("Dipadam"); render();
+  }catch(e){ toastRalat(e); }
+}
+
+/* ---------- Panel Admin: tetapan Mod Perlawanan (Master Admin) ---------- */
+function kadModPerlawananAdmin(){
+  if(!isMaster()) return "";
+  const aktif=modPerlawanan();
+  return `<h3>Mod Perlawanan (Hari Kejohanan)</h3>
+  <div class="card">
+    <div class="small" style="margin-bottom:8px">Status: <b style="color:${aktif?"var(--ok)":"var(--bad)"}">${aktif?"AKTIF":"TIDAK AKTIF"}</b> — apabila aktif, jurulatih boleh memasukkan data perlawanan sebenar.</div>
+    <label for="plNamaKej">Nama event (wajib)</label><input id="plNamaKej" placeholder="Cth: KOPK MSSM 2026" value="${esc(tetapanDB().NAMA_KEJOHANAN||"")}"/>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      ${aktif?`<button class="btn sm bad" onclick="tukarModPerlawanan(false)">🏃 Tukar ke Mod Latihan</button><button class="btn sm ghost" onclick="tukarModPerlawanan(true)">💾 Simpan nama kejohanan</button>`
+             :`<button class="btn sm" onclick="tukarModPerlawanan(true)">🏟 Tukar ke Mod Perlawanan</button>`}
+    </div>
+  </div>`;
+}
+async function tukarModPerlawanan(aktif){
+  if(!isMaster()) return toast("Hanya Master Admin boleh mengaktifkan Mod Perlawanan.");
+  const nama=($("#plNamaKej")&&$("#plNamaKej").value.trim())||"";
+  if(aktif&&!nama) return toast("Masukkan nama event dahulu (cth: KOPK MSSM 2026).");
+  if(!await sahkan(aktif?`Tukar ke Mod Perlawanan untuk "${nama}"?`:"Tukar semula ke Mod Latihan? Perekodan kembali seperti biasa. Data kejohanan kekal tersimpan dan hanya digunakan dalam Laporan Kejohanan.")) return;
+  try{
+    if(aktif) await api("simpanTetapan",{kunci:"NAMA_KEJOHANAN",nilai:nama,...who()});
+    await api("simpanTetapan",{kunci:"MOD_PERLAWANAN",nilai:aktif?"AKTIF":"TIDAK",...who()});
+    DB.tetapan=Object.assign({},DB.tetapan||{},{MOD_PERLAWANAN:aktif?"AKTIF":"TIDAK"},aktif?{NAMA_KEJOHANAN:nama.toUpperCase()}:{});
+    toast(aktif?"Mod Perlawanan diaktifkan":"Mod Perlawanan ditutup"); render();
+  }catch(e){ toastRalat(e); }
+}
+
+/* ---------- Panel Dashboard: Laporan Kejohanan ---------- */
+function panelKejohananDashboard(){
+  const senarai=senaraiKejohananPL();
+  if(!senarai.length) return "";
+  if(!PL_KEJ||senarai.indexOf(PL_KEJ)<0) PL_KEJ=senarai[0];
+  const {baris,S}=analisisKejohananPL(PL_KEJ);
+  const kotak=(t,v,w)=>`<div class="stat"><b style="color:${w}">${v}</b><span class="small">${t}</span></div>`;
+  return `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <div><div class="nm">🏟 Laporan Kejohanan ${modPerlawanan()&&PL_KEJ===namaKejSemasa()?'<span class="badge">SEDANG BERLANGSUNG</span>':""}</div><div class="small">Perlawanan terbaik vs latihan terbaik</div></div>
+      <select onchange="PL_KEJ=this.value;render()" style="max-width:240px">${senarai.map(k=>`<option ${k===PL_KEJ?"selected":""}>${esc(k)}</option>`).join("")}</select>
+    </div>
+    <div class="row" style="gap:8px;margin-top:10px">
+      ${kotak("🥇 Emas",S.emas,"#b45309")}${kotak("🥈 Perak",S.perak,"#667085")}${kotak("🥉 Gangsa",S.gangsa,"#9a3412")}
+      ${kotak("▲ Lebih baik",S.lebih,"#067647")}${kotak("▼ Menurun",S.turun,"#b42318")}${kotak("Kod status",S.kod,"#b54708")}
+    </div>
+    ${baris.length?`<div style="margin-top:8px">${baris.slice(0,40).map(b=>`<div class="item" onclick="go('profil',{id:'${esc(b.id)}'})">
+      <div style="flex:1;min-width:0"><div class="nm">${b.pingat?PINGAT_IKON[b.pingat]+" ":""}${esc(b.nama)}</div>
+        <div class="sub">${esc(b.acara)} • ${esc(b.kategori||"")} • ${b.bil} data</div>
+        <div class="sub">🏁 ${b.terbaik?fmtNilai(b.terbaik.NILAI,b.info)+" ("+esc(b.terbaik.PUSINGAN||"")+")":b.kod} • ⭐ Latihan ${b.latihan?fmtNilai(b.latihan.nilai,b.info):"-"}${b.alasan.length?` • 📝 ${esc(b.alasan.join("; "))}`:""}</div></div>
+      <div class="right small">${teksPrestasi(b)}</div></div>`).join("")}</div>`:`<div class="small" style="margin-top:8px">Belum ada data perlawanan untuk kejohanan ini.</div>`}
+    <button class="btn sm" style="margin-top:10px" onclick="cetakLaporanKejohanan()">🖨 Cetak Laporan Korporat Kejohanan</button>
+    ${U&&modPerlawanan()?`<button class="btn sm ghost" style="margin-top:10px" onclick="go('perlawanan')">✍ Masukkan Data Perlawanan</button>`:""}
+  </div>`;
+}
+
+/* ---------- Laporan korporat kejohanan ---------- */
+function cetakLaporanKejohanan(){
+  const kej=PL_KEJ||senaraiKejohananPL()[0];
+  if(!kej) return toast("Tiada data kejohanan.");
+  const {baris,S}=analisisKejohananPL(kej);
+  const kotak=(w,t,v,nota)=>`<div style="flex:1;min-width:120px;border:1px solid #e5e7eb;border-left:4px solid ${w};border-radius:8px;padding:8px 10px"><div style="font-size:11px;color:#475467">${t}</div><div style="font-size:22px;font-weight:800;color:${w}">${v}</div><div style="font-size:10px;color:#667085">${nota}</div></div>`;
+  const ringkasan=`<div class="blok"><h2 class="acara">1. RINGKASAN EKSEKUTIF — ${esc(kej)}</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">
+      ${kotak("#1d4ed8","Acara disertai",S.acara,`${S.atlet} atlet • ${S.data} data perlawanan`)}
+      ${kotak("#b45309","🥇 Emas",S.emas,"pingat")}${kotak("#667085","🥈 Perak",S.perak,"pingat")}${kotak("#9a3412","🥉 Gangsa",S.gangsa,"pingat")}
+      ${kotak("#067647","Prestasi lebih baik",S.lebih,"berbanding latihan")}${kotak("#1d4ed8","Setara",S.setara,"±0.5%")}
+      ${kotak("#b42318","Menurun",S.turun,"berbanding latihan")}${kotak("#b54708","DNS/DNQ/DNF/RET/DSQ/NC",S.kod,"tiada keputusan sah")}
+    </div>
+    <div style="font-size:11px;color:#475467">Jumlah pingat: <b>${S.emas+S.perak+S.gangsa}</b>. Data perlawanan terbaik setiap atlet (daripada semua pusingan termasuk saringan) dibandingkan dengan data latihan terbaik atlet tersebut.</div></div>`;
+  const pingat=baris.filter(b=>b.pingat);
+  const blokPingat=`<div class="blok"><h2 class="acara">2. SENARAI PEMENANG PINGAT</h2>${pingat.length?`<table><thead><tr><th>#</th><th>Pingat</th><th>Nama Atlet</th><th>Acara</th><th>Kategori</th><th>Sekolah</th><th style="text-align:right">Keputusan</th></tr></thead><tbody>
+    ${pingat.sort((a,b)=>(PINGAT_SKOR[b.pingat]||0)-(PINGAT_SKOR[a.pingat]||0)).map((b,i)=>`<tr><td class="no">${i+1}</td><td><b>${PINGAT_IKON[b.pingat]} ${b.pingat}</b></td><td>${esc(b.nama)}</td><td>${esc(b.acara)}</td><td>${esc(b.kategori||"")}</td><td>${esc(b.sekolah||"-")}</td><td class="num">${b.terbaik?fmtNilai(b.terbaik.NILAI,b.info):b.kod}</td></tr>`).join("")}</tbody></table>`:`<div style="font-size:11px">Tiada pingat direkodkan.</div>`}</div>`;
+  const ikutAcara={}; baris.forEach(b=>(ikutAcara[b.acara]=ikutAcara[b.acara]||[]).push(b));
+  const blokAnalisis=`<div class="blok"><h2 class="acara">3. ANALISIS PRESTASI: PERLAWANAN vs LATIHAN</h2>${Object.keys(ikutAcara).map(n=>`<h3 class="kat">Acara: ${esc(n)}</h3>
+    <table><thead><tr><th>#</th><th>Nama Atlet</th><th>Kategori</th><th style="text-align:right">Terbaik Latihan</th><th style="text-align:right">Terbaik Perlawanan</th><th>Pusingan</th><th style="text-align:right">Kedudukan</th><th>Pingat</th><th>Prestasi</th><th>Alasan</th></tr></thead><tbody>
+    ${ikutAcara[n].map((b,i)=>`<tr><td class="no">${i+1}</td><td>${esc(b.nama)}</td><td>${esc(b.kategori||"")}</td>
+      <td class="num">${b.latihan?fmtNilai(b.latihan.nilai,b.info)+(b.latihan.tarikh?`<br/><span style="font-size:9px;color:#667085">${esc(fmtTarikh(b.latihan.tarikh))}</span>`:""):"—"}</td>
+      <td class="num">${b.terbaik?"<b>"+fmtNilai(b.terbaik.NILAI,b.info)+"</b>":`<b style="color:#b54708">${b.kod}</b>`}</td>
+      <td>${b.terbaik?esc(b.terbaik.PUSINGAN||""):"—"}</td><td class="num">${b.kedudukan||"—"}</td><td>${b.pingat?PINGAT_IKON[b.pingat]+" "+b.pingat:"—"}</td>
+      <td>${teksPrestasi(b)}${b.beza!=null?`<br/><span style="font-size:9px;color:#667085">beza ${fmtJurangPL(Math.abs(b.beza),b.info)}</span>`:""}</td><td>${esc(b.alasan.join("; "))||"—"}</td></tr>`).join("")}</tbody></table>`).join("")||`<div style="font-size:11px">Tiada data.</div>`}</div>`;
+  const semua=dataPerlawanan().filter(x=>String(x.KEJOHANAN||"").trim()===kej).slice().sort((a,b)=>String(a.ACARA).localeCompare(String(b.ACARA))||String(a["NAMA ATLET"]).localeCompare(String(b["NAMA ATLET"]))||PUSINGAN_LIST.indexOf(String(a.PUSINGAN).toUpperCase())-PUSINGAN_LIST.indexOf(String(b.PUSINGAN).toUpperCase()));
+  const blokData=`<div class="blok"><h2 class="acara">4. DATA PERLAWANAN LENGKAP (SEMUA PUSINGAN)</h2><table><thead><tr><th>#</th><th>Tarikh</th><th>Acara</th><th>Nama Atlet</th><th>Pusingan</th><th style="text-align:right">Keputusan</th><th>Status</th><th>Pingat</th><th>Alasan</th><th>Dicatat oleh</th></tr></thead><tbody>
+    ${semua.map((x,i)=>{const st=String(x.STATUS||"SAH").toUpperCase(),info=acaraInfo(x.ACARA);return `<tr><td class="no">${i+1}</td><td>${esc(fmtTarikh(x.TARIKH))}</td><td>${esc(x.ACARA)}</td><td>${esc(x["NAMA ATLET"])}</td><td>${esc(x.PUSINGAN||"")}</td><td class="num">${st==="SAH"?fmtNilai(x.NILAI,info):"—"}</td><td>${st==="SAH"?"SAH":`<b style="color:#b54708">${st}</b>`}</td><td>${x.PINGAT?esc(x.PINGAT):"—"}</td><td>${esc(x.ALASAN||"")||"—"}</td><td>${esc(x["DICATAT OLEH"]||"")}</td></tr>`;}).join("")}</tbody></table></div>`;
+  /* Rekod kejohanan lepas */
+  const lain=senaraiKejohananPL().filter(k=>k!==kej);
+  const blokLepas=`<div class="blok"><h2 class="acara">5. REKOD KEJOHANAN LEPAS</h2>
+    ${lain.length?`<table><thead><tr><th>Kejohanan</th><th style="text-align:right">Acara</th><th style="text-align:right">Atlet</th><th style="text-align:right">🥇</th><th style="text-align:right">🥈</th><th style="text-align:right">🥉</th><th style="text-align:right">Lebih baik</th><th style="text-align:right">Menurun</th></tr></thead><tbody>
+      ${lain.map(k=>{const s=analisisKejohananPL(k).S;return `<tr><td>${esc(k)}</td><td class="num">${s.acara}</td><td class="num">${s.atlet}</td><td class="num">${s.emas}</td><td class="num">${s.perak}</td><td class="num">${s.gangsa}</td><td class="num">${s.lebih}</td><td class="num">${s.turun}</td></tr>`;}).join("")}</tbody></table>`:`<div style="font-size:11px">Tiada data kejohanan lepas dalam Mod Perlawanan.</div>`}
+    ${((DB&&DB.kejohanan)||[]).length?`<h3 class="kat">Rekod Kejohanan Rasmi (sasaran)</h3><table><thead><tr><th>Acara</th><th>Kategori</th><th>Peringkat</th><th>Tahun</th><th>Pemegang Rekod</th><th style="text-align:right">Rekod</th></tr></thead><tbody>
+      ${DB.kejohanan.slice().sort((a,b)=>String(a.ACARA).localeCompare(String(b.ACARA))||String(a.KATEGORI).localeCompare(String(b.KATEGORI))).map(r=>`<tr><td>${esc(r.ACARA)}</td><td>${esc(r.KATEGORI)}</td><td>${esc(r["NAMA KEJOHANAN"]||"")}</td><td>${esc(r.TAHUN||"")}</td><td>${esc(r["PEMEGANG REKOD"]||"")}</td><td class="num">${fmtNilai(r.NILAI,acaraInfo(r.ACARA))}</td></tr>`).join("")}</tbody></table>`:""}</div>`;
+  const blokLatihan=`<div class="blok"><h2 class="acara">6. RINGKASAN DATA LATIHAN ATLET TERLIBAT</h2><table><thead><tr><th>Acara</th><th>Nama Atlet</th><th style="text-align:right">Bil. Sesi Rekod</th><th style="text-align:right">Terbaik Latihan</th><th style="text-align:right">Purata Latihan</th></tr></thead><tbody>
+    ${baris.map(b=>{const v=rekodAcara(b.acara).filter(r=>String(r["ATLET ID"]||"").split(",").map(s=>s.trim()).indexOf(b.id)>=0&&Number(r.NILAI)>0&&!/^\s*\[EVENT:/i.test(String(r.CATATAN||""))).map(r=>Number(r.NILAI));
+      return `<tr><td>${esc(b.acara)}</td><td>${esc(b.nama)}</td><td class="num">${v.length}</td><td class="num">${b.latihan?fmtNilai(b.latihan.nilai,b.info):"—"}</td><td class="num">${v.length?fmtNilai(purata(v),b.info):"—"}</td></tr>`;}).join("")}</tbody></table></div>`;
+  const panduan=`<div class="blok"><h2 class="acara">7. PANDUAN KOD STATUS</h2><table><tbody>${Object.keys(KOD_STATUS).map(k=>`<tr><td style="width:60px"><b>${k}</b></td><td>${esc(KOD_STATUS[k])}</td></tr>`).join("")}</tbody></table></div>`;
+  bukaLaporan("Laporan Kejohanan — "+kej,ringkasan+blokPingat+blokAnalisis+blokData+blokLepas+blokLatihan+panduan);
+}
+function fmtJurangPL(v,info){
+  if(info&&info.JENIS==="MASA") return Number(v).toFixed(2)+" saat";
+  return Number(v).toFixed(2)+" "+((info&&info.UNIT)||"");
+}
+</script>
+
 </body>
 </html>

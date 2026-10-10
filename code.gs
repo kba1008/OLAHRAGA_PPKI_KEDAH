@@ -22,6 +22,7 @@ var SHEET_KAT_GUGUR = "KATEGORI_GUGUR";
 var SHEET_BMI = "BMI";
 var SHEET_TETAPAN = "TETAPAN";
 var SHEET_MEDIA = "MEDIA_LATIHAN";
+var SHEET_PERLAWANAN = "DATA_PERLAWANAN";
 var PREFIX_REKOD = "REKOD_";
 
 /* ID Google Sheet UTAMA (pangkalan data). Skrip akan buka sheet ini terus,
@@ -56,6 +57,7 @@ HEADERS[SHEET_BMI] = ["ID", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "TA
 HEADERS[SHEET_TETAPAN] = ["KUNCI", "NILAI", "DIKEMASKINI OLEH", "TARIKH & MASA"];
 HEADERS[SHEET_MEDIA] = ["ID", "TARIKH", "ACARA", "KATEGORI", "ATLET ID", "NAMA ATLET", "JENIS MEDIA", "TAJUK", "CATATAN", "NAMA FAIL", "MIME", "SAIZ (BYTES)", "PAUTAN", "URL PAPAR", "DRIVE ID", "DIMUAT NAIK OLEH", "EMEL", "TARIKH & MASA", "SUSUNAN"];
 HEADERS[SHEET_FAIL] = ["ID", "ATLET ID", "NAMA FAIL", "JENIS", "SAIZ (BYTES)", "URL", "DRIVE ID", "DIMUAT NAIK OLEH", "TARIKH & MASA"];
+HEADERS[SHEET_PERLAWANAN] = ["ID", "KEJOHANAN", "TARIKH", "ACARA", "KATEGORI", "ATLET ID", "NAMA ATLET", "SEKOLAH", "PUSINGAN", "NILAI", "STATUS", "KEDUDUKAN", "PINGAT", "ALASAN", "DICATAT OLEH", "TARIKH & MASA"];
 var HEADER_REKOD = ["ID", "TARIKH", "MASA", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "KEPUTUSAN", "NILAI", "CATATAN", "DICATAT OLEH", "TARIKH & MASA REKOD"];
 
 var ACARA_LALAI = [
@@ -163,6 +165,7 @@ function setupPangkalanData() {
   dapatSheet(SHEET_PENYERTAAN, HEADERS[SHEET_PENYERTAAN], "#d81b60");
   dapatSheet(SHEET_FAIL, HEADERS[SHEET_FAIL], "#0aa5d6");
   dapatSheet(SHEET_KEJOHANAN, HEADERS[SHEET_KEJOHANAN], "#b45309");
+  dapatSheet(SHEET_PERLAWANAN, HEADERS[SHEET_PERLAWANAN], "#9a3412");
   dapatSheet(SHEET_KAT_GUGUR, HEADERS[SHEET_KAT_GUGUR], "#b42318");
   dapatSheet(SHEET_TETAPAN, HEADERS[SHEET_TETAPAN], "#0f766e");
   dapatSheet(SHEET_BMI, HEADERS[SHEET_BMI], "#0f766e");
@@ -246,6 +249,7 @@ function semuaData(p) {
       return m;
     }),
     kejohanan: baca(SHEET_KEJOHANAN),
+    perlawanan: baca(SHEET_PERLAWANAN).map(function (x) { x["TARIKH"] = tarikhStr(x["TARIKH"]); return x; }),
     katGugur: baca(SHEET_KAT_GUGUR),
     tetapan: bacaTetapan(),
     bmi: baca(SHEET_BMI).map(function (b) { b["TARIKH"] = tarikhStr(b["TARIKH"]); return b; }),
@@ -1192,7 +1196,7 @@ function normEmel(x) { return String(x || "").toLowerCase().trim(); }
 
 /* ---------------- Tetapan Sistem (Master Admin) ---------------- */
 var TEMA_SAH = ["BIRU", "UNGU", "HIJAU", "MERAH", "EMAS", "ASAL", "PUTIH"];
-var TETAPAN_LALAI = { MOD_REKOD: "JURULATIH", TEMA_APP: "BIRU" }; /* JURULATIH = hanya jurulatih acara, SEMUA = semua pengguna berdaftar */
+var TETAPAN_LALAI = { MOD_REKOD: "JURULATIH", TEMA_APP: "BIRU", MOD_PERLAWANAN: "TIDAK", NAMA_KEJOHANAN: "" }; /* JURULATIH = hanya jurulatih acara, SEMUA = semua pengguna berdaftar */
 
 /* Tema bersama: token hanya dikeluarkan selepas login master berjaya.
    Cache sesi maksimum enam jam; pengguna lama perlu log masuk semula. */
@@ -1233,6 +1237,9 @@ function simpanTetapan(p) {
     sahkanSesiTema_(p);
     if (TEMA_SAH.indexOf(nilai) < 0) throw new Error("Pilihan tema tidak sah.");
   }
+  if (kunci === "MOD_PERLAWANAN" && nilai !== "AKTIF" && nilai !== "TIDAK") throw new Error("Nilai MOD_PERLAWANAN mesti AKTIF atau TIDAK.");
+  if (kunci === "MOD_PERLAWANAN" && nilai === "AKTIF" && !bacaTetapan().NAMA_KEJOHANAN) throw new Error("Masukkan nama event (cth: KOPK MSSM 2026) sebelum menukar ke Mod Perlawanan.");
+  if (kunci === "NAMA_KEJOHANAN") nilai = String(p.nilai || "").replace(/\s+/g, " ").trim().toUpperCase().slice(0, 120);
   if (kunci === "MOD_REKOD" && nilai !== "JURULATIH" && nilai !== "SEMUA") throw new Error("Nilai MOD_REKOD mesti JURULATIH atau SEMUA.");
   var s = dapatSheet(SHEET_TETAPAN, HEADERS[SHEET_TETAPAN], "#0f766e");
   var v = s.getDataRange().getValues();
@@ -1733,6 +1740,8 @@ var TINDAKAN = {
   tetapkanKategoriGugur: tetapkanKategoriGugur,
   rekodKejohanan: simpanRekodKejohanan,
   padamRekodKejohanan: padamRekodKejohanan,
+  simpanPerlawanan: simpanPerlawanan,
+  padamPerlawanan: padamPerlawanan,
   tetapkanTinggi: tetapkanTinggi,
   bmi: simpanBmi,
   kemaskiniBmi: kemaskiniBmi,
@@ -2130,4 +2139,56 @@ function ambilPdfJadual(p) {
     } finally {lock.releaseLock();}
   }
   return { b64: Utilities.base64Encode(DriveApp.getFileById(String(j["PDF ID"])).getBlob().getBytes()) };
+}
+
+
+/* ================= MOD PERLAWANAN (HARI KEJOHANAN) =================
+   • Hanya Master Admin boleh mengaktifkan / menutup mod (TETAPAN MOD_PERLAWANAN).
+   • Semasa mod AKTIF, jurulatih acara / admin boleh memasukkan seberapa banyak
+     data perlawanan (saringan, separuh akhir, akhir...) bagi setiap atlet.
+   • App memilih SATU data terbaik untuk dibandingkan dengan latihan.
+   • STATUS: SAH atau DNS / DNQ / DNF / RET / DSQ / NC.                       */
+var STATUS_PERLAWANAN = ["SAH", "DNS", "DNQ", "DNF", "RET", "DSQ", "NC"];
+var PINGAT_SAH = ["", "EMAS", "PERAK", "GANGSA"];
+
+function simpanPerlawanan(p) {
+  var t = bacaTetapan();
+  if (t.MOD_PERLAWANAN !== "AKTIF") throw new Error("Mod Perlawanan belum diaktifkan oleh Master Admin.");
+  if (!bolehRekod(p.acara, p.olehEmel)) throw new Error("Hanya jurulatih acara ini, Master Admin atau Sub Admin boleh memasukkan data perlawanan.");
+  var status = String(p.status || "SAH").toUpperCase().trim();
+  if (STATUS_PERLAWANAN.indexOf(status) < 0) throw new Error("Status perlawanan tidak sah.");
+  var pingat = String(p.pingat || "").toUpperCase().trim();
+  if (PINGAT_SAH.indexOf(pingat) < 0) throw new Error("Pingat tidak sah.");
+  var nilai = Number(p.nilai);
+  if (status === "SAH" && !(nilai > 0)) throw new Error("Masukkan keputusan (nilai) yang sah, atau pilih status DNS/DNQ/DNF/RET/DSQ/NC.");
+  if (status !== "SAH") { nilai = ""; if (status !== "NC") pingat = ""; }
+  if (status === "NC") pingat = "";
+  if (!p.atletId) throw new Error("Atlet diperlukan.");
+  var kej = String(p.kejohanan || t.NAMA_KEJOHANAN || "KEJOHANAN").toUpperCase().trim();
+  var s = dapatSheet(SHEET_PERLAWANAN, HEADERS[SHEET_PERLAWANAN], "#9a3412");
+  var baris = ["", kej, p.tarikh || hariIni(), String(p.acara || ""), String(p.kategori || "").toUpperCase(),
+    String(p.atletId), p.nama || "", p.sekolah || "", String(p.pusingan || "SARINGAN").toUpperCase(),
+    nilai, status, p.kedudukan ? Number(p.kedudukan) || "" : "", pingat, String(p.alasan || "").slice(0, 500),
+    p.olehNama || "", nowStr()];
+  var o = function () { var r = {}; HEADERS[SHEET_PERLAWANAN].forEach(function (h, i) { r[h] = baris[i]; }); return r; };
+  if (p.id) {
+    var v = s.getDataRange().getValues();
+    for (var i = 1; i < v.length; i++) if (String(v[i][0]) === String(p.id)) {
+      baris[0] = p.id; s.getRange(i + 1, 1, 1, baris.length).setValues([baris]);
+      return { ok: true, dikemaskini: true, rekod: o() };
+    }
+    throw new Error("Data perlawanan tidak dijumpai.");
+  }
+  baris[0] = idBaharu("P", SHEET_PERLAWANAN);
+  s.appendRow(baris);
+  return { ok: true, rekod: o() };
+}
+
+function padamPerlawanan(p) {
+  if (!bolehRekod(p.acara, p.olehEmel)) throw new Error("Hanya jurulatih acara ini, Master Admin atau Sub Admin boleh memadam data perlawanan.");
+  var s = ss().getSheetByName(SHEET_PERLAWANAN);
+  if (!s) throw new Error("Data perlawanan tidak dijumpai.");
+  var v = s.getDataRange().getValues();
+  for (var i = v.length - 1; i >= 1; i--) if (String(v[i][0]) === String(p.id)) { s.deleteRow(i + 1); return { ok: true }; }
+  throw new Error("Data perlawanan tidak dijumpai.");
 }
