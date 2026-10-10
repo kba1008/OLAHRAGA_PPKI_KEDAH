@@ -605,7 +605,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxssouVnmreCa62f4zNdTBmUs-JcTUxKxia1PmohKJCITTaiY7FdNFimuU-xazMTckT/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -3132,8 +3132,12 @@ function vDashboard(){
       }).join("");
   }).join("");
 
-  app().innerHTML=`${topbar("Dashboard Ranking","home")}
-  ${modPerlawanan()?panelKejohananDashboard():kotakCetakKejohanan()}
+  const pilihAcara=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+    <label class="small" for="dAcaraSel">Acara:</label>
+    <select id="dAcaraSel" onchange="dAcara=this.value;dKat='__ALL__';render()" style="flex:1;min-width:200px">${list.map(a=>`<option ${a.ACARA===dAcara?"selected":""}>${esc(a.ACARA)}</option>`).join("")}</select>
+  </div>`;
+
+  const bahagianTools=`${modPerlawanan()?panelKejohananDashboard():kotakCetakKejohanan()}
   <div class="duo">
     ${panelHarapanRingkas()}
     ${panelBmiRingkas()}
@@ -3159,8 +3163,12 @@ function vDashboard(){
     </div>
   </div>
   <div class="report-grid report-attendance-slot">
-    <button class="btn report-action report-kehadiran" onclick="bukaLaporanKehadiranDashboard()"><span class="report-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M7 2v4M17 2v4M3 9h18m-13 6 3 3 5-6"/></svg></span><span class="report-label">Laporan Kehadiran</span></button>
+     <button class="btn report-action report-kehadiran" onclick="bukaLaporanKehadiranDashboard()"><span class="report-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M7 2v4M17 2v4M3 9h18m-13 6 3 3 5-6"/></svg></span><span class="report-label">Laporan Kehadiran</span></button>
   </div>`;
+
+  app().innerHTML=modPerlawanan()
+    ? `${topbar("Dashboard Ranking","home")}${bahagianTools}${pilihAcara}${katTabs}<div style="margin-top:10px">${senarai||'<div class="card"><div class="small">Belum ada rekod untuk acara ini.</div></div>'}</div>`
+    : `${topbar("Dashboard Ranking","home")}${pilihAcara}${katTabs}<div style="margin-top:10px">${senarai||'<div class="card"><div class="small">Belum ada rekod untuk acara ini.</div></div>'}</div>${bahagianTools}`;
 }
 
 /* ================= LAPORAN RANKING BOLEH CETAK =================
