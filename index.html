@@ -1171,9 +1171,20 @@ async function segerakSenyap(){
     d.jadual=jdGabung(d.jadual);
     let sama=false; try{ sama=JSON.stringify({...d,masaPelayan:null})===JSON.stringify({...DB,masaPelayan:null}); }catch(_){}
     if(sama) return;                    /* tiada perubahan — elak paparan berkelip */
+    /* Perubahan MOD oleh Master Admin mesti dipapar SEGERA pada semua pengguna,
+       walaupun borang sedang terbuka — mod menentukan skrin utama semua orang. */
+    const tLama=(DB&&DB.tetapan)||{}, tBaru=d.tetapan||{};
+    const modBerubah=String(tLama.MOD_PERLAWANAN||"TIDAK")!==String(tBaru.MOD_PERLAWANAN||"TIDAK")
+                  || String(tLama.NAMA_KEJOHANAN||"")!==String(tBaru.NAMA_KEJOHANAN||"");
     DB=d; simpanCacheDB(d);
     if(!TEMA_MENYIMPAN) gunaTema(d.tetapan && d.tetapan.TEMA_APP);
-    if(bolehRenderSemula()) render();  /* jangan ganggu bila borang/input sedang digunakan */
+    if(modBerubah){
+      render();
+      toast(String(tBaru.MOD_PERLAWANAN||"TIDAK")==="AKTIF"
+        ? "🏟 Master Admin telah menukar ke Mod Perlawanan — "+(tBaru.NAMA_KEJOHANAN||"")
+        : "🏃 Master Admin telah menukar ke Mod Latihan");
+    }
+    else if(bolehRenderSemula()) render();  /* jangan ganggu bila borang/input sedang digunakan */
     else if(VIEW==="galeri") GAL_DOM_LAMA=true;
   }catch(e){ /* senyap sahaja */ }
   finally{ SEGERAK=false; lencanaSegerak(false); }
@@ -3865,6 +3876,7 @@ async function tukarModRekod(mod){
   try{
     await api("simpanTetapan",{kunci:"MOD_REKOD",nilai:mod,...who()});
     DB.tetapan=Object.assign({},DB.tetapan||{},{MOD_REKOD:mod});
+    simpanCacheDB(DB);
     toast(mod==="SEMUA"?"Mod terbuka diaktifkan":"Mod terhad diaktifkan"); vAdmin();
   }catch(e){ toastRalat(e); }
 }
@@ -5409,8 +5421,9 @@ async function tukarModPerlawanan(aktif){
   if(!await sahkan(aktif?`Tukar ke Mod Perlawanan untuk "${nama}"?`:"Tukar semula ke Mod Latihan? Perekodan kembali seperti biasa. Data kejohanan kekal tersimpan dan hanya digunakan dalam Laporan Kejohanan.")) return;
   try{
     if(aktif) await api("simpanTetapan",{kunci:"NAMA_KEJOHANAN",nilai:nama,...who()});
-    await api("simpanTetapan",{kunci:"MOD_PERLAWANAN",nilai:aktif?"AKTIF":"TIDAK",...who()});
-    DB.tetapan=Object.assign({},DB.tetapan||{},{MOD_PERLAWANAN:aktif?"AKTIF":"TIDAK"},aktif?{NAMA_KEJOHANAN:normKej(nama)}:{});
+    const r=await api("simpanTetapan",{kunci:"MOD_PERLAWANAN",nilai:aktif?"AKTIF":"TIDAK",...who()});
+    DB.tetapan=Object.assign({},DB.tetapan||{},(r&&r.tetapan)||{},{MOD_PERLAWANAN:aktif?"AKTIF":"TIDAK"},aktif?{NAMA_KEJOHANAN:normKej(nama)}:{});
+    simpanCacheDB(DB); /* simpan ke cache peranti supaya refresh tidak kembali ke mod lama */
     toast(aktif?"Mod Perlawanan diaktifkan":"Mod Perlawanan ditutup"); render();
   }catch(e){ toastRalat(e); }
 }

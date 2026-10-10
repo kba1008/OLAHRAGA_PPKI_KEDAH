@@ -1250,10 +1250,12 @@ function simpanTetapan(p) {
   for (var i = 1; i < v.length; i++) {
     if (String(v[i][0]).toUpperCase().trim() === kunci) {
       s.getRange(i + 1, 1, 1, 4).setValues([[kunci, nilai, p.olehNama || p.olehEmel || "", nowStr()]]);
+      SpreadsheetApp.flush(); cacheBatal_(); /* pastikan tetapan baharu ditulis & cache lama dibuang */
       return { ok: true, tetapan: bacaTetapan() };
     }
   }
   s.appendRow([kunci, nilai, p.olehNama || p.olehEmel || "", nowStr()]);
+  SpreadsheetApp.flush(); cacheBatal_();
   return { ok: true, tetapan: bacaTetapan() };
 }
 
@@ -1983,6 +1985,7 @@ function proses(payload, callback) {
     lock.waitLock(15000);
     try {
       var hasil = fn(payload);
+      SpreadsheetApp.flush();
       cacheBatal_(); /* data berubah — batalkan cache supaya semua peranti dapat data terkini */
       return balas({ ok: true, data: hasil, ms: new Date().getTime() - mula }, callback);
     }
