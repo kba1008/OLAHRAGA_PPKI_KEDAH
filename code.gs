@@ -210,7 +210,7 @@ function daftarGuru(p) {
 function login(p) {
   var emel = String(p.emel || "").toLowerCase().trim();
   if (emel === ADMIN_EMEL && String(p.kataLaluan) === ADMIN_KATA_LALUAN) {
-    return { id: "ADMIN", nama: "Master Admin", emel: ADMIN_EMEL, jawatan: "Master Admin", sekolah: "-", telefon: "-", peranan: "ADMIN" };
+    return { tokenTema: ciptaSesiTema_(), id: "ADMIN", nama: "Master Admin", emel: ADMIN_EMEL, jawatan: "Master Admin", sekolah: "-", telefon: "-", peranan: "ADMIN" };
   }
   var g = cariGuru(emel);
   if (!g || String(g["KATA LALUAN"]) !== String(p.kataLaluan)) throw new Error("Emel atau kata laluan salah.");
@@ -1190,7 +1190,26 @@ function buangJurulatih(p) {
 function normEmel(x) { return String(x || "").toLowerCase().trim(); }
 
 /* ---------------- Tetapan Sistem (Master Admin) ---------------- */
-var TETAPAN_LALAI = { MOD_REKOD: "JURULATIH" }; /* JURULATIH = hanya jurulatih acara, SEMUA = semua pengguna berdaftar */
+var TEMA_SAH = ["BIRU", "UNGU", "HIJAU", "MERAH", "EMAS"];
+var TETAPAN_LALAI = { MOD_REKOD: "JURULATIH", TEMA_APP: "BIRU" }; /* JURULATIH = hanya jurulatih acara, SEMUA = semua pengguna berdaftar */
+
+/* Tema bersama: token hanya dikeluarkan selepas login master berjaya.
+   Cache sesi maksimum enam jam; pengguna lama perlu log masuk semula. */
+function ciptaSesiTema_() {
+  var token = Utilities.getUuid() + Utilities.getUuid();
+  CacheService.getScriptCache().put("AT_TEMA_SESI_" + token, ADMIN_EMEL, 21600);
+  return token;
+}
+function sahkanSesiTema_(p) {
+  if (!isMasterAdmin(p.olehEmel) || !p.tokenTema ||
+      CacheService.getScriptCache().get("AT_TEMA_SESI_" + String(p.tokenTema)) !== ADMIN_EMEL) {
+    throw new Error("Sesi Master Admin tamat atau tidak sah. Sila log masuk semula.");
+  }
+}
+function temaAppAwam() {
+  var tema = bacaTetapan().TEMA_APP;
+  return { tema: TEMA_SAH.indexOf(tema) >= 0 ? tema : "BIRU" };
+}
 
 function bacaTetapan() {
   var out = {};
@@ -1209,6 +1228,10 @@ function simpanTetapan(p) {
   var kunci = String(p.kunci || "").toUpperCase().trim();
   var nilai = String(p.nilai || "").toUpperCase().trim();
   if (!kunci) throw new Error("Kunci tetapan tidak dinyatakan.");
+  if (kunci === "TEMA_APP") {
+    sahkanSesiTema_(p);
+    if (TEMA_SAH.indexOf(nilai) < 0) throw new Error("Pilihan tema tidak sah.");
+  }
   if (kunci === "MOD_REKOD" && nilai !== "JURULATIH" && nilai !== "SEMUA") throw new Error("Nilai MOD_REKOD mesti JURULATIH atau SEMUA.");
   var s = dapatSheet(SHEET_TETAPAN, HEADERS[SHEET_TETAPAN], "#0f766e");
   var v = s.getDataRange().getValues();
@@ -1653,6 +1676,7 @@ function padamGuru(p) {
 }
 
 var TINDAKAN = {
+  temaApp: temaAppAwam,
   ping: function () { return { ok: true, masa: nowStr() }; },
   authorizeAll: function () { return { laporan: authorizeAll() }; },
   setup: function () { return { mesej: setupPangkalanData() }; },
@@ -1882,7 +1906,7 @@ function logRalat(payload, err) {
 }
 
 /* Aksi ringan tidak perlu Script Lock — bolehkan parallelism supaya kehadiran laju */
-var TANPA_LOCK = { ping: 1, data: 1, login: 1, tokenNaikMedia: 1, tokenNaikJadual: 1, ambilPdfJadual: 1 };
+var TANPA_LOCK = { temaApp: 1, ping: 1, data: 1, login: 1, tokenNaikMedia: 1, tokenNaikJadual: 1, ambilPdfJadual: 1 };
 
 
 /* ============ CACHE PANTAS (Script Cache) ============

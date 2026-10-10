@@ -1,0 +1,36 @@
+/* AtletTraning — sistem token kaca 3D, merangkumi semua skrin. */
+:root,[data-tema="BIRU"]{--p1:oklch(.57 .19 255);--p2:oklch(.81 .12 220);--p3:oklch(.72 .12 265);--bg:oklch(.16 .025 255);--bg2:oklch(.24 .038 255)}
+[data-tema="UNGU"]{--p1:oklch(.56 .21 300);--p2:oklch(.8 .13 310);--p3:oklch(.73 .12 255);--bg:oklch(.16 .025 300);--bg2:oklch(.24 .038 300)}
+[data-tema="HIJAU"]{--p1:oklch(.55 .13 165);--p2:oklch(.81 .12 160);--p3:oklch(.75 .10 210);--bg:oklch(.16 .025 165);--bg2:oklch(.24 .038 165)}
+[data-tema="MERAH"]{--p1:oklch(.56 .2 20);--p2:oklch(.81 .1 20);--p3:oklch(.72 .12 45);--bg:oklch(.16 .025 20);--bg2:oklch(.24 .038 20)}
+[data-tema="EMAS"]{--p1:oklch(.55 .105 85);--p2:oklch(.85 .12 90);--p3:oklch(.76 .09 55);--bg:oklch(.16 .018 85);--bg2:oklch(.24 .025 85)}
+:root{--txt:oklch(.97 .008 255);--mut:oklch(.78 .022 255);--glass-light:oklch(1 0 0 / .2);--glass-edge:oklch(1 0 0 / .24);--glass-shadow:oklch(.05 0 0 / .6);--glass-low:oklch(1 0 0 / .045);--line:var(--glass-edge);--card:color-mix(in oklch,var(--bg2) 82%,transparent);--grad:linear-gradient(135deg,var(--p1),color-mix(in oklch,var(--p1) 62%,var(--p2)));--glass-face:linear-gradient(145deg,var(--glass-light),var(--glass-low) 42%,color-mix(in oklch,var(--p1) 12%,transparent));--glass-surface:linear-gradient(145deg,color-mix(in oklch,var(--bg2) 90%,var(--txt)),var(--bg2) 58%);--sh:0 20px 38px -18px var(--glass-shadow),0 5px 0 -2px color-mix(in oklch,var(--bg) 85%,var(--p1)),inset 0 1px 0 var(--glass-light),inset 0 -1px 0 var(--glass-low);--control-shadow:0 4px 0 color-mix(in oklch,var(--bg) 78%,var(--p1)),0 10px 18px -10px var(--glass-shadow),inset 0 1px 0 var(--glass-edge);--focus-ring:0 0 0 3px color-mix(in oklch,var(--p2) 25%,transparent);--r:18px;--popup-surface:var(--bg2);--popup-shadow:var(--sh);--report-focus:var(--p2)}
+body{background:linear-gradient(150deg,color-mix(in oklch,var(--bg) 88%,var(--p1)),var(--bg) 52%,color-mix(in oklch,var(--bg) 92%,var(--p2)));background-attachment:fixed;color:var(--txt);color-scheme:dark}
+.card,.item,.kat3d,.tile,.media-kad,.jd-item,.fileit,.stat,.kpi,.media-upload,.rk3d,.sheet,.at-dialog,.dd-menu{background:var(--glass-face),var(--card);border-color:var(--glass-edge);box-shadow:var(--sh);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%)}
+.tile,.kat3d{transform:perspective(1000px) rotateX(2deg);transform-origin:center;transition:transform .2s ease,box-shadow .2s ease}
+.tile.t1,.tile.t2,.tile.t3,.tile.t4{background:var(--glass-face),var(--grad)}
+.tile:before,.kat3d:before{background:linear-gradient(120deg,var(--glass-light),transparent 45%)}
+.card,.item,.jd-item{transition:box-shadow .2s ease,border-color .2s ease}
+.btn,.back,.tabs button,.rank,.logo,.mx-logo,.mx-btn,.cmb-btn,.fb-bar button,.fab-acara button,.pmp-btn,.rnd{color:var(--txt);border:1px solid var(--glass-edge);box-shadow:var(--control-shadow);background:var(--glass-face),var(--grad);transition:transform .15s ease,filter .15s ease}
+.btn.ghost,.back,.tabs button:not(.on),.cmb-btn,.mx-btn.alt,.fab-acara button{background:var(--glass-face),var(--card);box-shadow:var(--control-shadow)}
+.btn.ok,.cmb-btn.pri{background:var(--glass-face),color-mix(in oklch,var(--ok) 48%,var(--bg2));color:var(--txt)}
+.btn.bad,.fab-acara button:last-child{background:var(--glass-face),color-mix(in oklch,var(--bad) 55%,var(--bg2));color:var(--txt)}
+.btn.report-action{background:var(--glass-face),color-mix(in oklch,var(--report-tone) 45%,var(--bg2));box-shadow:var(--control-shadow)}
+.btn:active,.tile:active,.tabs button:active,.back:active{transform:translateY(3px);box-shadow:inset 0 2px 5px var(--glass-shadow)}
+input,select,textarea{background:color-mix(in oklch,var(--bg) 80%,transparent);border-color:var(--line);box-shadow:inset 0 2px 6px var(--glass-shadow),0 1px 0 var(--glass-light);color:var(--txt)}
+option{background:var(--bg2);color:var(--txt)}
+input:focus,select:focus,textarea:focus{border-color:var(--p2);box-shadow:var(--focus-ring),inset 0 2px 6px var(--glass-shadow)}
+.nav{background:var(--glass-face),color-mix(in oklch,var(--bg2) 90%,transparent);box-shadow:0 -8px 30px -12px var(--glass-shadow);border-color:var(--glass-edge)}
+.nav button{border-radius:10px;min-height:48px}.nav button.on{color:var(--p2);background:var(--glass-face);box-shadow:inset 0 1px 0 var(--glass-light)}
+.chip,.badge,.pill{box-shadow:inset 0 1px 0 var(--glass-light),0 2px 4px var(--glass-shadow)}
+.kat3d-nama,.stat b{background:none;color:var(--p2);-webkit-text-fill-color:var(--p2)}
+.kat3d-bil,.rank{border-color:var(--line)}
+.media-kad .mk-ikon,.ikonPrev{background:var(--glass-face),var(--grad)}
+.sync,.toast,.fb-wrap{background:var(--glass-surface);border-color:var(--line);color:var(--txt);text-shadow:none}
+.tema-panel label{margin-top:0}.tema-panel select{max-width:100%;min-height:48px}.tema-panel [role=status]{min-height:22px;margin-top:10px}
+@media screen{.mx-wrap{background:var(--glass-face),var(--bg2);color:var(--txt);box-shadow:var(--sh)}.mx-title h2,.mx-title .mx-sub,.mx-legend,.mx-foot,.mx-edit{color:var(--txt)}.mx-head,.mx-scroll,.mx-foot{border-color:var(--line)}.mx-tools input,.mx-tools select{background:var(--bg);color:var(--txt);border-color:var(--line)}table.mx{color:var(--txt)}table.mx tbody td,table.mx tbody tr:nth-child(even) td{background:var(--bg2);border-color:var(--line)}table.mx tbody tr:hover td{background:color-mix(in oklch,var(--bg2) 86%,var(--p1))}table.mx td.sk,table.mx td.kt{color:var(--mut)}table.mx td.tot{background:var(--bg2)!important;color:var(--txt)}table.mx thead th,table.mx tfoot td{background:var(--bg)!important;color:var(--txt)}}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){.tile:hover,.kat3d:hover{transform:perspective(1000px) rotateX(0deg) translateY(-3px)}.btn:hover:not(:disabled){filter:brightness(1.12)}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}.tile,.kat3d{transform:none}}
+@media print{.tema-panel{display:none}.card,.item,.sheet{box-shadow:none;backdrop-filter:none;background:none}}
+/* Popup mesti kekal legap dan jelas di atas lapisan gelap. */
+.sheet,.at-dialog{background:var(--glass-face),var(--bg2);color:var(--txt);backdrop-filter:none;-webkit-backdrop-filter:none}

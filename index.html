@@ -574,6 +574,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
 @media(max-width:620px){.report-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.btn.report-action{min-height:110px;padding:14px 12px;flex-direction:column;align-items:flex-start;gap:8px}.report-orientation{width:100%;justify-content:space-between}.report-orientation select{width:190px;max-width:62%}}
 @media(prefers-reduced-motion:reduce){.btn.report-action{transition:none}.report-action:hover{transform:none}}
 </style>
+<link rel="stylesheet" href="./glass.css" />
 </head>
 <body>
 
@@ -582,12 +583,13 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
 <div class="sync" id="sync"><span class="dot"></span><span class="txt" id="syncTxt">Loading</span></div>
 
 <script src="./vendor/chart.umd.js"></script>
+<script src="./theme.js"></script>
 <script>
 /* ============================================================
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbwzygF9-ugdCAutBaYnADcoLyWQdqrcIhCJ7EimBnA-posDtcCmdkWK4C2FASpCVSxz/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -1107,6 +1109,7 @@ async function segerakSenyap(){
     let sama=false; try{ sama=JSON.stringify(d)===JSON.stringify(DB); }catch(_){}
     if(sama) return;                    /* tiada perubahan — elak paparan berkelip */
     DB=d; simpanCacheDB(d);
+    if(!TEMA_MENYIMPAN) gunaTema(d.tetapan && d.tetapan.TEMA_APP);
     if(bolehRenderSemula()) render();  /* jangan ganggu bila borang/input sedang digunakan */
     else if(VIEW==="galeri") GAL_DOM_LAMA=true;
   }catch(e){ /* senyap sahaja */ }
@@ -1159,6 +1162,7 @@ window.addEventListener("popstate",()=>{ goBack(); try{ history.pushState({view:
 /* ============================ SKRIN ============================ */
 const PAPARAN_AWAM={dashboard:1,profil:1,matriks:1,acara:1,acaraDetail:1,galeri:1,jadual:1};
 function render(){
+  if(DB && !TEMA_MENYIMPAN) gunaTema(DB.tetapan && DB.tetapan.TEMA_APP);
   $("#nav").classList.add("hide");
   if(!API) return skrinApi();
   if(!DB) return muat();                      /* dashboard awam — tiada login diperlukan */
@@ -3747,6 +3751,7 @@ function vAdmin(){
   </div>
   <button class="btn sm" style="margin-top:12px" onclick="formAtlet()">+ Tambah Atlet</button>
   <button class="btn sm ghost" onclick="formAcara()">+ Tambah Acara</button></div>
+  ${isMaster()?`<h3>Warna Paparan</h3><div class="card tema-panel"><label for="temaApp">Tema aplikasi</label><select id="temaApp" onchange="tukarTemaApp(this.value)">${AT_TEMA.pilihan.map(t=>`<option value="${t.id}" ${temaSemasa()===t.id?"selected":""}>${t.nama}</option>`).join("")}</select><div id="temaStatus" class="small" role="status" aria-live="polite"></div></div>`:""}
   <h3>Guru Berdaftar</h3>
   ${isMaster()?`<div class="card small">Anda boleh melantik mana-mana pengguna berdaftar sebagai <b>Sub Admin</b>. Sub Admin mempunyai akses penuh, kecuali tidak boleh memadam Master Admin.</div>`:`<div class="card small">Anda log masuk sebagai <b>Sub Admin</b> — akses penuh, kecuali melantik Sub Admin dan memadam Master Admin.</div>`}
   <div class="item"><div style="flex:1"><div class="nm">Master Admin <span class="chip">MASTER</span></div><div class="sub">Akaun pentadbir utama • tidak boleh dipadam</div></div></div>
@@ -4863,23 +4868,11 @@ function overlay(html){
 function tutup(){ if(MEDIA_SIBUK)return toast("Muat naik sedang berjalan. Sila tunggu sehingga selesai."); if(GRAF_CART){GRAF_CART.destroy();GRAF_CART=null;} GRAF_CTX=null; try{ camTutup(); }catch(e){} const o=$("#ov"); if(o){o.remove();if(typeof o._selepasTutup==="function") o._selepasTutup();} }
 
 /* ---------- Mula ---------- */
-if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("./sw.js").then(reg=>{
-      /* Semak versi baharu app secara berkala & bila app dibuka semula */
-      const semak=()=>{ try{ reg.update(); }catch(e){} };
-      setInterval(semak,60000);
-      document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") semak(); });
-    }).catch(()=>{});
-    /* Bila SW baharu mengambil alih → muat semula sekali supaya app terus terkini */
-    let dahMuatSemula=false;
-    navigator.serviceWorker.addEventListener("controllerchange",()=>{
-      if(dahMuatSemula) return; dahMuatSemula=true; location.reload();
-    });
-  });
-}
+/* Manifest dikekalkan. Tiada pendaftaran cache aplikasi baharu.
+   sw.js pada laluan lama membersihkan cache keluaran terdahulu. */
 try{ history.replaceState({view:"home"},"", "#home"); }catch(e){}
 render();
+mulaSegerakTema();
 
 /* ================= JADUAL PERLAWANAN =================
    Muat naik: Master Admin sahaja. Semua jenis fail.
