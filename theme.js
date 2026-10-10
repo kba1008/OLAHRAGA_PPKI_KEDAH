@@ -38,13 +38,27 @@ async function segerakTema(){
     const r=await apiJsonp('temaApp',{},10000);
     if(versi!==TEMA_VERSI||TEMA_MENYIMPAN)return;
     const tema=AT_TEMA.normal(r.tema);
-    if(DB){DB.tetapan=Object.assign({},DB.tetapan||{},{TEMA_APP:tema});simpanCacheDB(DB);}
+    let modBerubah=false;
+    if(DB){
+      const lama=DB.tetapan||{},baru={TEMA_APP:tema};
+      if(r.modPerlawanan){
+        baru.MOD_PERLAWANAN=r.modPerlawanan;baru.NAMA_KEJOHANAN=r.namaKejohanan||"";
+        modBerubah=String(lama.MOD_PERLAWANAN||"TIDAK")!==baru.MOD_PERLAWANAN||String(lama.NAMA_KEJOHANAN||"")!==baru.NAMA_KEJOHANAN;
+      }
+      DB.tetapan=Object.assign({},lama,baru);simpanCacheDB(DB);
+    }
     gunaTema(tema);
+    if(modBerubah){
+      render();
+      toast(DB.tetapan.MOD_PERLAWANAN==="AKTIF"?"🏟 Master Admin telah menukar ke Mod Perlawanan — "+(DB.tetapan.NAMA_KEJOHANAN||""):"🏃 Master Admin telah menukar ke Mod Latihan");
+      try{const d=await api("data",{paksa:1});if(d&&Array.isArray(d.atlet)){d.tetapan=Object.assign({},d.tetapan||{},DB.tetapan);DB=d;simpanCacheDB(DB);if(bolehRenderSemula())render();}}catch(_){}
+    }
   }catch(e){/* Internet putus: kekalkan tema terakhir. */}
   finally{TEMA_BACA=false;}
 }
 function mulaSegerakTema(){
-  setInterval(segerakTema,60000);
+  setInterval(segerakTema,20000);
+  setTimeout(segerakTema,1500); /* semak mod & tema serta-merta selepas refresh */
   window.addEventListener('focus',segerakTema);window.addEventListener('online',segerakTema);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')segerakTema();});
 }

@@ -111,3 +111,10 @@ body .btn.report-action{--control-tone:var(--report-tone,var(--tone-4))}
 body .btn.bad,body .fab-acara button:last-child,body .dd-item.bad,body .mx-del{--control-tone:var(--tone-5)}
 body .btn:disabled,body button:disabled{opacity:.55;cursor:not-allowed}
 body button:focus-visible,body a.btn:focus-visible{outline:3px solid var(--txt);outline-offset:3px}
+
+/* Rekod perlawanan: varian berbeza, dimensi utama kekal stabil. */
+:root{--competition-face:var(--tone-4);--competition-edge:var(--menu-ink)}
+body .cmb-btn.pri.rekod-perlawanan,body .btn.rekod-perlawanan{--control-tone:var(--competition-face);border:2px solid var(--competition-edge);border-radius:8px;box-shadow:var(--control-shadow),inset 0 2px 0 var(--menu-edge);font-weight:800}
+.pl-rekod-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.pl-rekod-row>div{min-width:0;overflow-wrap:anywhere}
+.pl-panduan{margin-top:12px}.pl-panduan summary{cursor:pointer;color:var(--link)}

@@ -5,7 +5,7 @@
    Tampal URL /exec baharu di antara tanda petik di bawah,
    kemudian simpan fail ini. Tiada perubahan lain diperlukan.
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzIiyscZAxWbyk7EFWI6W1X9eidLhmdGawMYnpgm9qK9GX9IOQMtOuArZRE5F5uSlr3/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxssouVnmreCa62f4zNdTBmUs-JcTUxKxia1PmohKJCITTaiY7FdNFimuU-xazMTckT/exec";
 </script>
 <html lang="ms">
 <head>
@@ -1126,7 +1126,7 @@ function bacaCacheDB(){ try{ const o=JSON.parse(localStorage.getItem(LS_DB)||"nu
 
 async function muat(){
   if(MUAT_PROMISE)return MUAT_PROMISE;
-  if(!DB){const c=bacaCacheDB();if(c){DB=c.d;render();segerakSenyap();return;}}
+  if(!DB){const c=bacaCacheDB();if(c){DB=c.d;render();segerakTema();segerakSenyap();return;}}
   loading();
   MUAT_PROMISE=(async()=>{
     try{
@@ -1135,7 +1135,7 @@ async function muat(){
       try{d=await apiJsonp("data",{},25000);}
       catch(e){if(!e||!["DB-002","DB-003","DB-005"].includes(e.kod))throw e;d=await apiGetFetch("data",{});}
       if(!d||!Array.isArray(d.atlet)||!Array.isArray(d.acara))throw RalatDB("DB-005","Data aplikasi tidak lengkap.","","data");
-      DB=d;simpanCacheDB(DB);render();
+      DB=d;simpanCacheDB(DB);render();segerakTema();
     }catch(e){app().innerHTML=kadRalat(e,"muat()");}
     finally{clearInterval(LOAD_TIMER);LOAD_TIMER=null;MUAT_PROMISE=null;}
   })();
@@ -1269,7 +1269,7 @@ function navBarAwam(){
   $("#nav").innerHTML=t.map(([k,i,l])=>`<button class="${VIEW===k?"on":""}" onclick="go('${k}')"><span class="ni">${i}</span>${l}</button>`).join("");
 }
 function navBar(){
-  const t=[["home","🏠","Utama"],["kehadiran","✅","Kehadiran"],modPerlawanan()?["perlawanan","🏟","Perlawanan"]:["acara","🏆","Rekod"],["matriks","📋","Matriks"],["saya","👤","Saya"]];
+  const t=[["home","🏠","Utama"],["kehadiran","✅","Kehadiran"],["acara","🏆","Rekod"],["matriks","📋","Matriks"],["saya","👤","Saya"]];
   $("#nav").innerHTML=t.map(([k,i,l])=>`<button class="${VIEW===k?"on":""}" onclick="go('${k}')"><span class="ni">${i}</span>${l}</button>`).join("");
 }
 function head(title,sub){
@@ -1372,7 +1372,7 @@ function vHome(){
   </div></div>
   <div class="grid3">
     <div class="tile t1" onclick="go('kehadiran')"><div class="ic">✅</div><div class="tt">KEHADIRAN</div><div class="ts">Tanda kehadiran atlet</div></div>
-    ${modPerlawanan()?`<div class="tile t2" onclick="go('perlawanan')"><div class="ic">🏟</div><div class="tt">REKOD PERLAWANAN</div><div class="ts">🟢 ${esc(namaKejSemasa())}</div></div>`:`<div class="tile t2" onclick="go('acara')"><div class="ic">🏆</div><div class="tt">REKOD LATIHAN</div><div class="ts">Ikut acara & atlet</div></div>`}
+    ${modPerlawanan()?`<div class="tile t2" onclick="go('acara')"><div class="ic">🏟</div><div class="tt">REKOD PERLAWANAN</div><div class="ts">🟢 ${esc(namaKejSemasa())}</div></div>`:`<div class="tile t2" onclick="go('acara')"><div class="ic">🏆</div><div class="tt">REKOD LATIHAN</div><div class="ts">Ikut acara & atlet</div></div>`}
     <div class="tile t3" onclick="go('dashboard')"><div class="ic">📊</div><div class="tt">DASHBOARD</div><div class="ts">Ranking pencapaian</div></div>
     <div class="tile t3" onclick="go('galeri')"><div class="ic">🖼</div><div class="tt">GALERI</div><div class="ts">Fail, nota, gambar & video</div></div>
     <div class="tile t1" onclick="go('matriks')"><div class="ic">📋</div><div class="tt">MATRIKS ACARA</div><div class="ts">Cek list peserta × acara</div></div>
@@ -1976,7 +1976,7 @@ function vAcaraDetail(){
       <div id="jlListWrap" style="display:none">${jl.map(j=>`<span class="chip">👤 ${esc(j["NAMA JURULATIH"])} ${boleh?`<a href="#" onclick="event.preventDefault();buangJ('${esc(n)}','${esc(j["EMEL JURULATIH"])}')" style="color:var(--bad)">✕</a>`:""}</span>`).join("")||'<span class="chip">Tiada</span>'}</div>
       ${boleh?`<button class="btn sm ghost" style="margin-top:10px" onclick="formJurulatih('${esc(n)}')">+ Lantik Rakan Jurulatih</button>`:""}
       ${boleh?`<button class="btn sm" style="margin-top:10px" onclick="formPenyertaan('${esc(n)}')">+ Tambah Atlet ke Acara</button>`:`<div class="small" style="margin-top:10px">Hanya jurulatih acara ini atau Master Admin boleh menambah/merekod.</div>`}
-      ${boleh && isBerpasukan(n)?`<button class="btn sm" style="margin-top:8px;background:var(--p2)" onclick="formRekodRelay('${esc(n)}')">👥 + Rekod Berpasukan</button><div class="small" style="margin-top:4px">Acara berpasukan — satu rekod dikongsi oleh semua atlet dalam pasukan.</div>`:""}
+      ${boleh && isBerpasukan(n)?`<button class="btn sm ${modPerlawanan()?"rekod-perlawanan":""}" style="margin-top:8px;background:var(--p2)" onclick="formRekodRelay('${esc(n)}')">👥 + Rekod Berpasukan</button><div class="small" style="margin-top:4px">Acara berpasukan — satu rekod dikongsi oleh semua atlet dalam pasukan.</div>`:""}
       <button class="btn ghost sm" style="margin-top:10px" onclick="go('sejarah',{acara:'${esc(n)}'})">🕘 Sejarah Rekod Acara</button>
     </div>
   </div>
@@ -2191,7 +2191,7 @@ function itemAcaraDetail(n,p,info,boleh,t,dragOn){
         ${rk?`<span>Sasaran: <b>${esc(rk.KEPUTUSAN||fmtNilai(Number(rk.NILAI),info))}</b>${jurang}</span>`:""}
       </div>
       <div class="cmb-act">
-        ${boleh&&!isBerpasukan(n)?`<button class="cmb-btn pri" onclick="event.stopPropagation();formRekod('${esc(n)}','${esc(p["ATLET ID"])}')">+ Rekod</button>`:""}
+        ${boleh&&(!isBerpasukan(n)||modPerlawanan())?`<button class="cmb-btn pri ${modPerlawanan()?"rekod-perlawanan":""}" onclick="event.stopPropagation();formRekod('${esc(n)}','${esc(p["ATLET ID"])}')">${modPerlawanan()?"🏟 Rekod":"+ Rekod"}</button>`:""}
         <button class="cmb-btn graf" title="Graf prestasi atlet mengikut acara" onclick="event.stopPropagation();paparGraf('${esc(n)}','${esc(p["ATLET ID"])}')">📈 Graf</button>
         ${boleh?`
         <button class="cmb-btn ${hadir?"ok":""}" ${pending?"disabled":""} onclick="event.stopPropagation();tandaHadirAcara('${esc(n)}','${esc(p["ATLET ID"])}','${hadir?"TIDAK HADIR":"HADIR"}')">${pending?"…":(hadir?"✅ Hadir":"Tanda Hadir")}</button>
@@ -2342,6 +2342,7 @@ async function simpanP(n){
 
 /* Borang rekod — selepas simpan, kekal pada halaman & kemas kini item */
 function formRekod(n,id){
+  if(modPerlawanan()) return bukaRekodPerlawanan(n,id);
   const a=atletById(id)||{}, info=acaraInfo(n);
   overlay(`<div class="big">Rekod Latihan</div>
   <div class="small">${esc(n)} • ${esc(a["NAMA PENUH"]||"")}</div>
@@ -2437,6 +2438,7 @@ function lukisGraf(){
 
 /* ---------- Rekod Berpasukan (Relay: 4x100, 4x200, 4x400, Mix Relay) ---------- */
 function formRekodRelay(n){
+  if(modPerlawanan()) return pilihAtletPerlawanan(n);
   const info=acaraInfo(n);
   const t=today();
   const semua=penyertaan(n);
@@ -2848,6 +2850,7 @@ function cetakLaporanBmi(){
 function formRekodProfil(n,id){
   if(!bolehRekod(n)) return toast("Anda tiada kebenaran merekod acara ini.");
   if(!penyertaan(n).some(p=>String(p["ATLET ID"])===String(id))) return toast("Atlet tidak menyertai acara ini.");
+  if(modPerlawanan()) return bukaRekodPerlawanan(n,id);
   if(isBerpasukan(n)){
     formRekodRelay(n);
     document.querySelectorAll(".relayChk").forEach(el=>{el.checked=String(el.value)===String(id);});
@@ -2916,7 +2919,7 @@ function vProfil(){
       <div class="profil-acara-footer">
         ${bolehRekod(n)?`<button class="btn sm bad" onclick="keluarAtletAcara('${esc(n)}','${esc(a.ID)}')">✕ Gugurkan dari ${esc(n)}</button>`:""}
         <div class="profil-acara-actions">
-          ${bolehRekod(n)?`<button class="btn profil-rekod" onclick="formRekodProfil('${esc(n)}','${esc(a.ID)}')">+ Rekod</button>`:""}
+          ${bolehRekod(n)?`<button class="btn profil-rekod ${modPerlawanan()?"rekod-perlawanan":""}" onclick="formRekodProfil('${esc(n)}','${esc(a.ID)}')">${modPerlawanan()?"🏟 Rekod":"+ Rekod"}</button>`:""}
           <button class="btn ghost profil-graf" title="Graf prestasi ${esc(n)}" onclick="paparGraf('${esc(n)}','${esc(a.ID)}')">📈 Graf</button>
         </div>
       </div>
@@ -3843,6 +3846,17 @@ function vSaya(){
 }
 function vAdmin(){
   app().innerHTML=`${topbar("Panel "+namaPeranan(),"saya")}
+  ${kadModPerlawananAdmin()}
+  ${isMaster()?`<h3>Tetapan Merekod Latihan</h3>
+  <div class="card">
+    <div class="nm">Siapa boleh merekod latihan?</div>
+    <div class="small" style="margin:4px 0 10px">Mod semasa: <b style="color:${rekodTerbuka()?"var(--ok)":"var(--brand,#7aa2ff)"}">${rekodTerbuka()?"TERBUKA — semua pengguna berdaftar":"TERHAD — jurulatih acara sahaja"}</b></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn sm ${rekodTerbuka()?"ghost":""}" onclick="tukarModRekod('JURULATIH')">🔒 Jurulatih acara sahaja</button>
+      <button class="btn sm ${rekodTerbuka()?"":"ghost"}" onclick="tukarModRekod('SEMUA')">🌐 Semua pengguna berdaftar</button>
+    </div>
+    <div class="small" style="margin-top:8px;opacity:.8">Mod <b>TERBUKA</b> membenarkan mana-mana guru berdaftar merekod, menanda kehadiran dan mengedit rekod bagi <b>semua acara</b>. Master Admin & Sub Admin sentiasa dibenarkan.</div>
+  </div>`:""}
   <div class="card"><div class="row">
     <div class="stat"><b>${(DB.guru||[]).length}</b><span class="small">Guru</span></div>
     <div class="stat"><b>${(DB.atlet||[]).length}</b><span class="small">Atlet</span></div>
@@ -3859,17 +3873,6 @@ function vAdmin(){
       ${isMaster()?(sub?`<button class="btn sm ghost" onclick="tukarSubAdmin('${esc(g.emel)}',false)">↧ Tarik Sub Admin</button>`:`<button class="btn sm" onclick="tukarSubAdmin('${esc(g.emel)}',true)">★ Lantik Sub Admin</button>`):""}
       ${(isMaster()||!sub)?`<button class="btn sm bad" onclick="padamGuru('${esc(g.emel)}','${esc(g.nama)}')">🗑 Padam</button>`:""}
     </div></div></div>`}).join("")||'<div class="card small">Tiada guru berdaftar.</div>'}
-  ${kadModPerlawananAdmin()}
-  ${isMaster()?`<h3>Tetapan Merekod Latihan</h3>
-  <div class="card">
-    <div class="nm">Siapa boleh merekod latihan?</div>
-    <div class="small" style="margin:4px 0 10px">Mod semasa: <b style="color:${rekodTerbuka()?"var(--ok)":"var(--brand,#7aa2ff)"}">${rekodTerbuka()?"TERBUKA — semua pengguna berdaftar":"TERHAD — jurulatih acara sahaja"}</b></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn sm ${rekodTerbuka()?"ghost":""}" onclick="tukarModRekod('JURULATIH')">🔒 Jurulatih acara sahaja</button>
-      <button class="btn sm ${rekodTerbuka()?"":"ghost"}" onclick="tukarModRekod('SEMUA')">🌐 Semua pengguna berdaftar</button>
-    </div>
-    <div class="small" style="margin-top:8px;opacity:.8">Mod <b>TERBUKA</b> membenarkan mana-mana guru berdaftar merekod, menanda kehadiran dan mengedit rekod bagi <b>semua acara</b>. Master Admin & Sub Admin sentiasa dibenarkan.</div>
-  </div>`:""}
   <h3>Jurulatih Acara</h3>
   ${acaraList().map(a=>`<div class="card"><div class="nm">${esc(a.ACARA)} <span class="small">(${jurulatihAcara(a.ACARA).length}/10)</span></div>
     <div>${jurulatihAcara(a.ACARA).map(j=>`<span class="chip">${esc(j["NAMA JURULATIH"])} <a href="#" style="color:var(--bad)" onclick="event.preventDefault();buangJ('${esc(a.ACARA)}','${esc(j["EMEL JURULATIH"])}')">✕</a></span>`).join("")||'<span class="chip">Tiada</span>'}</div>
@@ -5154,7 +5157,7 @@ const KOD_STATUS={
 const PUSINGAN_LIST=["SARINGAN","SUKU AKHIR","SEPARUH AKHIR","AKHIR"];
 const PINGAT_IKON={EMAS:"🥇",PERAK:"🥈",GANGSA:"🥉"};
 const PINGAT_SKOR={EMAS:3,PERAK:2,GANGSA:1};
-let PL_ACARA=null, PL_KEJ=null;
+let PL_ACARA=null, PL_KEJ=null, PL_BORANG=null;
 
 const tetapanDB=()=>((typeof DB!=="undefined"&&DB&&DB.tetapan)||{});
 const modPerlawanan=()=>String(tetapanDB().MOD_PERLAWANAN||"TIDAK").toUpperCase()==="AKTIF";
@@ -5300,6 +5303,10 @@ function teksPrestasi(b){
 
 /* ---------- Skrin Mod Perlawanan ---------- */
 function vPerlawanan(){
+  return vAcara();
+}
+/* Paparan lama dikekalkan untuk rujukan; navigasi menggunakan paparan acara penuh. */
+function vPerlawananLama(){
   const aktif=modPerlawanan();
   const boleh=acaraList().filter(a=>bolehRekod(a.ACARA));
   if(!PL_ACARA||!boleh.some(a=>a.ACARA===PL_ACARA)) PL_ACARA=boleh.length?boleh[0].ACARA:null;
@@ -5344,11 +5351,37 @@ function vPerlawanan(){
   ${panduanKodHtml()}`;
 }
 
+/* Acara ditetapkan secara nyata supaya butang setiap atlet tidak tersalah acara. */
+function bukaRekodPerlawanan(n,id,idData){
+  if(!modPerlawanan()) return toast("Mod Perlawanan belum diaktifkan oleh Master Admin.");
+  if(!bolehRekod(n)) return toast("Anda tiada kebenaran merekod acara ini.");
+  if(!penyertaan(n).some(p=>String(p["ATLET ID"])===String(id))) return toast("Atlet tidak menyertai acara ini.");
+  PL_ACARA=n;
+  tutup();
+  formPerlawanan(id,idData);
+}
+function pilihAtletPerlawanan(n){
+  if(!bolehRekod(n)) return toast("Anda tiada kebenaran merekod acara ini.");
+  const peserta=penyertaan(n);
+  if(!peserta.length) return toast("Tiada atlet dalam acara ini. Tambah atlet dahulu.");
+  overlay(`<div class="big">Rekod Perlawanan — ${esc(n)}</div>
+  <label for="plAtlet">Atlet</label><select id="plAtlet">${peserta.map(p=>`<option value="${esc(p["ATLET ID"])}">${esc(p["NAMA ATLET"])} • ${esc(p.KATEGORI)}</option>`).join("")}</select>
+  <button class="btn rekod-perlawanan" onclick="bukaRekodPerlawanan('${esc(n)}',$('#plAtlet').value)">🏟 Rekod</button><button class="btn ghost" onclick="tutup()">Batal</button>`);
+}
+function senaraiRekodPerlawanan(n,id){
+  const info=acaraInfo(n), kej=namaKejSemasa();
+  const rekod=dataPerlawanan().filter(r=>r.ACARA===n&&String(r["ATLET ID"])===String(id)&&normKej(r.KEJOHANAN)===kej);
+  return `<h3>Rekod Perlawanan Tersimpan</h3>${rekod.map(r=>`<div class="pl-rekod-row"><div><b>${esc(r.PUSINGAN||"")}</b> • ${esc(r.STATUS==="SAH"?fmtNilai(r.NILAI,info):r.STATUS)}${r.PINGAT?" • "+esc(r.PINGAT):""}<div class="small">${esc(r.TARIKH||"")} • ${esc(r.ALASAN||"")}</div></div><button class="btn sm ghost" onclick="bukaRekodPerlawanan('${esc(n)}','${esc(id)}','${esc(r.ID)}')">✎ Edit</button></div>`).join("")||'<div class="small">Belum ada rekod perlawanan.</div>'}`;
+}
 function formPerlawanan(atletId,idData){
   if(!modPerlawanan()) return toast("Mod Perlawanan belum diaktifkan oleh Master Admin.");
   const n=PL_ACARA, info=acaraInfo(n);
-  const p=penyertaan(n).find(x=>String(x["ATLET ID"])===String(atletId))||{};
-  const x=idData?dataPerlawanan().find(r=>String(r.ID)===String(idData)):null;
+  if(!n||!bolehRekod(n)) return toast("Anda tiada kebenaran merekod acara ini.");
+  const p=penyertaan(n).find(x=>String(x["ATLET ID"])===String(atletId));
+  if(!p) return toast("Atlet tidak menyertai acara ini.");
+  const x=idData?dataPerlawanan().find(r=>String(r.ID)===String(idData)&&r.ACARA===n&&String(r["ATLET ID"])===String(atletId)&&normKej(r.KEJOHANAN)===namaKejSemasa()):null;
+  if(idData&&!x) return toast("Data perlawanan tidak dijumpai untuk atlet ini.");
+  PL_BORANG={acara:n,kejohanan:namaKejSemasa(),atletId:String(atletId),idData:String(idData||"")};
   const st=x?String(x.STATUS||"SAH").toUpperCase():"SAH";
   const nilaiAwal=x&&st==="SAH"&&Number(x.NILAI)>0?(info.JENIS==="MASA"?fmtNilai(x.NILAI,info).replace(/ (saat|min)$/,""):Number(x.NILAI)):"";
   overlay(`<div class="big">${x?"Edit":"Tambah"} Data Perlawanan</div>
@@ -5364,9 +5397,12 @@ function formPerlawanan(atletId,idData){
     <div style="flex:1" id="plPingatWrap"><label for="plPingat">Pingat</label><select id="plPingat"><option value="">Tiada</option>${["EMAS","PERAK","GANGSA"].map(k=>`<option value="${k}" ${x&&String(x.PINGAT).toUpperCase()===k?"selected":""}>${PINGAT_IKON[k]} ${k}</option>`).join("")}</select></div></div>
   <label for="plTarikh">Tarikh</label><input id="plTarikh" type="date" value="${esc(x?String(x.TARIKH).slice(0,10):today())}"/>
   <label for="plAlasan">Alasan / Catatan (pilihan)</label><textarea id="plAlasan" rows="2" placeholder="Cth: cedera hamstring, cuaca hujan">${esc(x&&x.ALASAN||"")}</textarea>
-  <button class="btn" id="btnPL" onclick="simpanPL('${esc(atletId)}','${esc(idData||"")}')">Simpan</button>
+  <button class="btn rekod-perlawanan" id="btnPL" onclick="simpanPL('${esc(atletId)}','${esc(idData||"")}')">Simpan</button>
   ${x?`<button class="btn bad" onclick="padamPL('${esc(idData)}')">🗑 Padam</button>`:""}
-  <button class="btn ghost" onclick="tutup()">Batal</button>`);
+  <button class="btn ghost" onclick="tutup()">Batal</button>
+  ${senaraiRekodPerlawanan(n,atletId)}
+  <button class="btn sm ghost" onclick="tutup();formAlasanSasaran('${esc(namaKejSemasa())}','${esc(n)}','${esc(atletId)}')">📝 Alasan Tidak Mencapai Sasaran</button>
+  <details class="pl-panduan"><summary>Panduan Kod Status</summary>${panduanKodHtml()}</details>`);
   plTukarStatus();
 }
 function plTukarStatus(){
@@ -5378,8 +5414,13 @@ function plTukarStatus(){
 async function simpanPL(atletId,idData){
   const btn=$("#btnPL"); const lepas=()=>{ if(btn){btn.disabled=false;btn.textContent="Simpan";} };
   if(btn){btn.disabled=true;btn.textContent="Menyimpan…";}
-  const n=PL_ACARA, info=acaraInfo(n);
-  const p=penyertaan(n).find(x=>String(x["ATLET ID"])===String(atletId))||{};
+  const konteks=PL_BORANG;
+  if(!konteks||konteks.atletId!==String(atletId)||konteks.idData!==String(idData||"")) { lepas(); return toast("Sila buka semula borang rekod."); }
+  if(!modPerlawanan()||namaKejSemasa()!==konteks.kejohanan) { lepas(); return toast("Tetapan mod atau kejohanan telah berubah. Sila buka semula borang."); }
+  const n=konteks.acara, info=acaraInfo(n);
+  if(!bolehRekod(n)) { lepas(); return toast("Anda tiada kebenaran merekod acara ini."); }
+  const p=penyertaan(n).find(x=>String(x["ATLET ID"])===String(atletId));
+  if(!p) { lepas(); return toast("Atlet tidak menyertai acara ini."); }
   const status=$("#plSt").value;
   let nilai="";
   if(status==="SAH"){
@@ -5387,7 +5428,7 @@ async function simpanPL(atletId,idData){
     nilai=info.JENIS==="MASA"?huraiMasa(m):parseFloat(String(m).replace(",","."));
     if(!(nilai>0)){ lepas(); return toast("Masukkan keputusan yang sah atau pilih kod status."); }
   }
-  const payload={id:idData||"",kejohanan:namaKejSemasa(),acara:n,atletId,nama:p["NAMA ATLET"]||"",kategori:p.KATEGORI||"",sekolah:p.SEKOLAH||"",
+  const payload={id:idData||"",kejohanan:konteks.kejohanan,acara:n,atletId,nama:p["NAMA ATLET"]||"",kategori:p.KATEGORI||"",sekolah:p.SEKOLAH||"",
     pusingan:$("#plPus").value,status,nilai,kedudukan:$("#plKed").value,pingat:status==="SAH"?$("#plPingat").value:"",
     alasan:$("#plAlasan").value.trim(),tarikh:$("#plTarikh").value||today(),...who()};
   try{
@@ -5484,7 +5525,7 @@ function panelKejohananDashboard(){
         <div class="sub">🎯 ${SASARAN_LABEL[b.sasaran.kod]} • ${teksCapai(b)}</div><div class="sub">🏁 ${b.terbaik?fmtNilai(b.terbaik.NILAI,b.info)+" ("+esc(b.terbaik.PUSINGAN||"")+")":b.kod} • ⭐ Latihan ${b.latihan?fmtNilai(b.latihan.nilai,b.info):"-"}${b.alasan.length?` • 📝 ${esc(b.alasan.join("; "))}`:""}</div></div>
       <div class="right small">${teksPrestasi(b)}</div></div>`).join("")}</div>`:`<div class="small" style="margin-top:8px">Belum ada data perlawanan untuk kejohanan ini.</div>`}
     <button class="btn sm" style="margin-top:10px" onclick="cetakLaporanKejohanan()">🖨 Cetak Laporan Korporat Kejohanan</button>
-    ${U&&modPerlawanan()?`<button class="btn sm ghost" style="margin-top:10px" onclick="go('perlawanan')">✍ Masukkan Data Perlawanan</button>`:""}
+    ${U&&modPerlawanan()?`<button class="btn sm ghost" style="margin-top:10px" onclick="go('acara')">✍ Masukkan Data Perlawanan</button>`:""}
     ${isMaster()&&!(modPerlawanan()&&PL_KEJ===namaKejSemasa())?`<button class="btn sm bad" style="margin-top:10px" onclick="padamEventPL('${esc(PL_KEJ)}')">🗑 Padam Laporan Event Ini</button>`:""}
     ${senarai.length>1?`<div class="small" style="margin-top:6px;opacity:.8">📂 ${senarai.length-1} laporan event lama tersimpan — pilih dalam senarai di atas.</div>`:""}
   </div>`;

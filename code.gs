@@ -1216,8 +1216,11 @@ function sahkanSesiTema_(p) {
   }
 }
 function temaAppAwam() {
-  var tema = bacaTetapan().TEMA_APP;
-  return { tema: TEMA_SAH.indexOf(tema) >= 0 ? tema : "BIRU" };
+  var t = bacaTetapan(), tema = t.TEMA_APP;
+  /* Dibaca TERUS dari sheet (tanpa cache) supaya mod Master Admin sampai ke semua telefon. */
+  return { tema: TEMA_SAH.indexOf(tema) >= 0 ? tema : "BIRU",
+           modPerlawanan: t.MOD_PERLAWANAN === "AKTIF" ? "AKTIF" : "TIDAK",
+           namaKejohanan: t.NAMA_KEJOHANAN || "" };
 }
 
 function bacaTetapan() {
