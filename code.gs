@@ -2170,7 +2170,7 @@ function simpanPerlawanan(p) {
   if (status !== "SAH") { nilai = ""; if (status !== "NC") pingat = ""; }
   if (status === "NC") pingat = "";
   if (!p.atletId) throw new Error("Atlet diperlukan.");
-  var kej = String(p.kejohanan || t.NAMA_KEJOHANAN || "KEJOHANAN").toUpperCase().trim();
+  var kej = normKej_(p.kejohanan || t.NAMA_KEJOHANAN) || "KEJOHANAN";
   var s = dapatSheet(SHEET_PERLAWANAN, HEADERS[SHEET_PERLAWANAN], "#9a3412");
   var baris = ["", kej, p.tarikh || hariIni(), String(p.acara || ""), String(p.kategori || "").toUpperCase(),
     String(p.atletId), p.nama || "", p.sekolah || "", String(p.pusingan || "SARINGAN").toUpperCase(),
@@ -2206,7 +2206,7 @@ function padamPerlawanan(p) {
    • Hanya Master Admin boleh memadam laporan event lama.                  */
 function simpanAlasanSasaran(p) {
   if (!bolehRekod(p.acara, p.olehEmel)) throw new Error("Hanya jurulatih acara ini, Master Admin atau Sub Admin boleh mengisi alasan.");
-  var kej = String(p.kejohanan || "").toUpperCase().trim();
+  var kej = normKej_(p.kejohanan);
   if (!kej || !p.acara || !p.atletId) throw new Error("Maklumat event / acara / atlet tidak lengkap.");
   var s = dapatSheet(SHEET_ALASAN, HEADERS[SHEET_ALASAN], "#b42318");
   var baris = [kej, String(p.acara), String(p.atletId), p.nama || "", String(p.sasaran || ""), String(p.pingat || ""),
@@ -2214,7 +2214,7 @@ function simpanAlasanSasaran(p) {
   var o = {}; HEADERS[SHEET_ALASAN].forEach(function (h, i) { o[h] = baris[i]; });
   var v = s.getDataRange().getValues();
   for (var i = 1; i < v.length; i++) {
-    if (String(v[i][0]).toUpperCase().trim() === kej && String(v[i][1]) === String(p.acara) && String(v[i][2]) === String(p.atletId)) {
+    if (normKej_(v[i][0]) === kej && String(v[i][1]) === String(p.acara) && String(v[i][2]) === String(p.atletId)) {
       s.getRange(i + 1, 1, 1, baris.length).setValues([baris]);
       return { ok: true, dikemaskini: true, rekod: o };
     }
@@ -2225,15 +2225,18 @@ function simpanAlasanSasaran(p) {
 
 function padamKejohananPL(p) {
   if (!isMasterAdmin(p.olehEmel)) throw new Error("Hanya Master Admin boleh memadam laporan event lama.");
-  var kej = String(p.kejohanan || "").toUpperCase().trim();
+  var kej = normKej_(p.kejohanan);
   if (!kej) throw new Error("Nama event diperlukan.");
   var t = bacaTetapan();
-  if (t.MOD_PERLAWANAN === "AKTIF" && t.NAMA_KEJOHANAN === kej) throw new Error("Event ini sedang berlangsung. Tukar ke Mod Latihan dahulu.");
+  if (t.MOD_PERLAWANAN === "AKTIF" && normKej_(t.NAMA_KEJOHANAN) === kej) throw new Error("Event ini sedang berlangsung. Tukar ke Mod Latihan dahulu.");
   var bil = 0;
   [[SHEET_PERLAWANAN, 1], [SHEET_ALASAN, 0]].forEach(function (x) {
     var s = ss().getSheetByName(x[0]); if (!s) return;
     var v = s.getDataRange().getValues();
-    for (var i = v.length - 1; i >= 1; i--) if (String(v[i][x[1]]).toUpperCase().trim() === kej) { s.deleteRow(i + 1); bil++; }
+    for (var i = v.length - 1; i >= 1; i--) if (normKej_(v[i][x[1]]) === kej) { s.deleteRow(i + 1); bil++; }
   });
   return { ok: true, dipadam: bil };
 }
+
+/* Nama event dinormalkan (huruf besar, ruang tunggal) supaya event lama sentiasa dipadankan. */
+function normKej_(v) { return String(v == null ? "" : v).replace(/\s+/g, " ").trim().toUpperCase(); }

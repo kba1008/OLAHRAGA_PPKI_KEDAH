@@ -605,7 +605,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbwgU_RzCyYMdMcEhqVSDp3W7fU9jZsh6zNCD9noifx1eD0LZKIx5PcW7pK8DJucKeTC/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -5138,13 +5138,14 @@ let PL_ACARA=null, PL_KEJ=null;
 
 const tetapanDB=()=>((typeof DB!=="undefined"&&DB&&DB.tetapan)||{});
 const modPerlawanan=()=>String(tetapanDB().MOD_PERLAWANAN||"TIDAK").toUpperCase()==="AKTIF";
-const namaKejSemasa=()=>String(tetapanDB().NAMA_KEJOHANAN||"").trim()||"KEJOHANAN";
+const normKej=v=>String(v||"").replace(/\s+/g," ").trim().toUpperCase();
+const namaKejSemasa=()=>normKej(tetapanDB().NAMA_KEJOHANAN)||"KEJOHANAN";
 const dataPerlawanan=()=>((DB&&DB.perlawanan)||[]);
 function senaraiKejohananPL(){
-  const s=[...new Set(dataPerlawanan().map(x=>String(x.KEJOHANAN||"").trim()).filter(Boolean))];
+  const s=[...new Set(dataPerlawanan().map(x=>normKej(x.KEJOHANAN)).filter(Boolean))];
   const kini=namaKejSemasa();
   if(modPerlawanan()&&s.indexOf(kini)<0) s.unshift(kini);
-  const akhir=k=>dataPerlawanan().filter(x=>String(x.KEJOHANAN||"").trim()===k).map(x=>String(x["TARIKH & MASA"]||x.TARIKH||"")).sort().pop()||"";
+  const akhir=k=>dataPerlawanan().filter(x=>normKej(x.KEJOHANAN)===k).map(x=>String(x["TARIKH & MASA"]||x.TARIKH||"")).sort().pop()||"";
   return s.sort((a,b)=>modPerlawanan()&&a===kini?-1:modPerlawanan()&&b===kini?1:akhir(b).localeCompare(akhir(a)));
 }
 function panduanKodHtml(){
@@ -5169,8 +5170,8 @@ function terbaikLatihanAtlet(acara,atletId,sebelum){
 /* Analisis satu kejohanan → satu baris bagi setiap acara × atlet */
 function analisisKejohananPL(kej){
   const grp={};
-  const tarikhEv=dataPerlawanan().filter(x=>String(x.KEJOHANAN||"").trim()===kej).map(x=>String(x.TARIKH||"").slice(0,10)).filter(Boolean).sort()[0]||"";
-  dataPerlawanan().filter(x=>String(x.KEJOHANAN||"").trim()===kej).forEach(x=>{
+  const tarikhEv=dataPerlawanan().filter(x=>normKej(x.KEJOHANAN)===kej).map(x=>String(x.TARIKH||"").slice(0,10)).filter(Boolean).sort()[0]||"";
+  dataPerlawanan().filter(x=>normKej(x.KEJOHANAN)===kej).forEach(x=>{
     const k=x.ACARA+"||"+x["ATLET ID"];
     (grp[k]=grp[k]||{acara:x.ACARA,id:String(x["ATLET ID"]),nama:x["NAMA ATLET"],kategori:x.KATEGORI,sekolah:x.SEKOLAH,data:[]}).data.push(x);
   });
@@ -5237,7 +5238,7 @@ function teksCapai(b){
   const c=b.capai;
   return `<b style="color:${WARNA_CAPAI[c]}">${IKON_CAPAI[c]} ${c==="MELEBIHI"?"MELEBIHI SASARAN":c}</b>`;
 }
-const alasanSasaranPL=(kej,acara,id)=>((DB&&DB.alasanSasaran)||[]).find(r=>String(r.KEJOHANAN||"").trim()===kej&&r.ACARA===acara&&String(r["ATLET ID"])===String(id))||null;
+const alasanSasaranPL=(kej,acara,id)=>((DB&&DB.alasanSasaran)||[]).find(r=>normKej(r.KEJOHANAN)===kej&&r.ACARA===acara&&String(r["ATLET ID"])===String(id))||null;
 function formAlasanSasaran(kej,acara,atletId){
   if(!U) return toast("Sila log masuk.");
   if(!bolehRekod(acara)) return toast("Hanya jurulatih acara ini atau admin boleh menambah alasan.");
@@ -5254,7 +5255,7 @@ async function simpanAlasanSasaranUI(kej,acara,atletId){
   const b=analisisKejohananPL(kej).baris.find(x=>x.acara===acara&&x.id===String(atletId))||{};
   try{
     const r=await api("simpanAlasanSasaran",{kejohanan:kej,acara,atletId,nama:b.nama||"",sasaran:(b.sasaran||{}).kod||"",pingat:b.pingat||"",alasan:$("#asAlasan").value.trim(),...who()});
-    DB.alasanSasaran=(DB.alasanSasaran||[]).filter(x=>!(String(x.KEJOHANAN||"").trim()===kej&&x.ACARA===acara&&String(x["ATLET ID"])===String(atletId)));
+    DB.alasanSasaran=(DB.alasanSasaran||[]).filter(x=>!(normKej(x.KEJOHANAN)===kej&&x.ACARA===acara&&String(x["ATLET ID"])===String(atletId)));
     if(r.rekod) DB.alasanSasaran.push(r.rekod);
     tutup(); toast("Alasan disimpan"); render();
   }catch(e){ if(btn){btn.disabled=false;btn.textContent="Simpan";} toastRalat(e); }
@@ -5265,8 +5266,8 @@ async function padamEventPL(kej){
   if(!await sahkan(`Padam SEMUA laporan & data perlawanan bagi event "${kej}"? Tindakan ini tidak boleh dibatalkan.`)) return;
   try{
     await api("padamKejohananPL",{kejohanan:kej,...who()});
-    DB.perlawanan=dataPerlawanan().filter(x=>String(x.KEJOHANAN||"").trim()!==kej);
-    DB.alasanSasaran=(DB.alasanSasaran||[]).filter(x=>String(x.KEJOHANAN||"").trim()!==kej);
+    DB.perlawanan=dataPerlawanan().filter(x=>normKej(x.KEJOHANAN)!==kej);
+    DB.alasanSasaran=(DB.alasanSasaran||[]).filter(x=>normKej(x.KEJOHANAN)!==kej);
     PL_KEJ=null; toast("Laporan event dipadam"); render();
   }catch(e){ toastRalat(e); }
 }
@@ -5291,7 +5292,7 @@ function vPerlawanan(){
     isi=`<div class="card small">Anda bukan jurulatih bagi mana-mana acara. Hanya jurulatih acara, Master Admin atau Sub Admin boleh memasukkan data perlawanan.</div>`;
   } else {
     const info=acaraInfo(PL_ACARA);
-    const data=dataPerlawanan().filter(x=>x.ACARA===PL_ACARA&&String(x.KEJOHANAN||"").trim()===kej);
+    const data=dataPerlawanan().filter(x=>x.ACARA===PL_ACARA&&normKej(x.KEJOHANAN)===kej);
     const an={}; analisisKejohananPL(kej).baris.filter(b=>b.acara===PL_ACARA).forEach(b=>an[b.id]=b);
     const peserta=penyertaan(PL_ACARA).slice().sort((a,b)=>String(a.KATEGORI).localeCompare(String(b.KATEGORI))||String(a["NAMA ATLET"]).localeCompare(String(b["NAMA ATLET"])));
     isi=`<div class="tabs" style="margin:8px 0;flex-wrap:wrap">${boleh.map(a=>`<button class="${a.ACARA===PL_ACARA?"on":""}" onclick="PL_ACARA='${esc(a.ACARA)}';render()">${esc(a.ACARA)}</button>`).join("")}</div>
@@ -5409,7 +5410,7 @@ async function tukarModPerlawanan(aktif){
   try{
     if(aktif) await api("simpanTetapan",{kunci:"NAMA_KEJOHANAN",nilai:nama,...who()});
     await api("simpanTetapan",{kunci:"MOD_PERLAWANAN",nilai:aktif?"AKTIF":"TIDAK",...who()});
-    DB.tetapan=Object.assign({},DB.tetapan||{},{MOD_PERLAWANAN:aktif?"AKTIF":"TIDAK"},aktif?{NAMA_KEJOHANAN:nama.toUpperCase()}:{});
+    DB.tetapan=Object.assign({},DB.tetapan||{},{MOD_PERLAWANAN:aktif?"AKTIF":"TIDAK"},aktif?{NAMA_KEJOHANAN:normKej(nama)}:{});
     toast(aktif?"Mod Perlawanan diaktifkan":"Mod Perlawanan ditutup"); render();
   }catch(e){ toastRalat(e); }
 }
@@ -5418,6 +5419,7 @@ async function tukarModPerlawanan(aktif){
 function panelKejohananDashboard(){
   const senarai=senaraiKejohananPL();
   if(!senarai.length) return "";
+  if(PL_KEJ) PL_KEJ=normKej(PL_KEJ);
   if(!PL_KEJ||senarai.indexOf(PL_KEJ)<0) PL_KEJ=senarai[0];
   const {baris,S}=analisisKejohananPL(PL_KEJ);
   const kotak=(t,v,w)=>`<div class="stat"><b style="color:${w}">${v}</b><span class="small">${t}</span></div>`;
@@ -5460,6 +5462,7 @@ function cetakLaporanKejohanan(){
   ${pil("PESERTA","👤 Ikut nama peserta","Setiap peserta disenaraikan bersama semua acara yang disertai.",true)}
   ${pil("ACARA","🏆 Ikut acara","Setiap acara disenaraikan bersama semua peserta acara tersebut.",false)}
   ${pil("KEPUTUSAN","🥇 Ikut keputusan / pingat","Pingat dahulu, kemudian keputusan terbaik; peserta tiada data di bawah.",false)}
+  ${pil("KATEGORI","🗂️ Ikut kategori","Peserta dikelompokkan mengikut kategori, kemudian acara dan nama peserta.",false)}
   <button class="btn" onclick="const v=(document.querySelector('input[name=lkSusun]:checked')||{}).value||'PESERTA';tutup();janaLaporanKejohanan('${esc(kej)}',v)">Jana Laporan</button>
   <button class="btn ghost" onclick="tutup()">Batal</button>`);
 }
@@ -5480,66 +5483,34 @@ function ringkasanPesertaPL(kej,baris,susun){
   }));
   baris.forEach(b=>{ if(!rows.some(r=>r.acara===b.acara&&r.id===b.id)) rows.push({acara:b.acara,id:b.id,nama:b.nama,kategori:b.kategori||"",sekolah:b.sekolah||"",b}); });
   const nm=(x,y)=>String(x.nama||"").localeCompare(String(y.nama||"")), ac=(x,y)=>String(x.acara).localeCompare(String(y.acara));
+  const katNo=r=>String(r.kategori||"").toUpperCase().trim();
+  const kat=(x,y)=>(katNo(x)?0:1)-(katNo(y)?0:1)||katNo(x).localeCompare(katNo(y));
   const skor=r=>!r.b?-1:(PINGAT_SKOR[r.b.pingat]||0)*10+(r.b.terbaik?1:0);
   rows.sort(susun==="ACARA"?(x,y)=>ac(x,y)||String(x.kategori).localeCompare(String(y.kategori))||nm(x,y)
+    :susun==="KATEGORI"?(x,y)=>kat(x,y)||ac(x,y)||nm(x,y)
     :susun==="KEPUTUSAN"?(x,y)=>skor(y)-skor(x)||ac(x,y)||nm(x,y):(x,y)=>nm(x,y)||ac(x,y));
   const bilData=rows.filter(r=>r.b).length;
-  const sel=r=>{ const b=r.b; if(!b) return `<td colspan="5" style="text-align:center;color:#b54708;font-weight:700">BELUM ADA DATA</td>`;
-    return `<td class="num">${b.terbaik?"<b>"+fmtNilai(b.terbaik.NILAI,b.info)+"</b>":`<b style="color:#b54708">${b.kod}</b>`}</td><td class="num">${b.kedudukan||"—"}</td><td>${b.pingat?PINGAT_IKON[b.pingat]+" "+b.pingat:"—"}</td><td>${SASARAN_LABEL[b.sasaran.kod].replace(/^\S+\s/,"")}</td><td>${teksCapai(b)}</td>`; };
-  const kepala=`<th>#</th>${susun==="ACARA"?"<th>Acara</th><th>Nama Peserta</th>":"<th>Nama Peserta</th><th>Acara</th>"}<th>Kategori</th><th>Sekolah</th><th>Catatan Event Lepas</th><th style="text-align:right">Keputusan Semasa</th><th style="text-align:right">Ked.</th><th>Pingat</th><th>Sasaran</th><th>Status</th>`;
+  const sel=r=>{ const b=r.b; if(!b) return `<td colspan="7" style="text-align:center;color:#b54708;font-weight:700">BELUM ADA DATA</td>`;
+    return `<td class="num">${b.latihan?fmtNilai(b.latihan.nilai,b.info):"—"}</td><td class="num">${b.terbaik?"<b>"+fmtNilai(b.terbaik.NILAI,b.info)+"</b>":`<b style="color:#b54708">${b.kod}</b>`}</td><td class="num">${b.kedudukan||"—"}</td><td>${b.pingat?PINGAT_IKON[b.pingat]+" "+b.pingat:"—"}</td><td>${SASARAN_LABEL[b.sasaran.kod].replace(/^\S+\s/,"")}</td><td>${teksCapai(b)}</td><td>${esc((b.alasan||[]).join("; "))||"—"}</td>`; };
+  const kepala=`<th>Bil</th>${susun==="ACARA"?"<th>Acara</th><th>Nama Peserta</th><th>Kategori</th>":susun==="KATEGORI"?"<th>Kategori</th><th>Nama Peserta</th><th>Acara</th>":"<th>Nama Peserta</th><th>Acara</th><th>Kategori</th>"}<th>Sekolah</th><th>Catatan Event Lepas</th><th style="text-align:right">Terbaik Latihan</th><th style="text-align:right">Keputusan Semasa</th><th style="text-align:right">Kedudukan</th><th>Pingat</th><th>Sasaran</th><th>Status</th><th>Alasan</th>`;
   let lalu="", no=0;
   const badan=rows.map(r=>{
-    const kumpul=susun==="ACARA"?r.acara:susun==="PESERTA"?r.id:"";
-    const baru=kumpul!==lalu; lalu=kumpul; if(baru) no++;
-    const k1=susun==="ACARA"?(baru?`<b>${esc(r.acara)}</b>`:""):(susun==="PESERTA"&&!baru?"":`<b>${esc(r.nama)}</b>`);
-    const k2=susun==="ACARA"?esc(r.nama):esc(r.acara);
+    const kumpul=susun==="ACARA"?r.acara:susun==="PESERTA"?r.id:susun==="KATEGORI"?katNo(r):"";
+    const baru=kumpul!==lalu; lalu=kumpul; if(baru||susun==="KEPUTUSAN") no++;
+    const k1=susun==="ACARA"?(baru?`<b>${esc(r.acara)}</b>`:""):susun==="KATEGORI"?(baru?`<b>${esc(r.kategori||"—")}</b>`:""):(susun==="PESERTA"&&!baru?"":`<b>${esc(r.nama)}</b>`);
+    const k2=susun==="ACARA"?esc(r.nama):susun==="KATEGORI"?esc(r.nama):esc(r.acara);
     const rekodLepas=catatanEventLepasPL(r.acara,r.kategori);
     const catatan=rekodLepas.length?rekodLepas.map(x=>`<span style="display:block;white-space:nowrap">${esc(x.peringkat)}: <b>${fmtNilai(x.nilai,acaraInfo(r.acara))}</b></span>`).join(""):"BELUM ADA DATA";
-    return `<tr${baru&&susun!=="KEPUTUSAN"?' style="border-top:2px solid #98a2b3"':""}><td class="no">${susun==="KEPUTUSAN"?no:(baru?no:"")}</td><td>${k1}</td><td>${k2}</td><td>${esc(r.kategori)}</td><td>${esc(r.sekolah||"-")}</td><td>${catatan}</td>${sel(r)}</tr>`;
+    return `<tr${baru&&susun!=="KEPUTUSAN"?' style="border-top:2px solid #98a2b3"':""}><td class="no">${susun==="KEPUTUSAN"?no:(baru?no:"")}</td><td>${k1}</td><td>${k2}</td><td>${susun==="KATEGORI"?esc(r.acara):esc(r.kategori)}</td><td>${esc(r.sekolah||"-")}</td><td>${catatan}</td>${sel(r)}</tr>`;
   }).join("");
-  const label={PESERTA:"nama peserta",ACARA:"acara",KEPUTUSAN:"keputusan / pingat"}[susun];
+  const label={PESERTA:"nama peserta",ACARA:"acara",KATEGORI:"kategori",KEPUTUSAN:"keputusan / pingat"}[susun];
   return `<div class="blok"><h2 class="acara">1A. SENARAI PESERTA & ACARA — RINGKAS (disusun ikut ${label})</h2>
     <div style="font-size:11px;color:#475467;margin-bottom:6px"><b>${new Set(rows.map(r=>r.id)).size}</b> peserta • <b>${new Set(rows.map(r=>r.acara)).size}</b> acara • <b>${rows.length}</b> penyertaan • <b>${bilData}</b> ada data • <b style="color:#b54708">${rows.length-bilData}</b> belum ada data</div>
     ${rows.length?`<table><thead><tr>${kepala}</tr></thead><tbody>${badan}</tbody></table>`:`<div style="font-size:11px">Tiada peserta didaftarkan.</div>`}</div>`;
 }
 function janaLaporanKejohanan(kej,susun){
-  const {baris,S}=analisisKejohananPL(kej);
-  const kotak=(w,t,v,nota)=>`<div style="flex:1;min-width:120px;border:1px solid #e5e7eb;border-left:4px solid ${w};border-radius:8px;padding:8px 10px"><div style="font-size:11px;color:#475467">${t}</div><div style="font-size:22px;font-weight:800;color:${w}">${v}</div><div style="font-size:10px;color:#667085">${nota}</div></div>`;
-  const ringkasan=`<div class="blok"><h2 class="acara">1. RINGKASAN EKSEKUTIF — ${esc(kej)}</h2>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">
-      ${kotak("#1d4ed8","Acara disertai",S.acara,`${S.atlet} atlet • ${S.data} data perlawanan`)}
-      ${kotak("#b45309","🥇 Emas",S.emas,"pingat")}${kotak("#667085","🥈 Perak",S.perak,"pingat")}${kotak("#9a3412","🥉 Gangsa",S.gangsa,"pingat")}
-      ${kotak("#067647","Prestasi lebih baik",S.lebih,"berbanding latihan")}${kotak("#1d4ed8","Setara",S.setara,"±0.5%")}
-      ${kotak("#b42318","Menurun",S.turun,"berbanding latihan")}${kotak("#b54708","DNS/DNQ/DNF/RET/DSQ/NC",S.kod,"tiada keputusan sah")}
-      ${kotak("#067647","✅ Capai sasaran pingat",S.capai,"sasaran latihan tercapai")}${kotak("#1d4ed8","🌟 Melebihi sasaran",S.melebihi,"lebih baik dari jangkaan")}${kotak("#b42318","❌ Tidak capai sasaran",S.tidakCapai,`${S.tanpaAlasan} belum ada alasan`)}
-    </div>
-    <div style="font-size:11px;color:#475467">Jumlah pingat: <b>${S.emas+S.perak+S.gangsa}</b>. Data perlawanan terbaik setiap atlet (daripada semua pusingan termasuk saringan) dibandingkan dengan data latihan terbaik atlet tersebut.</div></div>`;
-  const pingat=baris.filter(b=>b.pingat);
-  const blokPingat=`<div class="blok"><h2 class="acara">2. SENARAI PEMENANG PINGAT</h2>${pingat.length?`<table><thead><tr><th>#</th><th>Pingat</th><th>Nama Atlet</th><th>Acara</th><th>Kategori</th><th>Sekolah</th><th style="text-align:right">Keputusan</th></tr></thead><tbody>
-    ${pingat.sort((a,b)=>(PINGAT_SKOR[b.pingat]||0)-(PINGAT_SKOR[a.pingat]||0)).map((b,i)=>`<tr><td class="no">${i+1}</td><td><b>${PINGAT_IKON[b.pingat]} ${b.pingat}</b></td><td>${esc(b.nama)}</td><td>${esc(b.acara)}</td><td>${esc(b.kategori||"")}</td><td>${esc(b.sekolah||"-")}</td><td class="num">${b.terbaik?fmtNilai(b.terbaik.NILAI,b.info):b.kod}</td></tr>`).join("")}</tbody></table>`:`<div style="font-size:11px">Tiada pingat direkodkan.</div>`}</div>`;
-  const ikutAcara={}; baris.forEach(b=>(ikutAcara[b.acara]=ikutAcara[b.acara]||[]).push(b));
-  const blokSasaran=`<div class="blok"><h2 class="acara">2A. SASARAN PINGAT SEMASA LATIHAN vs KEPUTUSAN KEJOHANAN SEBENAR</h2>
-    <div style="font-size:11px;color:#475467;margin-bottom:6px">Sasaran dikira daripada rekod latihan terbaik sebelum event dibanding rekod kejohanan lepas: lepasi rekod MSSM = <b>sasaran EMAS</b>; lepasi rekod NO.3 MSSM = <b>sasaran PODIUM</b> (mana-mana pingat).</div>
-    ${baris.length?`<table><thead><tr><th>#</th><th>Nama Atlet</th><th>Acara</th><th>Kategori</th><th style="text-align:right">Latihan (sebelum event)</th><th style="text-align:right">Rekod MSSM</th><th style="text-align:right">Rekod NO.3</th><th>Sasaran</th><th>Keputusan</th><th>Status</th><th>Alasan Jurulatih</th></tr></thead><tbody>
-    ${baris.slice().sort((a,b)=>["TIDAK MENCAPAI","MENCAPAI","MELEBIHI","TIADA SASARAN"].indexOf(a.capai)-["TIDAK MENCAPAI","MENCAPAI","MELEBIHI","TIADA SASARAN"].indexOf(b.capai)).map((b,i)=>`<tr><td class="no">${i+1}</td><td>${esc(b.nama)}</td><td>${esc(b.acara)}</td><td>${esc(b.kategori||"")}</td>
-      <td class="num">${b.sasaran.lat?fmtNilai(b.sasaran.lat.nilai,b.info):"—"}</td><td class="num">${b.sasaran.vE!=null?fmtNilai(b.sasaran.vE,b.info):"—"}</td><td class="num">${b.sasaran.vP!=null?fmtNilai(b.sasaran.vP,b.info):"—"}</td>
-      <td>${SASARAN_LABEL[b.sasaran.kod]}</td><td>${b.pingat?PINGAT_IKON[b.pingat]+" "+b.pingat:(b.terbaik?"Tiada pingat":b.kod)}</td><td>${teksCapai(b)}</td>
-      <td>${b.capai==="TIDAK MENCAPAI"?(b.alasanSasaran?esc(b.alasanSasaran)+(b.alasanOleh?`<br/><span style="font-size:9px;color:#667085">— ${esc(b.alasanOleh)}</span>`:""):'<i style="color:#b54708">Belum diisi</i>'):"—"}</td></tr>`).join("")}</tbody></table>`:`<div style="font-size:11px">Tiada data.</div>`}</div>`;
-  const blokAnalisis=`<div class="blok"><h2 class="acara">3. ANALISIS PRESTASI: PERLAWANAN vs LATIHAN</h2>${Object.keys(ikutAcara).map(n=>`<h3 class="kat">Acara: ${esc(n)}</h3>
-    <table><thead><tr><th>#</th><th>Nama Atlet</th><th>Kategori</th><th style="text-align:right">Terbaik Latihan</th><th style="text-align:right">Terbaik Perlawanan</th><th>Pusingan</th><th style="text-align:right">Kedudukan</th><th>Pingat</th><th>Prestasi</th><th>Alasan</th></tr></thead><tbody>
-    ${ikutAcara[n].map((b,i)=>`<tr><td class="no">${i+1}</td><td>${esc(b.nama)}</td><td>${esc(b.kategori||"")}</td>
-      <td class="num">${b.latihan?fmtNilai(b.latihan.nilai,b.info)+(b.latihan.tarikh?`<br/><span style="font-size:9px;color:#667085">${esc(fmtTarikh(b.latihan.tarikh))}</span>`:""):"—"}</td>
-      <td class="num">${b.terbaik?"<b>"+fmtNilai(b.terbaik.NILAI,b.info)+"</b>":`<b style="color:#b54708">${b.kod}</b>`}</td>
-      <td>${b.terbaik?esc(b.terbaik.PUSINGAN||""):"—"}</td><td class="num">${b.kedudukan||"—"}</td><td>${b.pingat?PINGAT_IKON[b.pingat]+" "+b.pingat:"—"}</td>
-      <td>${teksPrestasi(b)}${b.beza!=null?`<br/><span style="font-size:9px;color:#667085">beza ${fmtJurangPL(Math.abs(b.beza),b.info)}</span>`:""}</td><td>${esc(b.alasan.join("; "))||"—"}</td></tr>`).join("")}</tbody></table>`).join("")||`<div style="font-size:11px">Tiada data.</div>`}</div>`;
-  const semua=dataPerlawanan().filter(x=>String(x.KEJOHANAN||"").trim()===kej).slice().sort((a,b)=>String(a.ACARA).localeCompare(String(b.ACARA))||String(a["NAMA ATLET"]).localeCompare(String(b["NAMA ATLET"]))||PUSINGAN_LIST.indexOf(String(a.PUSINGAN).toUpperCase())-PUSINGAN_LIST.indexOf(String(b.PUSINGAN).toUpperCase()));
-  const blokData=`<div class="blok"><h2 class="acara">4. DATA PERLAWANAN LENGKAP (SEMUA PUSINGAN)</h2><table><thead><tr><th>#</th><th>Tarikh</th><th>Acara</th><th>Nama Atlet</th><th>Pusingan</th><th style="text-align:right">Keputusan</th><th>Status</th><th>Pingat</th><th>Alasan</th><th>Dicatat oleh</th></tr></thead><tbody>
-    ${semua.map((x,i)=>{const st=String(x.STATUS||"SAH").toUpperCase(),info=acaraInfo(x.ACARA);return `<tr><td class="no">${i+1}</td><td>${esc(fmtTarikh(x.TARIKH))}</td><td>${esc(x.ACARA)}</td><td>${esc(x["NAMA ATLET"])}</td><td>${esc(x.PUSINGAN||"")}</td><td class="num">${st==="SAH"?fmtNilai(x.NILAI,info):"—"}</td><td>${st==="SAH"?"SAH":`<b style="color:#b54708">${st}</b>`}</td><td>${x.PINGAT?esc(x.PINGAT):"—"}</td><td>${esc(x.ALASAN||"")||"—"}</td><td>${esc(x["DICATAT OLEH"]||"")}</td></tr>`;}).join("")}</tbody></table></div>`;
-  const blokLatihan=`<div class="blok"><h2 class="acara">5. RINGKASAN DATA LATIHAN ATLET TERLIBAT</h2><table><thead><tr><th>Acara</th><th>Nama Atlet</th><th style="text-align:right">Bil. Sesi Rekod</th><th style="text-align:right">Terbaik Latihan</th><th style="text-align:right">Purata Latihan</th></tr></thead><tbody>
-    ${baris.map(b=>{const v=rekodAcara(b.acara).filter(r=>String(r["ATLET ID"]||"").split(",").map(s=>s.trim()).indexOf(b.id)>=0&&Number(r.NILAI)>0&&!/^\s*\[EVENT:/i.test(String(r.CATATAN||""))).map(r=>Number(r.NILAI));
-      return `<tr><td>${esc(b.acara)}</td><td>${esc(b.nama)}</td><td class="num">${v.length}</td><td class="num">${b.latihan?fmtNilai(b.latihan.nilai,b.info):"—"}</td><td class="num">${v.length?fmtNilai(purata(v),b.info):"—"}</td></tr>`;}).join("")}</tbody></table></div>`;
-  const panduan=`<div class="blok"><h2 class="acara">6. PANDUAN KOD STATUS</h2><table><tbody>${Object.keys(KOD_STATUS).map(k=>`<tr><td style="width:60px"><b>${k}</b></td><td>${esc(KOD_STATUS[k])}</td></tr>`).join("")}</tbody></table></div>`;
-  bukaLaporan("Laporan Kejohanan — "+kej,ringkasan+ringkasanPesertaPL(kej,baris,susun)+blokPingat+blokSasaran+blokAnalisis+blokData+blokLatihan+panduan);
+  const {baris}=analisisKejohananPL(kej);
+  bukaLaporan("Laporan Kejohanan — "+kej,ringkasanPesertaPL(kej,baris,susun));
 }
 function fmtJurangPL(v,info){
   if(info&&info.JENIS==="MASA") return Number(v).toFixed(2)+" saat";
