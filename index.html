@@ -586,7 +586,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbwzygF9-ugdCAutBaYnADcoLyWQdqrcIhCJ7EimBnA-posDtcCmdkWK4C2FASpCVSxz/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -1453,7 +1453,7 @@ a{color:#0b4f9c}.nota{font-style:italic;color:#556}
 ${jenis==="DATA"?`<p class="nota">Nota: Laporan ini hanya memaparkan tarikh yang mempunyai rekod kehadiran dalam pangkalan data.</p>`:""}
 <h2>2. Ringkasan Eksekutif</h2><div class="kad"><div><b>${atlet.length}</b><span>Jumlah Atlet</span></div><div><b>${H}</b><span>Hadir</span></div><div><b>${T}</b><span>Tidak Hadir</span></div><div><b>${B}</b><span>Belum Ditanda</span></div><div><b>${pct(H)}</b><span>Kadar Kehadiran</span></div></div>
 ${utama}${seksyenTH}
-<div class="ttd"><div><div class="l"></div><b>Disediakan oleh:</b><br>Nama:<br>Jawatan:<br>Tarikh:</div><div><div class="l"></div><b>Disahkan oleh:</b><br>Nama:<br>Jawatan:<br>Tarikh:</div></div>
+<div class="ttd"><div><div class="l"></div><b>Disediakan oleh (Jurulatih):</b><br>Nama:<br>Jawatan:<br>Tarikh:</div><div><div class="l"></div><b>Disemak oleh (Ketua Jurulatih):</b><br>Nama:<br>Jawatan:<br>Tarikh:</div><div><div class="l"></div><b>Disahkan oleh:</b><br>Nama:<br>Jawatan:<br>Tarikh:</div></div>
 <div class="kaki"><span>Laporan ini dijana secara automatik oleh sistem AtletTraning.</span><span>${noRuj}</span></div>
 <script>setTimeout(()=>window.print(),500)<\/script></body></html>`;
   const w=window.open("","_blank"); if(!w) return toast("Sila benarkan popup untuk mencetak laporan.");
@@ -3207,8 +3207,8 @@ function bukaLaporan(tajuk,isi){
   ${isi}
   <div class="tandatangan">
     <div>Disediakan oleh (Jurulatih)<br/><br/>Nama &amp; Tandatangan</div>
-    <div>Disemak oleh (Guru Penasihat)<br/><br/>Nama &amp; Tandatangan</div>
-    <div>Disahkan oleh (Pengetua)<br/><br/>Cop &amp; Tandatangan</div>
+    <div>Disemak oleh (Ketua Jurulatih)<br/><br/>Nama &amp; Tandatangan</div>
+    <div>Disahkan oleh<br/><br/>Nama &amp; Tandatangan</div>
   </div>
   <div class="kaki"><span>AtletTraning — Laporan Rasmi Ranking Atlet</span><span>Dijana ${esc(tarikhCetak)}</span></div>
   </body></html>`;
