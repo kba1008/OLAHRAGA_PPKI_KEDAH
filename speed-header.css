@@ -1,0 +1,13 @@
+/* SPEED TRACK: header utama sahaja; warna bingkai mengikuti tema app. */
+:root{--speed-edge:var(--p2);--speed-gold:oklch(.85 .16 85);--speed-surface:oklch(.14 .025 245);--speed-ink:oklch(.97 .008 210)}
+.speed-header{position:relative;margin:0 0 20px;background:var(--speed-surface);isolation:isolate;overflow:hidden;border-radius:8px 8px 0 0;animation:speedMasuk .6s ease-out both}
+.speed-header img{display:block;width:100%;height:auto;aspect-ratio:1936/544;object-fit:contain}
+.speed-header::after{content:"";display:block;height:3px;background:var(--speed-edge);box-shadow:0 -1px 0 var(--line)}
+.speed-header-track{position:absolute;bottom:0;left:0;width:28%;height:3px;background:var(--speed-gold);transform:skewX(-35deg);animation:speedLaju 1.4s ease-out both;pointer-events:none}
+.speed-header-fallback{min-height:120px;display:grid;place-items:center;color:var(--speed-ink);font-size:32px;font-weight:900;font-style:italic;letter-spacing:0}
+.speed-header-fallback[hidden]{display:none}
+@keyframes speedMasuk{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes speedLaju{from{transform:translateX(-110%) skewX(-35deg)}to{transform:translateX(270%) skewX(-35deg)}}
+@media(max-width:560px){.speed-header{margin:0 -8px 16px;border-radius:6px 6px 0 0}.speed-header-fallback{min-height:88px;font-size:26px}}
+@media(prefers-reduced-motion:reduce){.speed-header,.speed-header-track{animation:none}.speed-header-track{left:72%}}
+@media print{.speed-header{display:none}}
