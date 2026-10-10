@@ -64,3 +64,35 @@ a,.rk3d a{color:var(--link)}
  table.mx td.nm .no,table.mx td.cx.off{color:var(--mut)}
  table.mx td.cx.on{color:var(--ok);background:color-mix(in oklch,var(--bg2) 90%,var(--ok))!important}
 }
+
+/* Kotak menu ceria: palet bebas daripada warna tema, enam warna unik. */
+:root{
+ --menu-lime:oklch(.86 .19 125);--menu-orange:oklch(.8 .16 55);
+ --menu-pink:oklch(.8 .13 350);--menu-teal:oklch(.83 .12 195);
+ --menu-violet:oklch(.79 .12 305);--menu-yellow:oklch(.91 .15 95);
+ --menu-blue:oklch(.8 .1 245);--menu-red:oklch(.78 .14 25);
+ --menu-ink:oklch(.22 .015 260);--menu-shine:oklch(1 0 0 / .27);
+ --menu-edge:oklch(1 0 0 / .55);--menu-shadow:oklch(.15 .02 260 / .25);
+ --menu-1:var(--menu-lime);--menu-2:var(--menu-orange);--menu-3:var(--menu-pink);
+ --menu-4:var(--menu-teal);--menu-5:var(--menu-violet);--menu-6:var(--menu-yellow);
+}
+[data-tema="BIRU"]{--menu-1:var(--menu-lime);--menu-2:var(--menu-orange);--menu-3:var(--menu-pink);--menu-4:var(--menu-violet);--menu-5:var(--menu-yellow);--menu-6:var(--menu-red)}
+[data-tema="UNGU"],[data-tema="ASAL"]{--menu-1:var(--menu-lime);--menu-2:var(--menu-orange);--menu-3:var(--menu-blue);--menu-4:var(--menu-teal);--menu-5:var(--menu-yellow);--menu-6:var(--menu-red)}
+[data-tema="HIJAU"]{--menu-1:var(--menu-orange);--menu-2:var(--menu-yellow);--menu-3:var(--menu-pink);--menu-4:var(--menu-violet);--menu-5:var(--menu-blue);--menu-6:var(--menu-red)}
+[data-tema="MERAH"]{--menu-1:var(--menu-lime);--menu-2:var(--menu-orange);--menu-3:var(--menu-blue);--menu-4:var(--menu-teal);--menu-5:var(--menu-violet);--menu-6:var(--menu-yellow)}
+[data-tema="EMAS"]{--menu-1:var(--menu-lime);--menu-2:var(--menu-red);--menu-3:var(--menu-pink);--menu-4:var(--menu-teal);--menu-5:var(--menu-violet);--menu-6:var(--menu-blue)}
+.grid3>.tile:nth-child(1){--menu-face:var(--menu-1)}
+.grid3>.tile:nth-child(2){--menu-face:var(--menu-2)}
+.grid3>.tile:nth-child(3){--menu-face:var(--menu-3)}
+.grid3>.tile:nth-child(4){--menu-face:var(--menu-4)}
+.grid3>.tile:nth-child(5){--menu-face:var(--menu-5)}
+.grid3>.tile:nth-child(6){--menu-face:var(--menu-6)}
+.grid3>.tile{
+ background:linear-gradient(145deg,var(--menu-shine),transparent 48%),var(--menu-face);
+ color:var(--menu-ink);border-color:var(--menu-edge);
+ box-shadow:0 14px 24px -14px var(--menu-shadow),0 5px 0 -1px color-mix(in oklch,var(--menu-face) 75%,var(--menu-ink)),inset 0 2px 0 var(--menu-edge);
+}
+.grid3>.tile:before{background:linear-gradient(120deg,var(--menu-shine),transparent 45%)}
+.grid3>.tile .tt,.grid3>.tile .ts,.grid3>.tile .ic,.grid3>.tile .small,.grid3>.tile b,.grid3>.tile h3{color:var(--menu-ink);opacity:1;text-shadow:none}
+.grid3>.tile .ic{filter:drop-shadow(0 2px 2px var(--menu-shadow))}
+.grid3>.tile:active{box-shadow:inset 0 2px 6px var(--menu-shadow)}
