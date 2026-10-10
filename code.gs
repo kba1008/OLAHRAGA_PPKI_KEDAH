@@ -23,6 +23,7 @@ var SHEET_BMI = "BMI";
 var SHEET_TETAPAN = "TETAPAN";
 var SHEET_MEDIA = "MEDIA_LATIHAN";
 var SHEET_PERLAWANAN = "DATA_PERLAWANAN";
+var SHEET_ALASAN = "ALASAN_SASARAN";
 var PREFIX_REKOD = "REKOD_";
 
 /* ID Google Sheet UTAMA (pangkalan data). Skrip akan buka sheet ini terus,
@@ -57,6 +58,7 @@ HEADERS[SHEET_BMI] = ["ID", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "TA
 HEADERS[SHEET_TETAPAN] = ["KUNCI", "NILAI", "DIKEMASKINI OLEH", "TARIKH & MASA"];
 HEADERS[SHEET_MEDIA] = ["ID", "TARIKH", "ACARA", "KATEGORI", "ATLET ID", "NAMA ATLET", "JENIS MEDIA", "TAJUK", "CATATAN", "NAMA FAIL", "MIME", "SAIZ (BYTES)", "PAUTAN", "URL PAPAR", "DRIVE ID", "DIMUAT NAIK OLEH", "EMEL", "TARIKH & MASA", "SUSUNAN"];
 HEADERS[SHEET_FAIL] = ["ID", "ATLET ID", "NAMA FAIL", "JENIS", "SAIZ (BYTES)", "URL", "DRIVE ID", "DIMUAT NAIK OLEH", "TARIKH & MASA"];
+HEADERS[SHEET_ALASAN] = ["KEJOHANAN", "ACARA", "ATLET ID", "NAMA ATLET", "SASARAN", "PINGAT DIPEROLEH", "ALASAN", "DIKEMASKINI OLEH", "TARIKH & MASA"];
 HEADERS[SHEET_PERLAWANAN] = ["ID", "KEJOHANAN", "TARIKH", "ACARA", "KATEGORI", "ATLET ID", "NAMA ATLET", "SEKOLAH", "PUSINGAN", "NILAI", "STATUS", "KEDUDUKAN", "PINGAT", "ALASAN", "DICATAT OLEH", "TARIKH & MASA"];
 var HEADER_REKOD = ["ID", "TARIKH", "MASA", "ATLET ID", "NAMA ATLET", "KATEGORI", "SEKOLAH", "KEPUTUSAN", "NILAI", "CATATAN", "DICATAT OLEH", "TARIKH & MASA REKOD"];
 
@@ -166,6 +168,7 @@ function setupPangkalanData() {
   dapatSheet(SHEET_FAIL, HEADERS[SHEET_FAIL], "#0aa5d6");
   dapatSheet(SHEET_KEJOHANAN, HEADERS[SHEET_KEJOHANAN], "#b45309");
   dapatSheet(SHEET_PERLAWANAN, HEADERS[SHEET_PERLAWANAN], "#9a3412");
+  dapatSheet(SHEET_ALASAN, HEADERS[SHEET_ALASAN], "#b42318");
   dapatSheet(SHEET_KAT_GUGUR, HEADERS[SHEET_KAT_GUGUR], "#b42318");
   dapatSheet(SHEET_TETAPAN, HEADERS[SHEET_TETAPAN], "#0f766e");
   dapatSheet(SHEET_BMI, HEADERS[SHEET_BMI], "#0f766e");
@@ -250,6 +253,7 @@ function semuaData(p) {
     }),
     kejohanan: baca(SHEET_KEJOHANAN),
     perlawanan: baca(SHEET_PERLAWANAN).map(function (x) { x["TARIKH"] = tarikhStr(x["TARIKH"]); return x; }),
+    alasanSasaran: baca(SHEET_ALASAN),
     katGugur: baca(SHEET_KAT_GUGUR),
     tetapan: bacaTetapan(),
     bmi: baca(SHEET_BMI).map(function (b) { b["TARIKH"] = tarikhStr(b["TARIKH"]); return b; }),
@@ -1742,6 +1746,8 @@ var TINDAKAN = {
   padamRekodKejohanan: padamRekodKejohanan,
   simpanPerlawanan: simpanPerlawanan,
   padamPerlawanan: padamPerlawanan,
+  simpanAlasanSasaran: simpanAlasanSasaran,
+  padamKejohananPL: padamKejohananPL,
   tetapkanTinggi: tetapkanTinggi,
   bmi: simpanBmi,
   kemaskiniBmi: kemaskiniBmi,
@@ -2191,4 +2197,43 @@ function padamPerlawanan(p) {
   var v = s.getDataRange().getValues();
   for (var i = v.length - 1; i >= 1; i--) if (String(v[i][0]) === String(p.id)) { s.deleteRow(i + 1); return { ok: true }; }
   throw new Error("Data perlawanan tidak dijumpai.");
+}
+
+
+/* ================= SASARAN PINGAT vs KEPUTUSAN SEBENAR =================
+   • Jurulatih acara / admin boleh tambah / edit alasan bila-bila masa
+     (termasuk selepas Mod Perlawanan ditutup) bagi atlet tidak capai sasaran.
+   • Hanya Master Admin boleh memadam laporan event lama.                  */
+function simpanAlasanSasaran(p) {
+  if (!bolehRekod(p.acara, p.olehEmel)) throw new Error("Hanya jurulatih acara ini, Master Admin atau Sub Admin boleh mengisi alasan.");
+  var kej = String(p.kejohanan || "").toUpperCase().trim();
+  if (!kej || !p.acara || !p.atletId) throw new Error("Maklumat event / acara / atlet tidak lengkap.");
+  var s = dapatSheet(SHEET_ALASAN, HEADERS[SHEET_ALASAN], "#b42318");
+  var baris = [kej, String(p.acara), String(p.atletId), p.nama || "", String(p.sasaran || ""), String(p.pingat || ""),
+    String(p.alasan || "").slice(0, 1000), p.olehNama || p.olehEmel || "", nowStr()];
+  var o = {}; HEADERS[SHEET_ALASAN].forEach(function (h, i) { o[h] = baris[i]; });
+  var v = s.getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][0]).toUpperCase().trim() === kej && String(v[i][1]) === String(p.acara) && String(v[i][2]) === String(p.atletId)) {
+      s.getRange(i + 1, 1, 1, baris.length).setValues([baris]);
+      return { ok: true, dikemaskini: true, rekod: o };
+    }
+  }
+  s.appendRow(baris);
+  return { ok: true, rekod: o };
+}
+
+function padamKejohananPL(p) {
+  if (!isMasterAdmin(p.olehEmel)) throw new Error("Hanya Master Admin boleh memadam laporan event lama.");
+  var kej = String(p.kejohanan || "").toUpperCase().trim();
+  if (!kej) throw new Error("Nama event diperlukan.");
+  var t = bacaTetapan();
+  if (t.MOD_PERLAWANAN === "AKTIF" && t.NAMA_KEJOHANAN === kej) throw new Error("Event ini sedang berlangsung. Tukar ke Mod Latihan dahulu.");
+  var bil = 0;
+  [[SHEET_PERLAWANAN, 1], [SHEET_ALASAN, 0]].forEach(function (x) {
+    var s = ss().getSheetByName(x[0]); if (!s) return;
+    var v = s.getDataRange().getValues();
+    for (var i = v.length - 1; i >= 1; i--) if (String(v[i][x[1]]).toUpperCase().trim() === kej) { s.deleteRow(i + 1); bil++; }
+  });
+  return { ok: true, dipadam: bil };
 }
