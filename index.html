@@ -136,6 +136,7 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;min-width:18px;fle
 .right{margin-left:auto;text-align:right}
 .small{font-size:11.5px;color:var(--mut)}
 .top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.fab-acara{position:fixed;top:calc(12px + env(safe-area-inset-top));right:16px;z-index:900;display:flex;gap:8px}.fab-acara button{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(20,22,40,.92);color:#fff;font-size:20px;font-weight:800;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);backdrop-filter:blur(6px)}.fab-acara button:last-child{background:rgba(220,38,38,.9)}@media print{.fab-acara{display:none}}
 .back{background:rgba(255,255,255,.09);border:1px solid var(--line);color:#fff;border-radius:12px;padding:8px 12px;font-weight:800;cursor:pointer}
 .rank{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;background:var(--grad);box-shadow:0 8px 18px -10px var(--p2)}
 .rank{font-size:13px;letter-spacing:.3px;overflow:hidden;flex:0 0 auto}
@@ -586,7 +587,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbwzygF9-ugdCAutBaYnADcoLyWQdqrcIhCJ7EimBnA-posDtcCmdkWK4C2FASpCVSxz/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -1186,7 +1187,8 @@ function head(title,sub){
   return `<div class="hd"><div class="logo">AT</div><div><div class="big">${esc(title)}</div><div class="small">${esc(sub||"")}</div></div></div>`;
 }
 function topbar(title,back){
-  return `<div class="top"><button class="back" onclick="goBack()">←</button><div><div class="big">${esc(title)}</div></div></div>`;
+  const apung = back==="acara" ? `<div class="fab-acara"><button title="Laman Utama" aria-label="Laman Utama" onclick="HIST.length=0;go('home')">🏠</button><button title="Tutup acara" aria-label="Tutup acara" onclick="goBack()">✕</button></div>` : "";
+  return `<div class="top"><button class="back" onclick="goBack()">←</button><div><div class="big">${esc(title)}</div></div></div>${apung}`;
 }
 
 /* ---------- 1. Sambungan Google Sheet ---------- */
