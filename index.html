@@ -579,6 +579,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
 <body>
 
 <div class="wrap" id="app"><div class="sp"></div></div>
+<div class="fab-acara hide" id="fabApung" role="group" aria-label="Butang pantas"></div>
 <div class="nav hide" id="nav"></div>
 <div class="sync" id="sync"><span class="dot"></span><span class="txt" id="syncTxt">Loading</span></div>
 
@@ -589,7 +590,7 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
    AtletTraning — PWA (versi kemas)
    SUMBER DATA TUNGGAL: Google Sheet (melalui Apps Script Web App)
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbzXAysoxtMQUpTvQ6FV-BU9oJnvepkRkZaazpfKaTzxDLLXIPtKBLgnt4Fw6ER2e9bl/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxG_gcSPky9_nybRe4XXF7UJG7U52UFYdYS7sLlt0lk7BQdKFbGJNbXXiCYP1PyHvSe/exec";
 const LS_API="at_api_url", LS_USER="at_user", LS_TEK="at_teknision";
 const PIN_TEKNISION="101010";
 let API=localStorage.getItem(LS_API)||API_URL_LALAI;
@@ -1182,6 +1183,7 @@ const PAPARAN_AWAM={dashboard:1,profil:1,matriks:1,acara:1,acaraDetail:1,galeri:
 function render(){
   if(DB && !TEMA_MENYIMPAN) gunaTema(DB.tetapan && DB.tetapan.TEMA_APP);
   $("#nav").classList.add("hide");
+  pasangApung();
   if(!API) return skrinApi();
   if(!DB) return muat();                      /* dashboard awam — tiada login diperlukan */
   if(!U){
@@ -1190,11 +1192,13 @@ function render(){
     $("#nav").classList.remove("hide");
     $("#app").classList.toggle("full",VIEW==="matriks");
     navBarAwam();
+    pasangApung();
     return ({dashboard:vDashboard,matriks:vMatriks,profil:vProfil,acara:vAcara,acaraDetail:vAcaraDetail,galeri:vGaleri,jadual:vJadual}[VIEW]||vDashboard)();
   }
   $("#nav").classList.remove("hide");
   $("#app").classList.toggle("full",VIEW==="matriks");
   navBar();
+  pasangApung();
   ({home:vHome,kehadiran:vKehadiran,acara:vAcara,acaraDetail:vAcaraDetail,dashboard:vDashboard,matriks:vMatriks,profil:vProfil,sejarah:vSejarah,diagnostik:vDiagnostik,admin:vAdmin,saya:vSaya,galeri:vGaleri,jadual:vJadual}[VIEW]||vHome)();
 }
 function navBarAwam(){
@@ -1209,8 +1213,20 @@ function head(title,sub){
   return `<div class="hd"><div class="logo">AT</div><div><div class="big">${esc(title)}</div><div class="small">${esc(sub||"")}</div></div></div>`;
 }
 function topbar(title,back){
-  const apung = back==="acara" ? `<div class="fab-acara"><button title="Laman Utama" aria-label="Laman Utama" onclick="HIST.length=0;go('home')">🏠</button><button title="Tutup acara" aria-label="Tutup acara" onclick="goBack()">✕</button></div>` : "";
-  return `<div class="top"><button class="back" onclick="goBack()">←</button><div><div class="big">${esc(title)}</div></div></div>${apung}`;
+  return `<div class="top"><button class="back" onclick="goBack()">←</button><div><div class="big">${esc(title)}</div></div></div>`;
+}
+
+/* ---------- Butang terapung 🏠 / ✕ ----------
+   Dipasang pada tahap <body> (unsur #fabApung) dengan kedudukan tetap, jadi
+   ia sentiasa berada di permukaan halaman walaupun skrol ke bawah, dan tiada
+   kad atau senarai panjang boleh menutupinya. */
+const APUNG_SKRIN={kehadiran:"Tutup kehadiran",acara:"Tutup acara",acaraDetail:"Tutup acara",sejarah:"Tutup sejarah",profil:"Tutup profil",galeri:"Tutup galeri",jadual:"Tutup jadual",matriks:"Tutup matriks",dashboard:"Tutup dashboard",saya:"Tutup profil saya",admin:"Tutup panel admin",diagnostik:"Tutup diagnostik"};
+function pasangApung(){
+  const host=$("#fabApung"); if(!host) return;
+  const tut = APUNG_SKRIN[VIEW];
+  if(!tut){ host.classList.add("hide"); host.innerHTML=""; return; }
+  host.innerHTML=`<button title="Laman Utama" aria-label="Laman Utama" onclick="HIST.length=0;go('home')">🏠</button><button title="${tut}" aria-label="${tut}" onclick="goBack()">✕</button>`;
+  host.classList.remove("hide");
 }
 
 /* ---------- 1. Sambungan Google Sheet ---------- */
@@ -2781,7 +2797,7 @@ function vProfil(){
   const kh=(DB.kehadiran||[]).filter(k=>String(k["ATLET ID"])===String(a.ID));
   const hadir=kh.filter(k=>String(k.STATUS).toUpperCase()==="HADIR").length;
   const fl=failAtletList(a.ID);
-  app().innerHTML=`${topbar("Profil Atlet","kehadiran")}
+  app().innerHTML=`${topbar("Profil Atlet","profil")}
   <div class="card" style="text-align:center">
     <img class="av" style="width:120px;height:120px;border-radius:34px;cursor:pointer" src="${avatar(a)}" ${avErr(a)} onclick="paparGambarAtlet('${esc(a.ID)}')" title="Ketik untuk papar & muat turun"/>
     <div class="small" style="margin-top:6px;opacity:.75">Ketik gambar untuk paparan penuh & muat turun</div>
@@ -4881,9 +4897,10 @@ function overlay(html){
   d.innerHTML=`<div class="sheet">${html}</div>`;
   d.addEventListener("click",e=>{ if(e.target===d) tutup(); });
   document.body.appendChild(d);
+  const fa=$("#fabApung"); if(fa) fa.classList.add("hide"); /* borang modal dibuka — sorok butang terapung */
   try{ history.pushState({ov:1},"", "#ov"); }catch(e){}
 }
-function tutup(){ if(MEDIA_SIBUK||JD_SIBUK)return toast("Muat naik sedang berjalan. Sila tunggu sehingga selesai."); if(GRAF_CART){GRAF_CART.destroy();GRAF_CART=null;} GRAF_CTX=null; try{ camTutup(); }catch(e){} const o=$("#ov"); if(o){o.remove();if(typeof o._selepasTutup==="function") o._selepasTutup();} }
+function tutup(){ if(MEDIA_SIBUK||JD_SIBUK)return toast("Muat naik sedang berjalan. Sila tunggu sehingga selesai."); if(GRAF_CART){GRAF_CART.destroy();GRAF_CART=null;} GRAF_CTX=null; try{ camTutup(); }catch(e){} const o=$("#ov"); if(o){o.remove();if(typeof o._selepasTutup==="function") o._selepasTutup(); pasangApung();} }
 
 /* ---------- Mula ---------- */
 /* Manifest dikekalkan. Tiada pendaftaran cache aplikasi baharu.
