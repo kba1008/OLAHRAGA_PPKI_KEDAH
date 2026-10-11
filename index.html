@@ -5,7 +5,7 @@
    Tampal URL /exec baharu di antara tanda petik di bawah,
    kemudian simpan fail ini. Tiada perubahan lain diperlukan.
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycby7iYwftzfEmLNj2HWc9ap59L_ptxc-j1deeyrnLJJTO5eGH3p0df9KDzwx9Keuz4f5/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxssouVnmreCa62f4zNdTBmUs-JcTUxKxia1PmohKJCITTaiY7FdNFimuU-xazMTckT/exec";
 </script>
 <html lang="ms">
 <head>
@@ -472,6 +472,12 @@ table.mx tfoot td.lbl{text-align:right;text-transform:uppercase}
   .cmb-act .cmb-btn.pri{min-height:46px;font-size:14px}
 }
 .media-kad{position:relative}
+.gal-edit-tog{width:40px;height:36px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;border-radius:50%!important;background:transparent;border:1px solid var(--line);color:inherit}
+.gal-edit-tog svg{width:18px;height:18px}
+body.gal-edit-on .gal-edit-tog{background:var(--media-edit-surface);color:var(--media-edit-ink);box-shadow:0 0 0 3px rgba(255,255,255,.12)}
+.gal-sek .mk-seret,.gal-sek .mk-edit-icon,.gal-sek .gal-drop{display:none!important}
+body.gal-edit-on .gal-sek .mk-seret,body.gal-edit-on .gal-sek .mk-edit-icon{display:inline-flex!important;align-items:center;justify-content:center}
+body.gal-edit-on .gal-sek .gal-drop{display:block!important}
 .mk-seret{position:absolute;top:6px;left:6px;z-index:3;width:34px;height:34px;border-radius:10px;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:18px;cursor:grab;touch-action:none}
 .media-kad.dragging{opacity:.3;outline:2px dashed currentColor;outline-offset:-2px}
 .media-kad.dragging>*{visibility:hidden}
@@ -1270,6 +1276,7 @@ function logout(){ localStorage.removeItem(LS_USER); U=null; VIEW="dashboard"; r
    skrin sebelumnya, bukannya menutup app. */
 const HIST=[]; /* {view,ctx} tanpa entri semasa */
 function go(v,c={}){
+  if(v!=="galeri"&&typeof GAL_EDIT!=="undefined"){GAL_EDIT=false;document.body.classList.remove("gal-edit-on");}
   if(VIEW && VIEW!==v){ HIST.push({view:VIEW,ctx:CTX}); }
   VIEW=v; CTX=c||{}; window.scrollTo(0,0); render();
   try{ history.pushState({view:v},"", "#"+v); }catch(e){}
@@ -4741,6 +4748,13 @@ async function simpanGantiMedia(id){
 }
 
 /* ---------- GALERI: edit tajuk/catatan & seret susun (Master Admin & Sub Admin) ---------- */
+var GAL_EDIT=false;
+function togolEditGaleri(){
+  GAL_EDIT=!GAL_EDIT;
+  document.body.classList.toggle("gal-edit-on",GAL_EDIT);
+  document.querySelectorAll(".gal-edit-tog").forEach(b=>b.setAttribute("aria-pressed",GAL_EDIT?"true":"false"));
+  toast(GAL_EDIT?"Mod susun & edit diaktifkan":"Mod susun & edit ditutup");
+}
 let GAL_SUSUN=false, SRT=null, GAL_MENYIMPAN=false, GAL_VERSI=0;
 let GAL_TUNGGU=null;      /* susunan yang belum dihantar: {ACARA:[id,...]} */
 let GAL_DOM_LAMA=false;   /* data baharu diterima tetapi galeri belum dipapar semula */
@@ -4973,6 +4987,7 @@ function vGaleri(){
   if(isAdmin() && gAcara==="__ALL__" && gJenis==="__ALL__" && !q)
     (DB.acara||[]).forEach(a=>{ const k=String(a.ACARA||"").toUpperCase(); if(k&&!kump[k]) kump[k]=[]; });
   GAL_SUSUN=isAdmin() && gJenis==="__ALL__" && !q;
+  document.body.classList.toggle("gal-edit-on",GAL_EDIT);
   GAL_DOM_LAMA=false;
   const seksyen=Object.keys(kump).sort().map(k=>{
     const arr=kump[k];
@@ -4985,7 +5000,8 @@ function vGaleri(){
         <div class="gal-hd">
           <div class="gal-tt">🏆 ${esc(k)}</div>
           <span class="chip" data-bil-acara="${esc(k)}">${arr.length} rekod</span>${kiraan}
-          ${bolehRekod(k)?`<button class="btn sm" style="margin-left:auto" onclick="formMedia('${esc(k)}')">📎 Tambah</button>`:""}
+          ${bolehRekod(k)||arr.some(bolehUrusMedia)?`<button class="btn sm gal-edit-tog" style="margin-left:auto" onclick="togolEditGaleri()" title="Aktifkan mod susun &amp; edit" aria-label="Aktifkan mod susun dan edit" aria-pressed="${GAL_EDIT?"true":"false"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6Z"/><path d="m14 5 5 5"/></svg></button>`:""}
+          ${bolehRekod(k)?`<button class="btn sm" onclick="formMedia('${esc(k)}')">📎 Tambah</button>`:""}
         </div>
       </div>
       <div class="media-grid" data-acara="${esc(k)}">${arr.map(m=>kadMedia(m,bolehRekod(k))).join("")}${GAL_SUSUN?`<div class="gal-drop small">⬇ Seret fail ke sini</div>`:""}</div>
