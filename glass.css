@@ -118,3 +118,31 @@ body .cmb-btn.pri.rekod-perlawanan,body .btn.rekod-perlawanan{--control-tone:var
 .pl-rekod-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 .pl-rekod-row>div{min-width:0;overflow-wrap:anywhere}
 .pl-panduan{margin-top:12px}.pl-panduan summary{cursor:pointer;color:var(--link)}
+
+/* ===== BUTANG METALIK TERANG ===== */
+/* Kilatan logam: perak, emas, rose gold, gangsa dan krom. */
+:root{
+ --metal-silver:linear-gradient(160deg,oklch(.97 .005 260) 0%,oklch(.85 .01 255) 28%,oklch(.68 .015 255) 50%,oklch(.88 .01 255) 72%,oklch(.96 .005 260) 100%);
+ --metal-gold:linear-gradient(160deg,oklch(.96 .1 100) 0%,oklch(.86 .15 92) 28%,oklch(.68 .16 85) 50%,oklch(.88 .14 92) 72%,oklch(.95 .1 100) 100%);
+ --metal-rose:linear-gradient(160deg,oklch(.94 .06 15) 0%,oklch(.84 .1 10) 28%,oklch(.66 .12 5) 50%,oklch(.86 .09 10) 72%,oklch(.93 .06 15) 100%);
+ --metal-bronze:linear-gradient(160deg,oklch(.9 .09 70) 0%,oklch(.78 .12 60) 28%,oklch(.6 .13 50) 50%,oklch(.8 .11 60) 72%,oklch(.89 .09 70) 100%);
+ --metal-chrome:linear-gradient(160deg,oklch(.95 .03 220) 0%,oklch(.83 .05 225) 28%,oklch(.64 .06 230) 50%,oklch(.85 .04 225) 72%,oklch(.94 .03 220) 100%);
+ --metal-edge:oklch(1 0 0 / .7);
+ --metal-shadow:oklch(.2 .02 260 / .35);
+}
+body button,body a.btn,body .btn,body .back,body .mx-btn,body .cmb-btn,body .rnd,body .pmp-btn{
+ background:var(--metal-silver)!important;
+ color:oklch(.22 .02 260)!important;
+ border:1px solid var(--metal-edge);
+ text-shadow:0 1px 0 oklch(1 0 0 / .5);
+ box-shadow:0 5px 0 -1px oklch(.55 .02 255),0 10px 18px -8px var(--metal-shadow),inset 0 2px 0 var(--metal-edge),inset 0 -2px 3px oklch(.4 .02 255 / .4);
+ font-weight:700;
+}
+body .btn.ghost,body .back,body .mx-btn.alt,body .cmb-btn{background:var(--metal-chrome)!important}
+body .btn.ok,body .cmb-btn.pri,body .tabs button.on,body .nav button.on{background:var(--metal-gold)!important}
+body .btn.report-action{background:var(--metal-bronze)!important}
+body .btn.bad,body .fab-acara button:last-child,body .dd-item.bad,body .mx-del{background:var(--metal-rose)!important}
+body button:active,body .btn:active,body .back:active{box-shadow:inset 0 3px 6px var(--metal-shadow);transform:translateY(2px)}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+ body button:hover:not(:disabled),body .btn:hover:not(:disabled){filter:brightness(1.08) saturate(1.1)}
+}
