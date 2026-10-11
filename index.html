@@ -5,7 +5,7 @@
    Tampal URL /exec baharu di antara tanda petik di bawah,
    kemudian simpan fail ini. Tiada perubahan lain diperlukan.
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbwZd20Y1mTr9PcGGozUjr6TJt2ZbTgZaihGB0S_XfNe4i_8mMkTqLzi3LYuXGOpHffF/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxssouVnmreCa62f4zNdTBmUs-JcTUxKxia1PmohKJCITTaiY7FdNFimuU-xazMTckT/exec";
 </script>
 <html lang="ms">
 <head>
@@ -1578,7 +1578,7 @@ function janaLaporanKehadiran(){
 @page{size:A4 ${ori};margin:14mm 12mm 16mm}
 *{box-sizing:border-box}body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;color:#1d2433;font-size:10.5pt;margin:0;padding:18px}
 .kop{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #0b2e59;padding-bottom:10px}
-.kop h1{margin:0;font-size:17pt;color:#0b2e59;letter-spacing:1px}.kop .sub{font-size:9.5pt;color:#556;margin-top:3px;letter-spacing:.5px}
+.kop-brand{display:flex;align-items:center;gap:14px}.kop h1{margin:0;font-size:17pt;color:#0b2e59;letter-spacing:1px}.kop .sub{font-size:9.5pt;color:#556;margin-top:3px;letter-spacing:.5px}
 .ruj{text-align:right;font-size:9pt;color:#445;line-height:1.5}.garis{height:3px;background:#c8a24a;margin:2px 0 16px}
 h2{font-size:11pt;color:#0b2e59;text-transform:uppercase;letter-spacing:.6px;border-left:4px solid #c8a24a;padding:2px 0 2px 8px;margin:20px 0 8px;page-break-after:avoid}
 .info{width:100%;border-collapse:collapse;margin-bottom:6px}.info td{padding:4px 8px;border:none;font-size:10pt}.info td:first-child{width:28%;color:#556;font-weight:600}
@@ -1594,8 +1594,8 @@ a{color:#0b4f9c}.nota{font-style:italic;color:#556}
 .alat{position:sticky;top:0;background:#fff;padding:8px 0;margin-bottom:10px;text-align:right}.alat button{background:#0b2e59;color:#fff;border:0;padding:8px 16px;border-radius:4px;font-size:10pt;cursor:pointer}
 @media print{.alat{display:none}body{padding:0}th,.b,tbody tr:nth-child(even) td,.garis{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
-<div class="alat"><button onclick="window.print()">🖨️ Cetak / Simpan PDF</button></div>
-<div class="kop"><div><h1>LAPORAN KEHADIRAN ATLET</h1><div class="sub">ATLETTRANING • SISTEM KEHADIRAN & REKOD LATIHAN ATLET</div></div>
+<div class="alat"><button onclick="cetakDenganLogo()">🖨️ Cetak / Simpan PDF</button></div>
+<div class="kop"><div class="kop-brand">${logoLaporan()}<div><h1>LAPORAN KEHADIRAN ATLET</h1><div class="sub">ATLETTRANING • SISTEM KEHADIRAN & REKOD LATIHAN ATLET</div></div></div>
 <div class="ruj">No. Rujukan: <b>${noRuj}</b><br>Tarikh Dijana: ${h(capMY())}<br>Dijana Oleh: ${h(U?U.nama:"-")}</div></div><div class="garis"></div>
 <h2>1. Maklumat Laporan</h2><table class="info"><tr><td>Jenis Laporan</td><td>: ${jenis==="HARIAN"?"Laporan Harian":jenis==="DATA"?"Laporan Data Kehadiran Sedia Ada":"Laporan Mengikut Julat Tarikh"}</td></tr>
 <tr><td>Tempoh Laporan</td><td>: ${tempoh}</td></tr><tr><td>Jumlah Atlet Berdaftar</td><td>: ${atlet.length} orang</td></tr></table>
@@ -1604,7 +1604,7 @@ ${jenis==="DATA"?`<p class="nota">Nota: Laporan ini hanya memaparkan tarikh yang
 ${utama}${seksyenTH}
 <div class="ttd"><div><div class="l"></div><b>Disediakan oleh (Jurulatih):</b><br>Nama:<br>Jawatan:<br>Tarikh:</div><div><div class="l"></div><b>Disemak oleh (Ketua Jurulatih):</b><br>Nama:<br>Jawatan:<br>Tarikh:</div><div><div class="l"></div><b>Disahkan oleh:</b><br>Nama:<br>Jawatan:<br>Tarikh:</div></div>
 <div class="kaki"><span>Laporan ini dijana secara automatik oleh sistem AtletTraning.</span><span>${noRuj}</span></div>
-<script>setTimeout(()=>window.print(),500)<\/script></body></html>`;
+${skripCetakLaporan(true)}</body></html>`;
   const w=window.open("","_blank"); if(!w) return toast("Sila benarkan popup untuk mencetak laporan.");
   w.document.open(); w.document.write(html); w.document.close();
 }
@@ -3282,6 +3282,20 @@ function selRK(rk,info){
 function oriCetak(){ try{ return localStorage.getItem("oriCetak")||"portrait"; }catch(e){ return "portrait"; } }
 function setOriCetak(v){ try{ localStorage.setItem("oriCetak",v); }catch(e){} toast(v==="landscape"?"Cetakan: Melintang (Landscape)":"Cetakan: Menegak (Portrait)"); }
 
+/* Logo laporan menggunakan fail di sebelah index.html, termasuk dalam popup. */
+function logoLaporan(){
+  const src=esc(new URL("./logo.png",document.baseURI).href);
+  return `<img class="report-logo" src="${src}" alt="Logo rasmi" width="64" height="64" style="width:64px;height:64px;object-fit:contain;flex:0 0 64px;display:block" loading="eager" decoding="sync"/>`;
+}
+function skripCetakLaporan(auto){
+  return `<script>
+  function cetakDenganLogo(){
+    const images=Array.from(document.images);
+    Promise.all(images.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.addEventListener("load",resolve,{once:true});img.addEventListener("error",resolve,{once:true});}))).then(()=>window.print());
+  }
+  ${auto?'window.addEventListener("load",cetakDenganLogo,{once:true});':""}
+  <\/script>`;
+}
 function gayaLaporan(){
   return `
   :root{--ink:#101828;--muted:#667085;--line:#e4e7ec;--brand:#0b3b6f;--brand2:#0f766e;--soft:#f8fafc;--bmi-baik-bg:#dcfce7;--bmi-baik-ink:#14532d;--bmi-obes-bg:#fecaca;--bmi-obes-ink:#7f1d1d}
@@ -3334,7 +3348,7 @@ function bukaLaporan(tajuk,isi){
       <option value="portrait" ${oriSimpan==="portrait"?"selected":""}>📄 Menegak (Portrait)</option>
       <option value="landscape" ${oriSimpan==="landscape"?"selected":""}>📃 Melintang (Landscape)</option>
     </select>
-    <button onclick="window.print()">🖨 Cetak / Simpan PDF</button><button class="g" onclick="window.close()">Tutup</button>
+    <button onclick="cetakDenganLogo()">🖨 Cetak / Simpan PDF</button><button class="g" onclick="window.close()">Tutup</button>
   </div>
   <script>
     function setOri(v){
@@ -3344,7 +3358,7 @@ function bukaLaporan(tajuk,isi){
     }
   <\/script>
   <div class="kepala">
-    <div class="logo">AT</div>
+    ${logoLaporan()}
     <div><h1>${esc(tajuk)}</h1><div class="sub">AtletTraning • Sistem Pengurusan &amp; Pemantauan Prestasi Atlet</div></div>
   </div>
   <div class="meta">
@@ -3364,7 +3378,7 @@ function bukaLaporan(tajuk,isi){
     <div>Disahkan oleh<br/><br/>Nama &amp; Tandatangan</div>
   </div>
   <div class="kaki"><span>AtletTraning — Laporan Rasmi Ranking Atlet</span><span>Dijana ${esc(tarikhCetak)}</span></div>
-  </body></html>`;
+  ${skripCetakLaporan(false)}</body></html>`;
   const w=window.open("","_blank");
   if(!w) return toast("Sila benarkan pop-up untuk mencetak laporan.");
   w.document.open(); w.document.write(html); w.document.close();
@@ -4052,7 +4066,7 @@ function vMatriks(){
       <option value="landscape" ${oriMatriks()==="landscape"?"selected":""}>📃 Melintang (Landscape)</option>
       <option value="portrait" ${oriMatriks()==="portrait"?"selected":""}>📄 Menegak (Portrait)</option>
     </select>
-    <button class="mx-btn" onclick="window.print()">🖨 Cetak / Simpan PDF</button>
+    <button class="mx-btn" onclick="cetakDenganLogo()">🖨 Cetak / Simpan PDF</button>
     <button class="mx-btn alt" onclick="mxCari='';mxSekolah='';mxKategori='';mxSortAtlet='kat-nama';vMatriks()">Reset</button>
     ${isAdmin()?`<button class="mx-btn" onclick="mxTambahPeserta()">+ Tambah Peserta</button>`:""}
   </div>
