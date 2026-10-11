@@ -119,30 +119,65 @@ body .cmb-btn.pri.rekod-perlawanan,body .btn.rekod-perlawanan{--control-tone:var
 .pl-rekod-row>div{min-width:0;overflow-wrap:anywhere}
 .pl-panduan{margin-top:12px}.pl-panduan summary{cursor:pointer;color:var(--link)}
 
-/* ===== BUTANG METALIK TERANG ===== */
-/* Kilatan logam: perak, emas, rose gold, gangsa dan krom. */
+
+/* ===== EPOXY 3D + METALIK TERANG (keseluruhan app) ===== */
+/* Jubin menu, butang dan kad — logam berkilat dengan bevel 3D dalam. */
 :root{
- --metal-silver:linear-gradient(160deg,oklch(.97 .005 260) 0%,oklch(.85 .01 255) 28%,oklch(.68 .015 255) 50%,oklch(.88 .01 255) 72%,oklch(.96 .005 260) 100%);
- --metal-gold:linear-gradient(160deg,oklch(.96 .1 100) 0%,oklch(.86 .15 92) 28%,oklch(.68 .16 85) 50%,oklch(.88 .14 92) 72%,oklch(.95 .1 100) 100%);
- --metal-rose:linear-gradient(160deg,oklch(.94 .06 15) 0%,oklch(.84 .1 10) 28%,oklch(.66 .12 5) 50%,oklch(.86 .09 10) 72%,oklch(.93 .06 15) 100%);
- --metal-bronze:linear-gradient(160deg,oklch(.9 .09 70) 0%,oklch(.78 .12 60) 28%,oklch(.6 .13 50) 50%,oklch(.8 .11 60) 72%,oklch(.89 .09 70) 100%);
- --metal-chrome:linear-gradient(160deg,oklch(.95 .03 220) 0%,oklch(.83 .05 225) 28%,oklch(.64 .06 230) 50%,oklch(.85 .04 225) 72%,oklch(.94 .03 220) 100%);
- --metal-edge:oklch(1 0 0 / .7);
- --metal-shadow:oklch(.2 .02 260 / .35);
+ --metal-edge:oklch(1 0 0 / .75);
+ --metal-shadow:oklch(.15 .02 260 / .45);
+ --m-perak:linear-gradient(165deg,oklch(.98 .004 260) 0%,oklch(.88 .008 255) 25%,oklch(.62 .02 255) 48%,oklch(.9 .008 255) 70%,oklch(.97 .004 260) 100%);
+ --m-emas:linear-gradient(165deg,oklch(.97 .1 100) 0%,oklch(.87 .16 92) 25%,oklch(.62 .17 82) 48%,oklch(.89 .15 92) 70%,oklch(.96 .1 100) 100%);
+ --m-rose:linear-gradient(165deg,oklch(.95 .06 15) 0%,oklch(.85 .11 10) 25%,oklch(.6 .13 5) 48%,oklch(.87 .1 10) 70%,oklch(.94 .06 15) 100%);
+ --m-gangsa:linear-gradient(165deg,oklch(.92 .09 70) 0%,oklch(.8 .13 58) 25%,oklch(.55 .13 48) 48%,oklch(.82 .12 58) 70%,oklch(.91 .09 70) 100%);
+ --m-krom:linear-gradient(165deg,oklch(.96 .03 220) 0%,oklch(.84 .06 225) 25%,oklch(.58 .07 232) 48%,oklch(.86 .05 225) 70%,oklch(.95 .03 220) 100%);
+ --m-biru:linear-gradient(165deg,oklch(.95 .06 230) 0%,oklch(.8 .11 245) 25%,oklch(.52 .14 255) 48%,oklch(.82 .1 245) 70%,oklch(.94 .06 230) 100%);
+ --m-hijau:linear-gradient(165deg,oklch(.95 .07 160) 0%,oklch(.83 .13 155) 25%,oklch(.55 .14 150) 48%,oklch(.85 .12 155) 70%,oklch(.94 .07 160) 100%);
+ --bevel:0 6px 0 -1px oklch(.45 .03 255),0 18px 28px -12px var(--metal-shadow),inset 0 2px 0 var(--metal-edge),inset 0 -3px 5px oklch(.35 .02 255 / .45);
 }
-body button,body a.btn,body .btn,body .back,body .mx-btn,body .cmb-btn,body .rnd,body .pmp-btn{
- background:var(--metal-silver)!important;
- color:oklch(.22 .02 260)!important;
+/* --- Jubin menu utama: metalik terang, 3D timbul --- */
+.grid3>.tile:nth-child(1){--mface:var(--m-biru)}
+.grid3>.tile:nth-child(2){--mface:var(--m-krom)}
+.grid3>.tile:nth-child(3){--mface:var(--m-hijau)}
+.grid3>.tile:nth-child(4){--mface:var(--m-emas)}
+.grid3>.tile:nth-child(5){--mface:var(--m-rose)}
+.grid3>.tile:nth-child(6){--mface:var(--m-biru)}
+.grid3>.tile{
+ background:linear-gradient(150deg,oklch(1 0 0 / .55),transparent 42%),var(--mface)!important;
+ color:oklch(.2 .02 260)!important;
  border:1px solid var(--metal-edge);
- text-shadow:0 1px 0 oklch(1 0 0 / .5);
- box-shadow:0 5px 0 -1px oklch(.55 .02 255),0 10px 18px -8px var(--metal-shadow),inset 0 2px 0 var(--metal-edge),inset 0 -2px 3px oklch(.4 .02 255 / .4);
- font-weight:700;
+ border-radius:20px;
+ box-shadow:var(--bevel);
+ transform:perspective(900px) rotateX(4deg);
+ text-shadow:0 1px 0 oklch(1 0 0 / .6);
 }
-body .btn.ghost,body .back,body .mx-btn.alt,body .cmb-btn{background:var(--metal-chrome)!important}
-body .btn.ok,body .cmb-btn.pri,body .tabs button.on,body .nav button.on{background:var(--metal-gold)!important}
-body .btn.report-action{background:var(--metal-bronze)!important}
-body .btn.bad,body .fab-acara button:last-child,body .dd-item.bad,body .mx-del{background:var(--metal-rose)!important}
-body button:active,body .btn:active,body .back:active{box-shadow:inset 0 3px 6px var(--metal-shadow);transform:translateY(2px)}
+.grid3>.tile:before{background:linear-gradient(115deg,oklch(1 0 0 / .6),transparent 40%)}
+.grid3>.tile .tt,.grid3>.tile .ts,.grid3>.tile .ic,.grid3>.tile .small,.grid3>.tile b,.grid3>.tile h3{color:oklch(.2 .02 260)!important;text-shadow:0 1px 0 oklch(1 0 0 / .55)}
+.grid3>.tile .ic{filter:drop-shadow(0 3px 3px var(--metal-shadow))}
+.grid3>.tile:active{transform:translateY(4px);box-shadow:inset 0 4px 8px var(--metal-shadow)}
 @media(hover:hover) and (prefers-reduced-motion:no-preference){
- body button:hover:not(:disabled),body .btn:hover:not(:disabled){filter:brightness(1.08) saturate(1.1)}
+ .grid3>.tile:hover{transform:perspective(900px) rotateX(0deg) translateY(-4px);filter:brightness(1.06)}
 }
+/* --- Semua butang: metalik terang --- */
+body button,body a.btn,body .btn,body .back,body .mx-btn,body .cmb-btn,body .rnd,body .pmp-btn,body .tabs button,body .nav button,body .fb-bar button,body .fab-acara button{
+ background:var(--m-perak)!important;
+ color:oklch(.2 .02 260)!important;
+ border:1px solid var(--metal-edge)!important;
+ text-shadow:0 1px 0 oklch(1 0 0 / .55);
+ box-shadow:var(--bevel);
+ font-weight:800;
+}
+body .btn.ghost,body .back,body .mx-btn.alt,body .cmb-btn{background:var(--m-krom)!important}
+body .btn.ok,body .cmb-btn.pri,body .tabs button.on,body .nav button.on{background:var(--m-emas)!important}
+body .btn.report-action{background:var(--m-gangsa)!important}
+body .btn.bad,body .fab-acara button:last-child,body .dd-item.bad,body .mx-del{background:var(--m-rose)!important}
+body .btn.rekod-perlawanan,body .cmb-btn.pri.rekod-perlawanan{background:var(--m-emas)!important;border:2px solid oklch(.35 .08 80)!important}
+body button:active,body .btn:active,body .back:active{box-shadow:inset 0 4px 8px var(--metal-shadow)!important;transform:translateY(3px)}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+ body button:hover:not(:disabled),body .btn:hover:not(:disabled){filter:brightness(1.07) saturate(1.08)}
+}
+/* --- Kad & senarai: epoxy 3D lebih dalam --- */
+.card,.item,.kat3d,.media-kad,.jd-item,.fileit,.stat,.kpi,.rk3d,.sheet,.at-dialog{
+ box-shadow:0 24px 44px -18px var(--glass-shadow),0 7px 0 -2px color-mix(in oklch,var(--bg) 80%,var(--p1)),inset 0 2px 0 var(--glass-light),inset 0 -2px 0 var(--glass-low)!important;
+}
+/* --- Tajuk timbul --- */
+h1,h2,h3,.big{text-shadow:0 2px 3px var(--glass-shadow),0 -1px 0 var(--glass-light)}
