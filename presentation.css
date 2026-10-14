@@ -1,0 +1,48 @@
+/* Corporate presentation tokens, independent of the app's selected theme. */
+:root{--deck-paper:oklch(.99 .002 210);--deck-ink:oklch(.23 .015 220);--deck-muted:oklch(.51 .025 220);--deck-accent:oklch(.52 .13 170);--deck-accent-soft:oklch(.95 .025 170);--deck-line:oklch(.88 .012 210);--deck-stage:oklch(.14 .012 220);--deck-white:oklch(1 0 0);--deck-warn:oklch(.52 .17 30);--deck-shadow:0 24px 80px oklch(.08 .01 220 / .3)}
+.deck-launch{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:18px 0;padding:22px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.deck-launch h2{font-size:21px;margin:0;color:var(--txt)}
+.deck-launch .btn{display:inline-flex;align-items:center;gap:10px;white-space:nowrap}
+.deck-launch svg,.deck-toolbar svg,.deck-picker svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8}
+.deck-picker{width:min(620px,calc(100% - 32px));max-height:90dvh;padding:28px;border:1px solid var(--deck-line);border-radius:8px;background:var(--deck-paper);color:var(--deck-ink);box-shadow:var(--deck-shadow)}
+.deck-picker::backdrop{background:oklch(.08 .01 220 / .75)}
+.deck-picker h2{margin:0 0 24px;font-size:26px;color:var(--deck-ink)}
+.deck-picker label{display:block;font-weight:600;font-size:14px;margin:18px 0 8px;color:var(--deck-ink)}
+.deck-picker select{width:100%;background:var(--deck-white);color:var(--deck-ink);border:1px solid var(--deck-line);border-radius:5px;min-height:48px;padding:10px;font:inherit;box-shadow:none}
+.deck-picker .deck-count{margin:24px 0;font-size:15px;color:var(--deck-muted)}
+.deck-picker .popup-actions{display:flex;justify-content:flex-end;gap:12px}
+.btn.deck-primary{background:var(--deck-accent);color:var(--deck-white);border:1px solid var(--deck-accent);box-shadow:none}
+.btn.deck-secondary{background:var(--deck-white);color:var(--deck-ink);border:1px solid var(--deck-line);box-shadow:none}
+.btn.deck-control{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:44px;padding:8px;background:transparent;color:var(--deck-white);border:1px solid var(--deck-muted);border-radius:5px;box-shadow:none}
+.btn.deck-control:hover{background:var(--deck-muted)}
+.btn.deck-control:disabled{opacity:.3;cursor:default}
+.deck-view{position:fixed;inset:0;z-index:9998;background:var(--deck-stage);display:flex;flex-direction:column;color:var(--deck-white);font-family:'Segoe UI',Arial,sans-serif;letter-spacing:0}
+.deck-toolbar{height:72px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 24px;border-bottom:1px solid var(--deck-muted)}
+.deck-toolbar-brand{font-size:15px;font-weight:700;display:flex;align-items:center;gap:18px}
+.deck-toolbar-brand span{color:var(--deck-line);font-weight:400}
+.deck-tools{display:flex;gap:8px;align-items:center}
+.deck-position{font-variant-numeric:tabular-nums;min-width:70px;text-align:center;font-size:14px}
+.deck-host{position:relative;overflow:hidden;flex:1;touch-action:pan-y}
+.deck-slide{position:absolute;width:1920px;height:1080px;top:50%;left:50%;margin-left:-960px;margin-top:-540px;transform-origin:center center;background:var(--deck-paper);color:var(--deck-ink);overflow:hidden;display:flex;flex-direction:column;border-top:12px solid var(--deck-accent)}
+.deck-slide-header{height:120px;flex-shrink:0;padding:34px 76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--deck-line)}
+.deck-brand{font-size:32px;font-weight:750}.deck-kicker{font-size:22px;text-transform:uppercase;color:var(--deck-muted)}
+.deck-main{display:grid;grid-template-columns:580px 1fr;gap:76px;flex:1;min-height:0;padding:42px 76px 34px}
+.deck-portrait{width:100%;height:460px;object-fit:contain;object-position:center;background:var(--deck-accent-soft);display:block}
+.deck-photo-missing{height:460px;display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--deck-accent-soft);color:var(--deck-muted);font-size:28px;gap:24px}
+.deck-photo-missing svg{width:130px;height:130px;fill:none;stroke:currentColor;stroke-width:1}
+.deck-name{font-size:44px;line-height:1.12;margin:25px 0 14px;overflow-wrap:anywhere;color:var(--deck-ink)}
+.deck-identity{font-size:26px;line-height:1.4;color:var(--deck-muted);overflow-wrap:anywhere}
+.deck-event{font-size:64px;line-height:1.1;margin:0 0 12px;color:var(--deck-ink);overflow-wrap:anywhere}
+.deck-direction{font-size:26px;color:var(--deck-muted);margin-bottom:28px}
+.deck-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;padding-bottom:26px;border-bottom:1px solid var(--deck-line)}
+.deck-metric-label{font-size:23px;color:var(--deck-muted);margin-bottom:12px}.deck-metric-value{font-size:40px;font-weight:700;line-height:1.2;overflow-wrap:anywhere}
+.deck-good{color:var(--deck-accent)}.deck-decline{color:var(--deck-warn)}
+.deck-chart-heading{display:flex;justify-content:space-between;align-items:center;margin:28px 0 18px;font-size:26px;font-weight:600}
+.deck-chart-heading span{font-size:22px;color:var(--deck-muted);font-weight:400}
+.deck-chart{height:370px;position:relative}.deck-chart canvas{width:100%;height:100%}
+.deck-empty{display:grid;place-items:center;text-align:center;height:370px;color:var(--deck-muted);font-size:32px;border-bottom:1px solid var(--deck-line)}
+.deck-footer{height:80px;flex-shrink:0;margin:0 76px;border-top:1px solid var(--deck-line);display:flex;align-items:center;justify-content:space-between;color:var(--deck-muted);font-size:22px}
+.deck-view:fullscreen .deck-toolbar{height:64px}
+@media(max-width:650px){.deck-launch{align-items:flex-start;flex-direction:column}.deck-toolbar{padding:10px;height:64px;gap:6px}.deck-toolbar-brand{font-size:12px}.deck-toolbar-brand span{display:none}.deck-tools{gap:4px}.deck-view .btn.deck-control{min-width:36px;width:36px;height:38px;padding:6px}.deck-position{min-width:48px;font-size:12px}.deck-picker{padding:20px}}
+@media(max-width:450px){.deck-toolbar-brand{display:none}.deck-toolbar{justify-content:center}.deck-tools{width:100%;justify-content:space-between}}
+@media(prefers-reduced-motion:no-preference){.deck-slide{animation:deck-appear .25s ease-out}@keyframes deck-appear{from{opacity:.4}to{opacity:1}}}
