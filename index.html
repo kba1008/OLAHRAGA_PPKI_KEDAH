@@ -5672,7 +5672,29 @@ function fmtJurangPL(v,info){
 </script>
 
 <!-- ===== SLAID PEMBENTANGAN PRESTASI ATLET (gaya korporat) ===== -->
-<link rel="stylesheet" href="./performance-slides.css" />
+<style id="at-performance-styles">
+/* Futuristic performance stage: independent semantic tokens, read-only. */
+:root{--sl-stage:oklch(.13 .015 245);--sl-surface:oklch(.18 .025 245);--sl-panel:oklch(.22 .025 245);--sl-ink:oklch(.97 .006 220);--sl-muted:oklch(.73 .028 230);--sl-line:oklch(.4 .04 230 / .5);--sl-cyan:oklch(.83 .13 205);--sl-green:oklch(.8 .16 155);--sl-gold:oklch(.84 .16 85);--sl-alert:oklch(.76 .15 30);--sl-shadow:oklch(.06 .01 245 / .5);--sl-grid:oklch(.8 .1 205 / .04);--sl-face:linear-gradient(125deg,var(--sl-surface),var(--sl-stage));--sl-medal-face:linear-gradient(110deg,color-mix(in oklch,var(--sl-gold) 12%,var(--sl-stage)),var(--sl-surface))}
+.sl-ov{position:fixed;inset:0;z-index:9999;background:var(--sl-stage);color:var(--sl-ink);display:flex;flex-direction:column;font-family:'Segoe UI',system-ui,sans-serif;letter-spacing:0}
+.sl-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--sl-line);background:var(--sl-surface)}
+.sl-bar select,.sl-bar button{color:var(--sl-ink);border:1px solid var(--sl-line);border-radius:5px;padding:7px 10px;font-size:13px}.sl-bar button{cursor:pointer;font-weight:700}.sl-bar .sl-x{margin-left:auto}.sl-bar label{font-size:12px;color:var(--sl-muted);display:flex;gap:6px;align-items:center}
+.sl-stage{flex:1;min-height:0;position:relative;overflow:hidden}.sl-card{position:absolute;width:1920px;height:1080px;top:50%;left:50%;margin-left:-960px;margin-top:-540px;transform-origin:center;display:grid;grid-template-columns:430px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);background:var(--sl-face);overflow:hidden;--p2:var(--sl-cyan);--p3:var(--sl-green);--warn:var(--sl-gold);--txt:var(--sl-ink);--mut:var(--sl-muted);--line:var(--sl-line);--bg:var(--sl-stage)}
+.sl-kiri{padding:40px 34px;display:flex;flex-direction:column;gap:20px;border-right:1px solid var(--sl-line);min-width:0;background:linear-gradient(135deg,var(--sl-grid) 1px,transparent 1px),var(--sl-surface);background-size:32px 32px}
+.sl-brand{font-size:25px;font-weight:900;color:var(--sl-cyan);display:flex;justify-content:space-between;align-items:center}.sl-brand span{font-size:18px;color:var(--sl-muted)}
+.sl-photo{height:410px;flex-shrink:0;position:relative;border:1px solid var(--sl-line);overflow:hidden;background:var(--sl-panel)}.sl-foto{height:100%;width:100%;object-fit:contain;display:block}.sl-photo-empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--sl-muted);font-size:22px}.sl-photo-empty[hidden]{display:none}.sl-identity{grid-column:1/-1;padding:26px 44px;border-bottom:1px solid var(--sl-line)}
+.sl-nama{margin:0;font-size:42px;font-weight:850;line-height:1.2;text-transform:uppercase;overflow-wrap:anywhere}.sl-sub{font-size:24px;color:var(--sl-muted);line-height:1.35;overflow-wrap:anywhere}.sl-profile-label{font-size:19px;color:var(--sl-muted);text-transform:uppercase;margin-bottom:8px}
+.sl-bmi{margin-top:auto;border-top:2px solid var(--sl-cyan);padding-top:22px}.sl-bmi-top{display:flex;justify-content:space-between;align-items:center}.sl-bmi b{font-size:60px;line-height:1.1;color:var(--sl-cyan)}.sl-bmi span{font-size:22px;color:var(--sl-muted)}.sl-bmi p{margin:12px 0 0;font-size:22px;color:var(--sl-muted);line-height:1.4}.sl-bmi-status{font-size:23px;color:var(--sl-green);font-weight:700}.sl-bmi-note{font-size:18px!important}
+.sl-kanan{padding:38px 44px 22px;display:grid;grid-template-rows:auto 118px 210px minmax(0,1fr) auto;gap:22px;min-width:0;min-height:0}.sl-title{display:flex;justify-content:space-between;align-items:center;gap:24px}.sl-kick{font-size:20px;color:var(--sl-cyan);font-weight:750}.sl-acara{font-size:54px;line-height:1.08;font-weight:850;margin:8px 0 0;overflow-wrap:anywhere}.sl-direction{font-size:22px;color:var(--sl-muted);max-width:310px;text-align:right}
+.sl-stat{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;border-top:1px solid var(--sl-line);border-bottom:1px solid var(--sl-line);padding:18px 0}.sl-stat div{min-width:0}.sl-stat b{display:block;font-size:38px;line-height:1.2;color:var(--sl-cyan);overflow-wrap:anywhere}.sl-stat span{font-size:21px;color:var(--sl-muted);display:block;margin-top:8px}.sl-stat .sl-down{color:var(--sl-alert)}
+.sl-medal{display:grid;grid-template-columns:100px minmax(0,1fr) 405px;align-items:center;gap:24px;padding:22px 26px;border:1px solid var(--sl-line);border-left:4px solid var(--sl-gold);background:var(--sl-medal-face);border-radius:6px}.sl-medal-icon{font-size:76px;line-height:1;text-align:center}.sl-medal h3{font-size:35px;line-height:1.15;margin:6px 0 10px;color:var(--sl-gold)}.sl-medal p{font-size:23px;line-height:1.3;margin:0;color:var(--sl-muted)}.sl-medal small{font-size:18px;display:block;margin-top:12px;color:var(--sl-muted)}.sl-targets{border-left:1px solid var(--sl-line);padding-left:24px;display:grid;gap:15px}.sl-targets div{display:flex;justify-content:space-between;align-items:center;gap:10px}.sl-targets span{font-size:22px;color:var(--sl-muted)}.sl-targets b{font-size:28px;color:var(--sl-ink);white-space:nowrap}.sl-targets small{margin-top:0;line-height:1.25}
+.sl-graf{min-height:0;display:grid;grid-template-columns:1.3fr 1fr;gap:28px}.sl-box{display:flex;flex-direction:column;min-height:0;min-width:0}.sl-box h4{margin:0 0 12px;font-size:24px;color:var(--sl-ink);font-weight:650}.sl-box svg{width:100%;flex:1;min-height:0}.sl-foot{display:flex;gap:12px;justify-content:space-between;font-size:18px;color:var(--sl-muted);border-top:1px solid var(--sl-line);padding-top:12px}.sl-foot span{overflow-wrap:anywhere}.sl-prog{height:3px;background:var(--sl-line)}.sl-prog i{display:block;height:100%;background:var(--sl-cyan);width:0}.sl-kosong{padding:50px;text-align:center;color:var(--sl-muted);font-size:22px}
+@media(max-width:700px){.sl-stage{overflow:auto}.sl-card{position:relative;top:auto;left:auto;margin:0;width:100%;height:auto;min-height:100%;transform:none!important;display:block}.sl-kiri{padding:20px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;border-right:none;border-bottom:1px solid var(--sl-line)}.sl-brand{grid-column:1/-1;font-size:18px}.sl-brand span{font-size:13px}.sl-photo{height:auto;aspect-ratio:1/1;width:min(100%,360px);justify-self:center}.sl-identity{padding:20px}.sl-nama{font-size:28px}.sl-sub{font-size:15px}.sl-bmi{grid-column:1/-1;margin:4px 0 0;padding-top:12px}.sl-bmi b{font-size:34px}.sl-bmi span,.sl-bmi p,.sl-bmi-status{font-size:15px}.sl-bmi-note{font-size:12px!important}.sl-profile-label{font-size:13px}.sl-kanan{padding:20px;display:flex;gap:20px;flex-direction:column}.sl-title{align-items:flex-start}.sl-kick{font-size:12px}.sl-acara{font-size:30px}.sl-direction{font-size:12px;max-width:130px}.sl-stat{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;padding:15px 0}.sl-stat b{font-size:26px}.sl-stat span{font-size:13px}.sl-medal{grid-template-columns:52px minmax(0,1fr);padding:16px;gap:12px}.sl-medal-icon{font-size:43px}.sl-medal h3{font-size:23px}.sl-medal p{font-size:15px}.sl-medal small{font-size:12px}.sl-targets{grid-column:1/-1;border-left:none;border-top:1px solid var(--sl-line);padding:12px 0 0}.sl-targets span{font-size:14px}.sl-targets b{font-size:18px}.sl-graf{display:flex;flex-direction:column;gap:22px}.sl-box h4{font-size:17px}.sl-box svg{height:230px;flex:none}.sl-foot{font-size:11px}.sl-bar{padding:8px;gap:6px}.sl-bar> b{width:100%;font-size:13px}.sl-bar button,.sl-bar select{font-size:12px;padding:6px}.sl-bar .sl-x{margin-left:0}}
+@media(prefers-reduced-motion:no-preference){.sl-kiri,.sl-kanan{animation:slMasuk .3s ease-out}@keyframes slMasuk{from{opacity:.5}to{opacity:1}}}
+
+.sl-medal-icon svg{width:80px;height:100px;display:block;margin:auto}.sl-ribbon{fill:var(--sl-cyan)}.sl-medal-disc{fill:var(--sl-gold);stroke:var(--sl-gold);stroke-width:2}.sl-medal-ring{fill:none;stroke:var(--sl-stage);stroke-width:1.5}.sl-medal-number{font-size:36px;font-weight:900;fill:var(--sl-stage)}.sl-medal-star{fill:var(--sl-stage)}
+@media(max-width:700px){.sl-medal-icon svg{width:48px;height:60px}}
+
+</style>
 <script>
 const SL={ulang:true,i:0,list:[],t:null,main:true,saat:8,mula:0,raf:0};
 function slAcaraAktif(){return (DB&&DB.acara||[]).filter(a=>String(a.AKTIF||"YA").toUpperCase()!=="TIDAK").map(a=>a.ACARA);}
@@ -5763,6 +5785,68 @@ function bukaSlaidPrestasi(){
   SL.t=setInterval(()=>slSegar(true),60000);
 }
 </script>
-<script src="./performance-slides.js"></script>
+<script id="at-performance-runtime">
+/* Dashboard slides: read-only BMI and medal outlook from existing Sheet data. */
+function slMedalIcon(code){
+  if(code!=='EMAS'&&code!=='PODIUM')return '—';
+  return `<svg viewBox="0 0 80 100" role="img" aria-label="${code==='EMAS'?'Pingat emas':'Pingat podium'}"><path d="M18 4h18l14 36-17 8zM62 4H44L30 40l17 8z" class="sl-ribbon"/><circle cx="40" cy="64" r="29" class="sl-medal-disc"/><circle cx="40" cy="64" r="22" class="sl-medal-ring"/>${code==='EMAS'?'<text x="40" y="76" text-anchor="middle" class="sl-medal-number">1</text>':'<path d="m40 47 5 11 12 1-9 8 3 12-11-6-11 6 3-12-9-8 12-1z" class="sl-medal-star"/>'}</svg>`;
+}
+function slDateKey(r){
+  const raw=String(r.TARIKH||'').trim(),m=raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+  const v=Date.parse(m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:raw);
+  return Number.isFinite(v)?v:0;
+}
+function slLatestBmi(id){
+  const rows=(DB.bmi||[]).filter(b=>String(b['ATLET ID'])===String(id));
+  return rows.sort((a,b)=>slDateKey(b)-slDateKey(a)||String(b['TARIKH & MASA']||'').localeCompare(String(a['TARIKH & MASA']||'')))[0]||null;
+}
+function slCategory(a,ac){
+  const entry=penyertaan(ac).find(p=>String(p['ATLET ID'])===String(a.ID));
+  return String(entry?.KATEGORI||a.KATEGORI||'Tiada kategori');
+}
+function slOutlook(a,ac,best,category){
+  const info=acaraInfo(ac),rkE=kejohananPeringkat(ac,category,'MSSM'),rkP=kejohananPeringkat(ac,category,'NO.3 MSSM');
+  const valid=r=>r&&Number.isFinite(slNum(r.NILAI))&&slNum(r.NILAI)>0?slNum(r.NILAI):null;
+  const gold=valid(rkE),podium=valid(rkP),out={gold,podium,rkE,rkP,icon:'',label:'Belum mencapai sasaran',detail:'Terus tingkatkan rekod latihan.',code:'USAHA'};
+  if(kategoriDigugur(ac,category))return {...out,label:'Kategori digugurkan',detail:'Tiada anggaran pingat untuk kategori ini.',code:'GUGUR'};
+  if(!(best>0)&&best!==0)return {...out,label:'Tiada rekod latihan',detail:'Anggaran pingat belum dapat dinilai.',code:'TIADA_REKOD'};
+  if(gold===null&&podium===null)return {...out,label:'Tiada rekod event lepas',detail:'Anggaran pingat belum dapat dinilai.',code:'TIADA_SASARAN'};
+  if(gold!==null&&jurangPingat(best,gold,info.JENIS)<=0)return {...out,icon:'🥇',label:'Harapan emas',detail:`${jurangPingat(best,gold,info.JENIS)===0?'Menyamai':'Melepasi'} rekod MSSM · ${fmtJurang(jurangPingat(best,gold,info.JENIS),info)}`,code:'EMAS'};
+  if(podium!==null&&jurangPingat(best,podium,info.JENIS)<=0)return {...out,icon:'🏅',label:'Harapan podium',detail:`${jurangPingat(best,podium,info.JENIS)===0?'Menyamai':'Melepasi'} rekod NO.3 MSSM · ${fmtJurang(jurangPingat(best,podium,info.JENIS),info)}`,code:'PODIUM'};
+  const target=podium??gold,gap=jurangPingat(best,target,info.JENIS);
+  return {...out,code:gap/target<=.10?'HAMPIR':'USAHA',label:gap/target<=.10?'Hampir podium':'Perlu tingkatkan prestasi',detail:`Perlu baiki ${fmtJurang(gap,info)} lagi ke ${podium!==null?'NO.3 MSSM':'MSSM'}.`};
+}
+function slSasaranPadan(a,ac,rek,pilihan){
+  if(!['EMAS','PODIUM','HAMPIR'].includes(pilihan))return true;
+  const values=rek.filter(r=>!/^\s*\[EVENT:/i.test(String(r.CATATAN||''))).map(r=>slNum(r.NILAI)).filter(v=>Number.isFinite(v)&&v>0);
+  const best=values.length?(acaraInfo(ac).JENIS==='MASA'?Math.min(...values):Math.max(...values)):null;
+  return slOutlook(a,ac,best,slCategory(a,ac)).code===pilihan;
+}
+function slScaleEnhanced(){
+  const stage=document.getElementById('slStage'),card=stage?.querySelector('.sl-card');
+  if(!stage||!card)return;
+  card.style.transform=matchMedia('(max-width:700px)').matches?'none':`scale(${Math.min(stage.clientWidth/1920,stage.clientHeight/1080)})`;
+}
+function slRenderEnhanced(){
+  const st=document.getElementById('slStage'),n=SL.list.length;if(!st)return;
+  if(!n){st.innerHTML='<div class="sl-kosong">Tiada rekod prestasi untuk pilihan ini.</div>';document.getElementById('slKira').textContent='0 / 0';return;}
+  SL.i=(SL.i+n)%n;const {a,ac}=SL.list[SL.i],info=acaraInfo(ac),masa=info.JENIS==='MASA',category=slCategory(a,ac);
+  const rek=SL.list[SL.i].rek.filter(r=>!/^\s*\[EVENT:/i.test(String(r.CATATAN||''))&&Number.isFinite(slNum(r.NILAI))&&slNum(r.NILAI)>0).slice().sort((x,y)=>slDateKey(x)-slDateKey(y)||String(x.MASA||x['TARIKH & MASA']||'').localeCompare(String(y.MASA||y['TARIKH & MASA']||'')));
+  const v=rek.map(r=>slNum(r.NILAI)),pb=v.length?(masa?Math.min(...v):Math.max(...v)):null,awal=v[0],akhir=v.at(-1);
+  const change=v.length>1?(masa?awal-akhir:akhir-awal)/awal*100:null,medal=slOutlook(a,ac,pb,category),b=slLatestBmi(a.ID);
+  const bmi=b?(slNum(b.BMI)>0?slNum(b.BMI):kiraBMI(b['BERAT (KG)'],b['TINGGI (CM)'])):0;
+  const catKey=x=>String(x||'').trim().toUpperCase(),rakan={};
+  rekodAcara(ac).forEach(r=>{if(/^\s*\[EVENT:/i.test(String(r.CATATAN||'')))return;idsRekod(r).forEach(id=>{const peer=slAtlet(id);if(!peer.ID||catKey(slCategory(peer,ac))!==catKey(category))return;const val=slNum(r.NILAI);if(!Number.isFinite(val)||!(val>0))return;if(rakan[id]==null||(masa?val<rakan[id]:val>rakan[id]))rakan[id]=val;});});
+  const sorted=Object.entries(rakan).sort((x,y)=>masa?x[1]-y[1]:y[1]-x[1]),rank=pb!==null?1+sorted.filter(x=>masa?x[1]<pb:x[1]>pb).length:null;
+  const targets=[{r:medal.rkE,label:'MSSM · sasaran emas'},{r:medal.rkP,label:'NO.3 MSSM · podium'}].filter(x=>x.r&&slNum(x.r.NILAI)>0).map(x=>({v:slNum(x.r.NILAI),lbl:x.label,kej:1}));
+  const bars=(pb!==null?[{v:pb,lbl:'Terbaik latihan',saya:1}]:[]).concat(targets);
+  const fmt=x=>x===null||x===undefined?'—':esc(slFmt(x,ac)),foto=String(a['GAMBAR (URL)']||'').trim();
+  st.innerHTML=`<article class="sl-card"><header class="sl-identity"><h1 class="sl-nama">${esc(a['NAMA PENUH'])}</h1></header><aside class="sl-kiri"><div class="sl-brand">ATLETTRANING <span>${String(SL.i+1).padStart(2,'0')} / ${String(n).padStart(2,'0')}</span></div><div class="sl-photo">${foto?`<img class="sl-foto" src="${esc(avatar(a))}" alt="${esc(a['NAMA PENUH'])}" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="sl-photo-empty" hidden>Foto belum tersedia</span>`:'<span class="sl-photo-empty">Foto belum tersedia</span>'}</div><div class="sl-sub">${esc(category)} · ${esc(a.JANTINA||'')}<br>${esc(a.SEKOLAH||'')}</div><section class="sl-bmi"><div class="sl-profile-label">BMI terkini · kg/m²</div><div class="sl-bmi-top"><b>${bmi>0?bmi.toFixed(1):'—'}</b><span>${b?esc(fmtTarikh(b.TARIKH)):'Belum direkod'}</span></div><p>${b?`${esc(b['BERAT (KG)']||'—')} kg &nbsp; / &nbsp; ${esc(b['TINGGI (CM)']||'—')} cm`:'Tiada data berat dan tinggi.'}</p><p class="sl-bmi-note">Ukuran fizikal sahaja; BMI tidak menentukan peluang pingat.</p></section></aside><section class="sl-kanan"><header class="sl-title"><div><div class="sl-kick">LAPORAN PRESTASI ATLET</div><h2 class="sl-acara">${esc(ac)}</h2></div><div class="sl-direction">${masa?'Masa lebih rendah = lebih baik':'Nilai lebih tinggi = lebih baik'}</div></header><div class="sl-stat"><div><b>${fmt(pb)}</b><span>Terbaik latihan</span></div><div><b>${fmt(akhir)}</b><span>Latihan terkini</span></div><div><b class="${change!==null&&change<0?'sl-down':''}">${change===null?'—':`${change>0?'+':''}${change.toFixed(1)}%`}</b><span>Awal → terkini</span></div><div><b>${rank?'#'+rank+' / '+sorted.length:'—'}</b><span>Ranking latihan kategori</span></div></div><section class="sl-medal" data-outlook="${medal.code}"><div class="sl-medal-icon" aria-label="${medal.icon?esc(medal.label):'Tiada anggaran pingat'}">${slMedalIcon(medal.code)}</div><div><div class="sl-kick">ANGGARAN PELUANG PINGAT</div><h3>${esc(medal.label)}</h3><p>${esc(medal.detail)}</p><small>${medal.code==='PODIUM'?'Perak / gangsa belum dapat dibezakan. ':''}Anggaran berdasarkan rekod; bukan jaminan keputusan.</small></div><div class="sl-targets"><div><span>MSSM · emas</span><b>${fmt(medal.gold)}</b></div><div><span>NO.3 MSSM · podium</span><b>${fmt(medal.podium)}</b></div><small>${targets.length?targets.map(t=>esc(t.lbl.includes('NO.3')?`${medal.rkP.TAHUN||'Tahun tidak direkod'}`:`${medal.rkE.TAHUN||'Tahun tidak direkod'}`)).join(' / '):'Rekod kategori yang sama sahaja.'}</small></div></section><div class="sl-graf"><div class="sl-box"><h4>Trend latihan · ${rek.length} rekod</h4>${rek.length?slGarisan(rek,ac,targets):'<p class="sl-sub">Belum ada rekod latihan yang sah.</p>'}</div><div class="sl-box"><h4>Latihan vs event lepas</h4>${bars.length?slBar(bars,ac):'<p class="sl-sub">Tiada data perbandingan.</p>'}</div></div><footer class="sl-foot"><span>SUMBER · GOOGLE SHEET &nbsp; / &nbsp; ${esc(category)}</span><span>${rek.length?esc(fmtTarikh(rek[0].TARIKH))+' — '+esc(fmtTarikh(rek.at(-1).TARIKH)):'Tiada rekod latihan'}</span></footer></section></article>`;
+  document.getElementById('slKira').textContent=(SL.i+1)+' / '+n;
+  slScaleEnhanced();SL.mula=performance.now();
+}
+window.addEventListener('resize',slScaleEnhanced);
+
+</script>
 </body>
 </html>
