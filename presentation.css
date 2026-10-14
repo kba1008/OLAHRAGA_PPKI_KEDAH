@@ -30,8 +30,8 @@
 .deck-portrait{width:100%;height:460px;object-fit:contain;object-position:center;background:var(--deck-accent-soft);display:block}
 .deck-photo-missing{height:460px;display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--deck-accent-soft);color:var(--deck-muted);font-size:28px;gap:24px}
 .deck-photo-missing svg{width:130px;height:130px;fill:none;stroke:currentColor;stroke-width:1}
-.deck-name{font-size:44px;line-height:1.12;margin:25px 0 14px;overflow-wrap:anywhere;color:var(--deck-ink)}
-.deck-identity{font-size:26px;line-height:1.4;color:var(--deck-muted);overflow-wrap:anywhere}
+.deck-name{font-size:44px;line-height:1.2;margin:24px 76px 0;flex-shrink:0;overflow-wrap:anywhere;color:var(--deck-ink)}
+.deck-identity{margin-top:20px;font-size:26px;line-height:1.4;color:var(--deck-muted);overflow-wrap:anywhere}
 .deck-event{font-size:64px;line-height:1.1;margin:0 0 12px;color:var(--deck-ink);overflow-wrap:anywhere}
 .deck-direction{font-size:26px;color:var(--deck-muted);margin-bottom:28px}
 .deck-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;padding-bottom:26px;border-bottom:1px solid var(--deck-line)}
@@ -39,8 +39,8 @@
 .deck-good{color:var(--deck-accent)}.deck-decline{color:var(--deck-warn)}
 .deck-chart-heading{display:flex;justify-content:space-between;align-items:center;margin:28px 0 18px;font-size:26px;font-weight:600}
 .deck-chart-heading span{font-size:22px;color:var(--deck-muted);font-weight:400}
-.deck-chart{height:370px;position:relative}.deck-chart canvas{width:100%;height:100%}
-.deck-empty{display:grid;place-items:center;text-align:center;height:370px;color:var(--deck-muted);font-size:32px;border-bottom:1px solid var(--deck-line)}
+.deck-chart{height:290px;position:relative}.deck-chart canvas{width:100%;height:100%}
+.deck-empty{display:grid;place-items:center;text-align:center;height:290px;color:var(--deck-muted);font-size:32px;border-bottom:1px solid var(--deck-line)}
 .deck-footer{height:80px;flex-shrink:0;margin:0 76px;border-top:1px solid var(--deck-line);display:flex;align-items:center;justify-content:space-between;color:var(--deck-muted);font-size:22px}
 .deck-view:fullscreen .deck-toolbar{height:64px}
 @media(max-width:650px){.deck-launch{align-items:flex-start;flex-direction:column}.deck-toolbar{padding:10px;height:64px;gap:6px}.deck-toolbar-brand{font-size:12px}.deck-toolbar-brand span{display:none}.deck-tools{gap:4px}.deck-view .btn.deck-control{min-width:36px;width:36px;height:38px;padding:6px}.deck-position{min-width:48px;font-size:12px}.deck-picker{padding:20px}}

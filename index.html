@@ -5688,9 +5688,9 @@ function slBina(){
     rekodAcara(ac).forEach(r=>idsRekod(r).forEach(id=>{if(id)ids[id]=1;}));
     Object.keys(ids).forEach(id=>{
       const a=slAtlet(id);if(!a.ID)return;
-      if(mod==="KATEGORI"&&pil&&String(a.KATEGORI)!==pil)return;
+      if(mod==="KATEGORI"&&pil&&slCategory(a,ac)!==pil)return;
       const rek=rekodAcara(ac).filter(r=>rekodMilik(r,id)&&Number.isFinite(slNum(r.NILAI))&&slNum(r.NILAI)>0&&!/^\s*\[EVENT:/i.test(String(r.CATATAN||""))).sort((x,y)=>String(x.TARIKH).localeCompare(String(y.TARIKH)));
-      if(rek.length)out.push({a,ac,rek});
+      if(rek.length&&slSasaranPadan(a,ac,rek,document.getElementById("slSasaran")?.value||"SEMUA"))out.push({a,ac,rek});
     });
   });
   out.sort((x,y)=>String(x.a["NAMA PENUH"]).localeCompare(String(y.a["NAMA PENUH"]))||x.ac.localeCompare(y.ac));
@@ -5744,6 +5744,7 @@ function bukaSlaidPrestasi(){
   o.innerHTML=`<div class="sl-bar"><b style="letter-spacing:.1em">🎞 SLAID PRESTASI</b>
    <label>Bentang<select id="slMod"><option value="SEMUA">Semua atlet</option><option value="KATEGORI">Ikut kategori</option><option value="ACARA">Ikut acara</option></select></label>
    <select id="slPil" style="display:none"></select>
+   <label>Sasaran<select id="slSasaran"><option value="SEMUA">Semua sasaran</option><option value="EMAS">Target emas</option><option value="PODIUM">Target podium</option><option value="HAMPIR">Hampir podium</option></select></label>
    <label>Kelajuan<select id="slLaju"><option value="4">4 saat</option><option value="6">6 saat</option><option value="8" selected>8 saat</option><option value="12">12 saat</option><option value="15">15 saat</option><option value="20">20 saat</option><option value="30">30 saat</option></select></label>
    <button onclick="SL.i--;slRender()">◀</button><button id="slMain" onclick="slMain()">⏸ Jeda</button><button onclick="SL.i++;slRender()">▶</button>
    <span id="slKira" style="font-size:13px;color:var(--mut)"></span>
@@ -5754,6 +5755,7 @@ function bukaSlaidPrestasi(){
   SL.main=true;SL.saat=Number(document.getElementById("slLaju").value);
   document.getElementById("slMod").onchange=()=>{slPilihan();slMula();};
   document.getElementById("slPil").onchange=slMula;
+  document.getElementById("slSasaran").onchange=slMula;
   document.getElementById("slLaju").onchange=e=>{SL.saat=Number(e.target.value);SL.mula=performance.now();};
   document.addEventListener("keydown",slKey);
   slMula();slTick();
