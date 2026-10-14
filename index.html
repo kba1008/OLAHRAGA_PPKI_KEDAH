@@ -5704,7 +5704,7 @@ function fmtJurangPL(v,info){
 @media(max-width:760px){.sl-card{grid-template-columns:1fr;aspect-ratio:auto;height:100%;grid-template-rows:38% 1fr}.sl-graf{grid-template-columns:1fr}.sl-stat{grid-template-columns:repeat(2,1fr)}}
 </style>
 <script>
-const SL={i:0,list:[],t:null,main:true,saat:8,mula:0,raf:0};
+const SL={ulang:true,i:0,list:[],t:null,main:true,saat:8,mula:0,raf:0};
 function slAcaraAktif(){return (DB&&DB.acara||[]).filter(a=>String(a.AKTIF||"YA").toUpperCase()!=="TIDAK").map(a=>a.ACARA);}
 function slAtlet(id){return (DB.atlet||[]).find(a=>String(a.ID)===String(id))||{};}
 function slNum(v){const s=String(v==null?"":v).trim();if(!s)return NaN;if(/^\d+[:.]\d+[.:]\d+$/.test(s)){const p=s.split(/[:.]/);return Number(p[0])*60+Number(p[1]+"."+p[2]);}if(/^\d+:\d+(\.\d+)?$/.test(s)){const p=s.split(":");return Number(p[0])*60+Number(p[1]);}return Number(s);}
@@ -5784,10 +5784,12 @@ function slRender(){
   document.getElementById("slKira").textContent=(SL.i+1)+" / "+n;
   SL.mula=performance.now();
 }
-function slTick(){cancelAnimationFrame(SL.raf);const f=()=>{const p=document.getElementById("slProg");if(!p)return;const e=(performance.now()-SL.mula)/(SL.saat*1000);p.style.width=SL.main?Math.min(100,e*100)+"%":"0";if(SL.main&&e>=1){SL.i++;slRender();}SL.raf=requestAnimationFrame(f);};SL.raf=requestAnimationFrame(f);}
+function slTick(){cancelAnimationFrame(SL.raf);const f=()=>{const p=document.getElementById("slProg");if(!p)return;const e=(performance.now()-SL.mula)/(SL.saat*1000);p.style.width=SL.main?Math.min(100,e*100)+"%":"0";if(SL.main&&e>=1){if(!SL.ulang&&SL.i>=SL.list.length-1){slMain();}else{SL.i++;slRender();}}SL.raf=requestAnimationFrame(f);};SL.raf=requestAnimationFrame(f);}
 function slMula(){SL.list=slBina();SL.i=0;slRender();}
 function slMain(){SL.main=!SL.main;SL.mula=performance.now();document.getElementById("slMain").textContent=SL.main?"⏸ Jeda":"▶ Main";}
 function slKey(e){if(!document.getElementById("slOv"))return;if(e.key==="ArrowRight"){SL.i++;slRender();}else if(e.key==="ArrowLeft"){SL.i--;slRender();}else if(e.key===" "){e.preventDefault();slMain();}else if(e.key==="Escape")slTutup();}
+function slUlangMula(){SL.i=0;slRender();if(!SL.main)slMain();}
+function slTogUlang(){SL.ulang=!SL.ulang;document.getElementById("slUlang").textContent="🔁 Ulang: "+(SL.ulang?"HIDUP":"MATI");}
 function slTutup(){cancelAnimationFrame(SL.raf);clearInterval(SL.t);document.removeEventListener("keydown",slKey);const o=document.getElementById("slOv");if(o)o.remove();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}
 async function slSegar(diam){
   try{const d=await apiJsonp("data",{paksa:1},45000);if(d&&Array.isArray(d.atlet)){DB=d;simpanCacheDB(d);const cur=SL.list[SL.i];SL.list=slBina();if(cur){const j=SL.list.findIndex(x=>x.a.ID===cur.a.ID&&x.ac===cur.ac);SL.i=j<0?0:j;}slRender();if(!diam)toast("Data terkini dimuatkan.");}}
@@ -5803,7 +5805,7 @@ function bukaSlaidPrestasi(){
    <label>Kelajuan<select id="slLaju"><option value="4">4 saat</option><option value="6">6 saat</option><option value="8" selected>8 saat</option><option value="12">12 saat</option><option value="15">15 saat</option><option value="20">20 saat</option><option value="30">30 saat</option></select></label>
    <button onclick="SL.i--;slRender()">◀</button><button id="slMain" onclick="slMain()">⏸ Jeda</button><button onclick="SL.i++;slRender()">▶</button>
    <span id="slKira" style="font-size:13px;color:var(--mut)"></span>
-   <button onclick="slSegar()">⟳ Data terkini</button><button onclick="document.getElementById('slOv').requestFullscreen&&document.getElementById('slOv').requestFullscreen()">⛶ Skrin penuh</button>
+   <button onclick="slUlangMula()">⏮ Ulang dari mula</button><button id="slUlang" onclick="slTogUlang()">🔁 Ulang: HIDUP</button><button onclick="slSegar()">⟳ Data terkini</button><button onclick="document.getElementById('slOv').requestFullscreen&&document.getElementById('slOv').requestFullscreen()">⛶ Skrin penuh</button>
    <button class="sl-x" onclick="slTutup()">✕ Tutup</button></div>
    <div class="sl-prog"><i id="slProg"></i></div><div class="sl-stage" id="slStage"></div>`;
   document.body.appendChild(o);
