@@ -643,7 +643,6 @@ body.seret-on{user-select:none;-webkit-user-select:none;cursor:grabbing;overscro
 <link rel="stylesheet" href="./glass.css" />
 <link rel="preload" as="image" href="./speed.png" />
 <link rel="stylesheet" href="./speed-header.css" />
-<link rel="stylesheet" href="./presentation.css" />
 </head>
 <body>
 
@@ -3234,6 +3233,7 @@ function vDashboard(){
     </div>
   </div>
   <div class="report-grid report-attendance-slot">
+    <button class="btn report-action report-prestasi" onclick="bukaSlaidPrestasi()"><span class="report-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="m6 13 4-4 3 3 5-5M8 21h8M12 17v4"/></svg></span><span class="report-label">Slaid Prestasi Atlet</span></button>
     <button class="btn report-action report-kehadiran" onclick="bukaLaporanKehadiranDashboard()"><span class="report-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M7 2v4M17 2v4M3 9h18m-13 6 3 3 5-6"/></svg></span><span class="report-label">Laporan Kehadiran</span></button>
   </div>`;
 }
@@ -5671,6 +5671,151 @@ function fmtJurangPL(v,info){
 }
 </script>
 
-<script src="./presentation.js"></script>
+<!-- ===== SLAID PEMBENTANGAN PRESTASI ATLET (gaya korporat) ===== -->
+<style>
+.sl-ov{position:fixed;inset:0;z-index:9999;background:radial-gradient(1200px 700px at 85% -10%,color-mix(in oklch,var(--p1) 35%,transparent),transparent 60%),linear-gradient(160deg,var(--bg2),var(--bg));color:var(--txt);display:flex;flex-direction:column;font-family:"Segoe UI",system-ui,sans-serif}
+.sl-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:color-mix(in oklch,var(--bg) 70%,transparent)}
+.sl-bar select,.sl-bar button{background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px}
+.sl-bar button{cursor:pointer;font-weight:700}.sl-bar .sl-x{margin-left:auto}
+.sl-bar label{font-size:12px;color:var(--mut);display:flex;gap:6px;align-items:center}
+.sl-stage{flex:1;display:flex;align-items:center;justify-content:center;padding:18px;overflow:hidden}
+.sl-card{width:min(1280px,100%);aspect-ratio:16/9;max-height:100%;display:grid;grid-template-columns:34% 1fr;border-radius:22px;overflow:hidden;background:color-mix(in oklch,var(--bg2) 88%,transparent);border:1px solid var(--line);box-shadow:0 40px 80px -30px #000c;animation:slMasuk .6s ease both}
+@keyframes slMasuk{from{opacity:0;transform:translateX(30px) scale(.98)}to{opacity:1;transform:none}}
+.sl-kiri{position:relative;background:linear-gradient(180deg,color-mix(in oklch,var(--p1) 45%,var(--bg)),var(--bg));display:flex;flex-direction:column;justify-content:flex-end;padding:22px}
+.sl-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%}
+.sl-kiri::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,#000d)}
+.sl-nama{position:relative;z-index:1;font-size:clamp(18px,2.4vw,34px);font-weight:900;line-height:1.05;text-transform:uppercase;color:#fff}
+.sl-sub{position:relative;z-index:1;font-size:clamp(11px,1vw,15px);color:#fffc;margin-top:6px;letter-spacing:.06em}
+.sl-init{position:absolute;inset:0;display:grid;place-items:center;font-size:120px;font-weight:900;color:var(--p2);opacity:.5}
+.sl-kanan{padding:clamp(14px,2.2vw,30px);display:flex;flex-direction:column;gap:12px;min-width:0;overflow:hidden}
+.sl-kick{font-size:12px;letter-spacing:.2em;color:var(--p2);font-weight:800}
+.sl-acara{font-size:clamp(18px,2vw,30px);font-weight:900;margin:0}
+.sl-stat{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.sl-stat div{background:color-mix(in oklch,var(--bg) 60%,transparent);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.sl-stat b{display:block;font-size:clamp(14px,1.6vw,24px);color:var(--p2)}
+.sl-stat span{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
+.sl-graf{flex:1;min-height:0;display:grid;grid-template-columns:1.4fr 1fr;gap:12px}
+.sl-box{background:color-mix(in oklch,var(--bg) 55%,transparent);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;min-height:0}
+.sl-box h4{margin:0 0 6px;font-size:12px;letter-spacing:.12em;color:var(--mut);text-transform:uppercase}
+.sl-box svg{flex:1;width:100%;min-height:0}
+.sl-foot{display:flex;justify-content:space-between;font-size:11px;color:var(--mut)}
+.sl-prog{height:3px;background:var(--line)}.sl-prog i{display:block;height:100%;background:var(--p2);width:0}
+.sl-kosong{text-align:center;color:var(--mut);font-size:18px}
+@media(max-width:760px){.sl-card{grid-template-columns:1fr;aspect-ratio:auto;height:100%;grid-template-rows:38% 1fr}.sl-graf{grid-template-columns:1fr}.sl-stat{grid-template-columns:repeat(2,1fr)}}
+</style>
+<script>
+const SL={i:0,list:[],t:null,main:true,saat:8,mula:0,raf:0};
+function slAcaraAktif(){return (DB&&DB.acara||[]).filter(a=>String(a.AKTIF||"YA").toUpperCase()!=="TIDAK").map(a=>a.ACARA);}
+function slAtlet(id){return (DB.atlet||[]).find(a=>String(a.ID)===String(id))||{};}
+function slNum(v){const s=String(v==null?"":v).trim();if(!s)return NaN;if(/^\d+[:.]\d+[.:]\d+$/.test(s)){const p=s.split(/[:.]/);return Number(p[0])*60+Number(p[1]+"."+p[2]);}if(/^\d+:\d+(\.\d+)?$/.test(s)){const p=s.split(":");return Number(p[0])*60+Number(p[1]);}return Number(s);}
+function slFmt(v,ac){try{return fmtNilai(v,acaraInfo(ac));}catch(_){return String(Math.round(v*100)/100);}}
+function slBina(){
+  const mod=document.getElementById("slMod").value, pil=document.getElementById("slPil").value;
+  const out=[];
+  slAcaraAktif().forEach(ac=>{
+    if(mod==="ACARA"&&pil&&ac!==pil)return;
+    const ids={};
+    rekodAcara(ac).forEach(r=>idsRekod(r).forEach(id=>{if(id)ids[id]=1;}));
+    Object.keys(ids).forEach(id=>{
+      const a=slAtlet(id);if(!a.ID)return;
+      if(mod==="KATEGORI"&&pil&&String(a.KATEGORI)!==pil)return;
+      const rek=rekodAcara(ac).filter(r=>rekodMilik(r,id)&&slNum(r.NILAI)>0).sort((x,y)=>String(x.TARIKH).localeCompare(String(y.TARIKH)));
+      if(rek.length)out.push({a,ac,rek});
+    });
+  });
+  out.sort((x,y)=>String(x.a["NAMA PENUH"]).localeCompare(String(y.a["NAMA PENUH"]))||x.ac.localeCompare(y.ac));
+  return out;
+}
+function slPilihan(){
+  const mod=document.getElementById("slMod").value,s=document.getElementById("slPil");
+  let o=[];
+  if(mod==="KATEGORI")o=[...new Set((DB.atlet||[]).map(a=>a.KATEGORI).filter(Boolean))].sort();
+  if(mod==="ACARA")o=slAcaraAktif();
+  s.innerHTML=o.map(x=>`<option>${esc(x)}</option>`).join("");s.style.display=o.length?"":"none";
+}
+function slGarisan(rek,ac,rekodKej){
+  const W=520,H=230,P=34,v=rek.map(r=>slNum(r.NILAI)),masa=acaraInfo(ac).JENIS==="MASA";
+  const all=v.concat(rekodKej.map(k=>k.v));let mn=Math.min(...all),mx=Math.max(...all);if(mn===mx){mn-=1;mx+=1;}const pad=(mx-mn)*.12;mn-=pad;mx+=pad;
+  const X=i=>P+(v.length<2?(W-2*P)/2:i*(W-2*P)/(v.length-1)),Y=x=>masa?P/2+(x-mn)/(mx-mn)*(H-P*1.5):H-P+(-(x-mn)/(mx-mn))*(H-P*1.5);
+  const pts=v.map((x,i)=>`${X(i)},${Y(x)}`).join(" ");
+  let g=`<defs><linearGradient id="slg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="var(--p2)" stop-opacity=".45"/><stop offset="1" stop-color="var(--p2)" stop-opacity="0"/></linearGradient></defs>`;
+  for(let k=0;k<4;k++){const y=P/2+k*(H-P*1.5)/3;g+=`<line x1="${P}" x2="${W-P/2}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-dasharray="3 5"/>`;}
+  rekodKej.slice(0,2).forEach((k,j)=>{const y=Y(k.v);g+=`<line x1="${P}" x2="${W-P/2}" y1="${y}" y2="${y}" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="8 4"/><text x="${W-P/2}" y="${y-4}" text-anchor="end" font-size="11" fill="var(--warn)">${esc(k.lbl)} ${esc(slFmt(k.v,ac))}</text>`;});
+  if(v.length>1)g+=`<polygon points="${X(0)},${H-P} ${pts} ${X(v.length-1)},${H-P}" fill="url(#slg)"/><polyline points="${pts}" fill="none" stroke="var(--p2)" stroke-width="3" stroke-linejoin="round"/>`;
+  v.forEach((x,i)=>{g+=`<circle cx="${X(i)}" cy="${Y(x)}" r="4.5" fill="var(--bg)" stroke="var(--p2)" stroke-width="2.5"/>`;});
+  const lb=[0,v.length-1].filter((x,i,a)=>a.indexOf(x)===i);
+  lb.forEach(i=>{g+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--mut)">${esc(String(rek[i].TARIKH||"").slice(0,10))}</text><text x="${X(i)}" y="${Y(v[i])-10}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--txt)">${esc(slFmt(v[i],ac))}</text>`;});
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
+}
+function slBar(items,ac){
+  const masa=acaraInfo(ac).JENIS==="MASA",W=340,H=230,rowH=Math.min(40,(H-10)/Math.max(items.length,1));
+  const mx=Math.max(...items.map(x=>x.v)),mn=Math.min(...items.map(x=>x.v));
+  let g="";items.forEach((x,i)=>{
+    const sk=masa?(mn/x.v):(x.v/mx), w=Math.max(8,sk*(W-130)), y=5+i*rowH;
+    g+=`<text x="0" y="${y+rowH*.45}" font-size="11" fill="var(--mut)">${esc(x.lbl.slice(0,18))}</text><rect x="0" y="${y+rowH*.52}" width="${w}" height="${rowH*.32}" rx="4" fill="${x.saya?"var(--p2)":x.kej?"var(--warn)":"var(--p3)"}" opacity="${x.saya?1:.75}"/><text x="${w+6}" y="${y+rowH*.8}" font-size="12" font-weight="700" fill="var(--txt)">${esc(slFmt(x.v,ac))}</text>`;});
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMinYMid meet">${g}</svg>`;
+}
+function slRender(){
+  const st=document.getElementById("slStage"),n=SL.list.length;
+  if(!n){st.innerHTML=`<div class="sl-kosong">Tiada rekod prestasi untuk pilihan ini.</div>`;document.getElementById("slKira").textContent="0 / 0";return;}
+  SL.i=(SL.i+n)%n;const {a,ac,rek}=SL.list[SL.i],info=acaraInfo(ac),masa=info.JENIS==="MASA",v=rek.map(r=>slNum(r.NILAI));
+  const pb=masa?Math.min(...v):Math.max(...v),awal=v[0],akhir=v[v.length-1],baik=masa?awal-pb:pb-awal,pct=awal?Math.abs(baik/awal*100):0;
+  /* rekod kejohanan / event lain */
+  const kej=(DB.kejohanan||[]).filter(k=>k.ACARA===ac&&slNum(k.NILAI)>0&&(!k.KATEGORI||String(k.KATEGORI)===String(a.KATEGORI)))
+    .map(k=>({v:slNum(k.NILAI),lbl:(k["NAMA KEJOHANAN"]||"Rekod")+(k.TAHUN?" "+k.TAHUN:""),kej:1}));
+  const lawan=(DB.perlawanan||[]).filter(p=>p.ACARA===ac&&String(p["ATLET ID"])===String(a.ID)&&slNum(p.NILAI)>0).map(p=>({v:slNum(p.NILAI),lbl:"Saya @ "+(p.KEJOHANAN||"Kejohanan")}));
+  /* bandingan rakan sekategori */
+  const rakan={};rekodAcara(ac).forEach(r=>idsRekod(r).forEach(id=>{const b=slAtlet(id);if(!b.ID||String(b.KATEGORI)!==String(a.KATEGORI))return;const x=slNum(r.NILAI);if(!(x>0))return;if(rakan[id]==null||(masa?x<rakan[id]:x>rakan[id]))rakan[id]=x;}));
+  const susun=Object.entries(rakan).sort((x,y)=>masa?x[1]-y[1]:y[1]-x[1]),ked=susun.findIndex(x=>x[0]===String(a.ID))+1;
+  let bar=[{v:pb,lbl:"PB "+String(a["NAMA PENUH"]).split(" ")[0],saya:1}];
+  if(susun.length>1)bar.push({v:susun[0][1],lbl:"Terbaik kategori"},{v:susun.reduce((s,x)=>s+x[1],0)/susun.length,lbl:"Purata kategori"});
+  bar=bar.concat(lawan.slice(-2),kej.slice(0,3)).slice(0,6);
+  const foto=a["GAMBAR (URL)"];
+  st.innerHTML=`<div class="sl-card" key="${SL.i}">
+   <div class="sl-kiri">${foto?`<img class="sl-foto" src="${esc(foto)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`:`<div class="sl-init">${esc(String(a["NAMA PENUH"]||"?").charAt(0))}</div>`}
+    <div class="sl-nama">${esc(a["NAMA PENUH"])}</div><div class="sl-sub">${esc(a.KATEGORI||"")} · ${esc(a.SEKOLAH||"")}</div></div>
+   <div class="sl-kanan"><div><div class="sl-kick">LAPORAN PRESTASI ATLET</div><h2 class="sl-acara">${esc(ac)}</h2></div>
+    <div class="sl-stat"><div><b>${esc(slFmt(pb,ac))}</b><span>Rekod peribadi</span></div><div><b>${esc(slFmt(akhir,ac))}</b><span>Terkini</span></div>
+     <div><b style="color:${baik>=0?"var(--ok)":"var(--bad)"}">${baik>=0?"▲":"▼"} ${pct.toFixed(1)}%</b><span>Peningkatan</span></div><div><b>${ked?"#"+ked+" / "+susun.length:"-"}</b><span>Kedudukan kategori</span></div></div>
+    <div class="sl-graf"><div class="sl-box"><h4>Trend latihan (${rek.length} rekod)</h4>${slGarisan(rek,ac,kej)}</div>
+     <div class="sl-box"><h4>Bandingan rekod event</h4>${slBar(bar,ac)}</div></div>
+    <div class="sl-foot"><span>AtletTraning · Data dikemas kini ${esc(DB.masaPelayan||"")}</span><span>${masa?"Masa lebih rendah = lebih baik":"Nilai lebih tinggi = lebih baik"}</span></div>
+   </div></div>`;
+  document.getElementById("slKira").textContent=(SL.i+1)+" / "+n;
+  SL.mula=performance.now();
+}
+function slTick(){cancelAnimationFrame(SL.raf);const f=()=>{const p=document.getElementById("slProg");if(!p)return;const e=(performance.now()-SL.mula)/(SL.saat*1000);p.style.width=SL.main?Math.min(100,e*100)+"%":"0";if(SL.main&&e>=1){SL.i++;slRender();}SL.raf=requestAnimationFrame(f);};SL.raf=requestAnimationFrame(f);}
+function slMula(){SL.list=slBina();SL.i=0;slRender();}
+function slMain(){SL.main=!SL.main;SL.mula=performance.now();document.getElementById("slMain").textContent=SL.main?"⏸ Jeda":"▶ Main";}
+function slKey(e){if(!document.getElementById("slOv"))return;if(e.key==="ArrowRight"){SL.i++;slRender();}else if(e.key==="ArrowLeft"){SL.i--;slRender();}else if(e.key===" "){e.preventDefault();slMain();}else if(e.key==="Escape")slTutup();}
+function slTutup(){cancelAnimationFrame(SL.raf);clearInterval(SL.t);document.removeEventListener("keydown",slKey);const o=document.getElementById("slOv");if(o)o.remove();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}
+async function slSegar(diam){
+  try{const d=await apiJsonp("data",{paksa:1},45000);if(d&&Array.isArray(d.atlet)){DB=d;simpanCacheDB(d);const cur=SL.list[SL.i];SL.list=slBina();if(cur){const j=SL.list.findIndex(x=>x.a.ID===cur.a.ID&&x.ac===cur.ac);SL.i=j<0?0:j;}slRender();if(!diam)toast("Data terkini dimuatkan.");}}
+  catch(e){if(!diam)toast("Gagal muat data terkini — guna data sedia ada.");}
+}
+function bukaSlaidPrestasi(){
+  if(!DB)return toast("Data belum dimuatkan.");
+  slTutup();
+  const o=document.createElement("div");o.className="sl-ov";o.id="slOv";
+  o.innerHTML=`<div class="sl-bar"><b style="letter-spacing:.1em">🎞 SLAID PRESTASI</b>
+   <label>Bentang<select id="slMod"><option value="SEMUA">Semua atlet</option><option value="KATEGORI">Ikut kategori</option><option value="ACARA">Ikut acara</option></select></label>
+   <select id="slPil" style="display:none"></select>
+   <label>Kelajuan<select id="slLaju"><option value="4">4 saat</option><option value="6">6 saat</option><option value="8" selected>8 saat</option><option value="12">12 saat</option><option value="15">15 saat</option><option value="20">20 saat</option><option value="30">30 saat</option></select></label>
+   <button onclick="SL.i--;slRender()">◀</button><button id="slMain" onclick="slMain()">⏸ Jeda</button><button onclick="SL.i++;slRender()">▶</button>
+   <span id="slKira" style="font-size:13px;color:var(--mut)"></span>
+   <button onclick="slSegar()">⟳ Data terkini</button><button onclick="document.getElementById('slOv').requestFullscreen&&document.getElementById('slOv').requestFullscreen()">⛶ Skrin penuh</button>
+   <button class="sl-x" onclick="slTutup()">✕ Tutup</button></div>
+   <div class="sl-prog"><i id="slProg"></i></div><div class="sl-stage" id="slStage"></div>`;
+  document.body.appendChild(o);
+  SL.main=true;SL.saat=Number(document.getElementById("slLaju").value);
+  document.getElementById("slMod").onchange=()=>{slPilihan();slMula();};
+  document.getElementById("slPil").onchange=slMula;
+  document.getElementById("slLaju").onchange=e=>{SL.saat=Number(e.target.value);SL.mula=performance.now();};
+  document.addEventListener("keydown",slKey);
+  slMula();slTick();
+  slSegar(true);                         /* sentiasa ambil data terkini dari Google Sheet */
+  SL.t=setInterval(()=>slSegar(true),60000);
+}
+</script>
 </body>
 </html>
