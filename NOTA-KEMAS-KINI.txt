@@ -1,4 +1,0 @@
-Graf slaid: masa lebih rendah berada lebih tinggi; masa lebih perlahan berada lebih rendah. Contoh 14.56 ke 14.16 saat ialah peningkatan prestasi, jadi garisan naik.
-Graf Prestasi biasa: paksi masa kini diterbalikkan agar arah prestasi sama dengan slaid. Acara jarak tidak berubah.
-Fail Google Apps Script dikekalkan tanpa perubahan.
-Fail imej asal (logo.png, logo-192.png dan imej header jika digunakan) tidak dimuat naik dalam perbualan ini; kekalkan imej asal di hosting anda.
