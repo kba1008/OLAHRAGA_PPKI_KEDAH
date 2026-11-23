@@ -5,7 +5,7 @@
    Tampal URL /exec baharu di antara tanda petik di bawah,
    kemudian simpan fail ini. Tiada perubahan lain diperlukan.
    ============================================================ */
-const API_URL_LALAI="https://script.google.com/macros/s/AKfycbxJAZ4RcDM9GStc_uceaowl3ahqjHHxbuo3KSssNPJVV3eEdkiwRI3ZhUYNsUINJI2Y/exec";
+const API_URL_LALAI="https://script.google.com/macros/s/AKfycby7iYwftzfEmLNj2HWc9ap59L_ptxc-j1deeyrnLJJTO5eGH3p0df9KDzwx9Keuz4f5/exec";
 </script>
 <html lang="ms">
 <head>
@@ -3932,8 +3932,10 @@ function vAdmin(){
   ${isMaster()?`<h3>Warna Paparan</h3><div class="card tema-panel"><label for="temaApp">Tema aplikasi</label><select id="temaApp" onchange="tukarTemaApp(this.value)">${AT_TEMA.pilihan.map(t=>`<option value="${t.id}" ${temaSemasa()===t.id?"selected":""}>${t.nama}</option>`).join("")}</select><div id="temaStatus" class="small" role="status" aria-live="polite"></div></div>`:""}
   <h3>Guru Berdaftar</h3>
   ${isMaster()?`<div class="card small">Anda boleh melantik mana-mana pengguna berdaftar sebagai <b>Sub Admin</b>. Sub Admin mempunyai akses penuh, kecuali tidak boleh memadam Master Admin.</div>`:`<div class="card small">Anda log masuk sebagai <b>Sub Admin</b> — akses penuh, kecuali melantik Sub Admin dan memadam Master Admin.</div>`}
+  ${isMaster()?`<button class="btn sm ghost" style="margin-bottom:8px" onclick="togolPass()">${PASS_MAP?"🙈 Sembunyi Kata Laluan":"👁 Lihat Kata Laluan Semua Pengguna"}</button>`:""}
   <div class="item"><div style="flex:1"><div class="nm">Master Admin <span class="chip">MASTER</span></div><div class="sub">Akaun pentadbir utama • tidak boleh dipadam</div></div></div>
   ${(DB.guru||[]).map(g=>{const sub=String(g.peranan||"GURU").toUpperCase()==="SUBADMIN";return `<div class="item"><div style="flex:1"><div class="nm">${esc(g.nama)} <span class="chip">${sub?"SUB ADMIN":"GURU"}</span></div><div class="sub">${esc(g.emel)} • ${esc(g.jawatan)}</div><div class="sub">${esc(g.sekolah)} • ${esc(g.telefon)}</div>
+    ${isMaster()&&PASS_MAP?`<div class="sub">🔑 Kata laluan: <b>${esc(PASS_MAP[String(g.emel).toLowerCase().trim()]??"-")}</b></div>`:""}
     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
       ${isMaster()?(sub?`<button class="btn sm ghost" onclick="tukarSubAdmin('${esc(g.emel)}',false)">↧ Tarik Sub Admin</button>`:`<button class="btn sm" onclick="tukarSubAdmin('${esc(g.emel)}',true)">★ Lantik Sub Admin</button>`):""}
       ${isMaster()?`<button class="btn sm ghost" onclick="resetPassGuru('${esc(g.emel)}','${esc(g.nama)}')">🔑 Reset Kata Laluan</button>`:""}
@@ -3969,6 +3971,15 @@ async function tukarSubAdmin(emel,jadi){
     toast(jadi?"Sub Admin dilantik":"Jawatan Sub Admin ditarik"); vAdmin();
   }catch(e){ toastRalat(e); }
 }
+let PASS_MAP=null;
+async function togolPass(){
+  if(!isMaster()) return toast("Hanya Master Admin.");
+  if(PASS_MAP){ PASS_MAP=null; return vAdmin(); }
+  try{
+    const r=await api("senaraiKataLaluan",{...who(),tokenTema:U&&U.tokenTema});
+    PASS_MAP={}; (r||[]).forEach(x=>PASS_MAP[x.emel]=x.kataLaluan); vAdmin();
+  }catch(e){ toastRalat(e); }
+}
 async function resetPassGuru(emel,nama){
   if(!isMaster()) return toast("Hanya Master Admin boleh reset kata laluan.");
   const baru=prompt(`Kata laluan baharu untuk ${nama||emel}\n(Emel log masuk: ${emel})`,"");
@@ -3976,6 +3987,7 @@ async function resetPassGuru(emel,nama){
   if(!baru.trim()) return toast("Kata laluan tidak boleh kosong");
   try{
     await api("resetKataLaluan",{emel,kataLaluanBaru:baru,...who()});
+    if(PASS_MAP) { PASS_MAP[String(emel).toLowerCase().trim()]=baru; vAdmin(); }
     alert(`Kata laluan berjaya ditukar.\n\nEmel: ${emel}\nKata laluan: ${baru}\n\nBeritahu pengguna maklumat ini.`);
   }catch(e){ toastRalat(e); }
 }

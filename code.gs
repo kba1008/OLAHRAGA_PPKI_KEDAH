@@ -1692,6 +1692,14 @@ function resetKataLaluan(p) {
   throw new Error("Pengguna berdaftar tidak dijumpai.");
 }
 
+/* Master Admin SAHAJA (dengan token sesi): senarai kata laluan semua pengguna. */
+function senaraiKataLaluan(p) {
+  sahkanSesiTema_(p);
+  return baca(SHEET_GURU).map(function (g) {
+    return { emel: String(g["EMEL"]).toLowerCase().trim(), kataLaluan: String(g["KATA LALUAN"] == null ? "" : g["KATA LALUAN"]) };
+  });
+}
+
 function lantikSubAdmin(p) {
   if (!isMasterAdmin(p.olehEmel)) throw new Error("Hanya Master Admin boleh melantik Sub Admin.");
   return tukarPerananGuru_(p.emel, "SUBADMIN");
@@ -1758,6 +1766,7 @@ var TINDAKAN = {
   simpanTetapan: simpanTetapan,
   lantikSubAdmin: lantikSubAdmin,
   resetKataLaluan: resetKataLaluan,
+  senaraiKataLaluan: senaraiKataLaluan,
   buangSubAdmin: buangSubAdmin,
   padamGuru: padamGuru,
   baikiUrlGambar: function () { return { mesej: baikiUrlGambar() }; },
