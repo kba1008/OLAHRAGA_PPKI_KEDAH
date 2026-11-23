@@ -210,7 +210,7 @@ function daftarGuru(p) {
   dapatSheet(SHEET_GURU, HEADERS[SHEET_GURU], "#4f2df5");
   if (cariGuru(p.emel)) throw new Error("Emel ini telah didaftarkan.");
   var id = idBaharu("G", SHEET_GURU);
-  ss().getSheetByName(SHEET_GURU).appendRow([id, p.nama, String(p.emel).toLowerCase().trim(), p.kataLaluan, p.jawatan, p.sekolah, p.telefon, "GURU", nowStr()]);
+  ss().getSheetByName(SHEET_GURU).appendRow([id, p.nama, String(p.emel).toLowerCase().trim(), "'" + String(p.kataLaluan), p.jawatan, p.sekolah, p.telefon, "GURU", nowStr()]);
   return { id: id, nama: p.nama, emel: String(p.emel).toLowerCase().trim(), jawatan: p.jawatan, sekolah: p.sekolah, telefon: p.telefon, peranan: "GURU" };
 }
 
@@ -220,7 +220,7 @@ function login(p) {
     return { tokenTema: ciptaSesiTema_(), id: "ADMIN", nama: "Master Admin", emel: ADMIN_EMEL, jawatan: "Master Admin", sekolah: "-", telefon: "-", peranan: "ADMIN" };
   }
   var g = cariGuru(emel);
-  if (!g || String(g["KATA LALUAN"]) !== String(p.kataLaluan)) throw new Error("Emel atau kata laluan salah.");
+  if (!g || !samaKataLaluan_(g["KATA LALUAN"], p.kataLaluan)) throw new Error("Emel atau kata laluan salah.");
   return { id: g["ID"], nama: g["NAMA PENUH"], emel: g["EMEL"], jawatan: g["JAWATAN"], sekolah: g["SEKOLAH"], telefon: g["NO TELEFON"], peranan: g["PERANAN"] || "GURU" };
 }
 
@@ -1660,6 +1660,38 @@ function tukarPerananGuru_(emel, peranan) {
   throw new Error("Pengguna berdaftar tidak dijumpai.");
 }
 
+/* Banding kata laluan dengan selamat: Google Sheet kadang-kadang menukar
+   "0123" kepada 123, atau ada ruang kosong. */
+function samaKataLaluan_(simpan, masuk) {
+  var a = String(simpan == null ? "" : simpan).trim(), b = String(masuk == null ? "" : masuk).trim();
+  if (a === b) return true;
+  if (a !== "" && b !== "" && !isNaN(Number(a)) && !isNaN(Number(b)) && Number(a) === Number(b)) return true;
+  return false;
+}
+
+/* Master Admin: tetapkan kata laluan baharu bagi mana-mana pengguna (apa sahaja). */
+function resetKataLaluan(p) {
+  if (!isMasterAdmin(p.olehEmel)) throw new Error("Hanya Master Admin boleh menetapkan semula kata laluan.");
+  var e = String(p.emel || "").toLowerCase().trim();
+  var baru = String(p.kataLaluanBaru == null ? "" : p.kataLaluanBaru);
+  if (!e) throw new Error("Emel pengguna diperlukan.");
+  if (!baru.trim()) throw new Error("Kata laluan baharu tidak boleh kosong.");
+  var s = ss().getSheetByName(SHEET_GURU);
+  var v = s.getDataRange().getValues(), h = v[0];
+  var cE = h.indexOf("EMEL"), cP = h.indexOf("KATA LALUAN");
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][cE]).toLowerCase().trim() === e) {
+      var sel = s.getRange(i + 1, cP + 1);
+      sel.setNumberFormat("@");
+      sel.setValue(baru);
+      /* Betulkan juga emel yang ada ruang / huruf besar supaya boleh log masuk */
+      s.getRange(i + 1, cE + 1).setValue(e);
+      return { ok: true, emel: e };
+    }
+  }
+  throw new Error("Pengguna berdaftar tidak dijumpai.");
+}
+
 function lantikSubAdmin(p) {
   if (!isMasterAdmin(p.olehEmel)) throw new Error("Hanya Master Admin boleh melantik Sub Admin.");
   return tukarPerananGuru_(p.emel, "SUBADMIN");
@@ -1725,6 +1757,7 @@ var TINDAKAN = {
   padamAtlet: padamAtlet,
   simpanTetapan: simpanTetapan,
   lantikSubAdmin: lantikSubAdmin,
+  resetKataLaluan: resetKataLaluan,
   buangSubAdmin: buangSubAdmin,
   padamGuru: padamGuru,
   baikiUrlGambar: function () { return { mesej: baikiUrlGambar() }; },

@@ -3936,6 +3936,7 @@ function vAdmin(){
   ${(DB.guru||[]).map(g=>{const sub=String(g.peranan||"GURU").toUpperCase()==="SUBADMIN";return `<div class="item"><div style="flex:1"><div class="nm">${esc(g.nama)} <span class="chip">${sub?"SUB ADMIN":"GURU"}</span></div><div class="sub">${esc(g.emel)} • ${esc(g.jawatan)}</div><div class="sub">${esc(g.sekolah)} • ${esc(g.telefon)}</div>
     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
       ${isMaster()?(sub?`<button class="btn sm ghost" onclick="tukarSubAdmin('${esc(g.emel)}',false)">↧ Tarik Sub Admin</button>`:`<button class="btn sm" onclick="tukarSubAdmin('${esc(g.emel)}',true)">★ Lantik Sub Admin</button>`):""}
+      ${isMaster()?`<button class="btn sm ghost" onclick="resetPassGuru('${esc(g.emel)}','${esc(g.nama)}')">🔑 Reset Kata Laluan</button>`:""}
       ${(isMaster()||!sub)?`<button class="btn sm bad" onclick="padamGuru('${esc(g.emel)}','${esc(g.nama)}')">🗑 Padam</button>`:""}
     </div></div></div>`}).join("")||'<div class="card small">Tiada guru berdaftar.</div>'}
   <h3>Jurulatih Acara</h3>
@@ -3966,6 +3967,16 @@ async function tukarSubAdmin(emel,jadi){
     const g=(DB.guru||[]).find(x=>String(x.emel).toLowerCase()===String(emel).toLowerCase());
     if(g) g.peranan=jadi?"SUBADMIN":"GURU";
     toast(jadi?"Sub Admin dilantik":"Jawatan Sub Admin ditarik"); vAdmin();
+  }catch(e){ toastRalat(e); }
+}
+async function resetPassGuru(emel,nama){
+  if(!isMaster()) return toast("Hanya Master Admin boleh reset kata laluan.");
+  const baru=prompt(`Kata laluan baharu untuk ${nama||emel}\n(Emel log masuk: ${emel})`,"");
+  if(baru===null) return;
+  if(!baru.trim()) return toast("Kata laluan tidak boleh kosong");
+  try{
+    await api("resetKataLaluan",{emel,kataLaluanBaru:baru,...who()});
+    alert(`Kata laluan berjaya ditukar.\n\nEmel: ${emel}\nKata laluan: ${baru}\n\nBeritahu pengguna maklumat ini.`);
   }catch(e){ toastRalat(e); }
 }
 async function padamGuru(emel,nama){
